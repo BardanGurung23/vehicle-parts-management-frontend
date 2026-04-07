@@ -1,5 +1,3 @@
-# General Asahi Admin Panel
-
 ## Technologies Used
 
 - [React](https://react.dev/)
