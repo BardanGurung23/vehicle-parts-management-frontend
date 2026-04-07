@@ -1,0 +1,5 @@
+.tableBody {
+  tr:nth-child(even) {
+    background-color: rgba(209, 214, 214, 0.432);
+  }
+}

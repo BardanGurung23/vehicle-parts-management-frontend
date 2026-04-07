@@ -1,0 +1,62 @@
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.input-label {
+  font-weight: 600;
+  font-size: 0.875rem; /* Equivalent to Tailwind's text-sm */
+  color: #374561;
+  text-align: start;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background-color: #fff;
+  height: 38px;
+  border-radius: 6px;
+}
+
+.input-checkbox-wrapper {
+  border: none;
+  padding: 0;
+}
+
+.input-left-section {
+  margin-right: 0.5rem;
+}
+
+.input-right-section {
+  margin-left: 0.5rem;
+}
+
+.input-field {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background-color: white;
+  /* color: black; */
+}
+
+.input-error-field {
+  border-color: #ff4d4f;
+}
+
+.input-error {
+  font-size: 0.75rem; /* Equivalent to Tailwind's text-[0.75rem] */
+  color: #ff4d4f;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: black !important;
+}

@@ -1,0 +1,54 @@
+/* Example styles */
+.select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  height: auto !important;
+}
+
+.select-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #374561;
+  text-align: start;
+}
+
+.select-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.select-field {
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  /* border-radius: 0.375rem; */
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  background-color: white;
+}
+
+.select-error {
+  color: red;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.select-left-section,
+.select-right-section {
+  display: flex;
+  align-items: center;
+  margin: 0 0.5rem;
+}
+
+.select-field:focus {
+  outline: none; /* Optional: Remove focus outline */
+}
+
+.select-field option,
+.select-field optgroup {
+  max-height: 1px; /* Maximum height for the dropdown options */
+  overflow-y: auto; /* Scrollable if the options exceed the height */
+  display: block; /* Ensure the options behave like block elements */
+}
