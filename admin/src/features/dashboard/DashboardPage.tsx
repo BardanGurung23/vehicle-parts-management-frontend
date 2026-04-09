@@ -56,18 +56,18 @@ export function DashboardPage() {
 
         <article className="card">
           <div className="card__header">
-            <h3>Current scope</h3>
-            <p className="card__copy">What is available in the current MVP flow.</p>
+            <h3>What I've completed</h3>
+            <p className="card__copy">Summary of what I've implemented so far.</p>
           </div>
 
           <ul className="plain-list">
-            <li>Customer accounts can self-register.</li>
-            <li>Admins can register staff and assign Admin or Staff roles.</li>
-            <li>All users share the same login path.</li>
+            <li>Implemented customer self-registration.</li>
+            <li>Added staff onboarding and role assignment (Admin / Staff).</li>
+            <li>Shared login path for all user roles.</li>
           </ul>
         </article>
 
-        {isAdmin ? (
+        {isAdmin && (
           <article className="card">
             <div className="card__header">
               <h3>Admin actions</h3>
@@ -77,15 +77,6 @@ export function DashboardPage() {
             <Link className="button button--secondary dashboard-link" to="/app/staff">
               Open staff management
             </Link>
-          </article>
-        ) : (
-          <article className="card">
-            <div className="card__header">
-              <h3>What happens next</h3>
-              <p className="card__copy">
-                Your account is active on the shared login flow. Role-specific features can be added on top of this baseline.
-              </p>
-            </div>
           </article>
         )}
       </div>
