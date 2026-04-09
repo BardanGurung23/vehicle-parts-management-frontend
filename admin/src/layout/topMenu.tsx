@@ -60,8 +60,8 @@ export default function TopMenu({ sideMenuOpen, setSideMenuOpen }) {
   };
 
   return (
-    <div className="w-full px-[1.5rem] py-[1rem]">
-      <div className="bg-white h-full w-full shadow-lg pt-[10px] pb-[0.5rem] px-[0.5rem]">
+    <div className="w-full">
+      <div className="w-full h-full flex flex-col justify-center px-4 py-2">
         <div className="flex justify-between">
           {/* <button onClick={() => setSideMenuOpen(!sideMenuOpen)}>Toggle</button> */}
           <SearchBox />
