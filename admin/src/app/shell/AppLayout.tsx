@@ -6,9 +6,16 @@ export function AppLayout() {
   const { user, isAdmin, logout } = useAuth();
 
   const isStaffPage = location.pathname.startsWith("/app/staff");
-  const headerTitle = isStaffPage ? "Staff management" : "Dashboard";
+  const isPartsPage = location.pathname.startsWith("/app/parts");
+  const headerTitle = isStaffPage
+    ? "Staff management"
+    : isPartsPage
+      ? "Parts management"
+      : "Dashboard";
   const headerCopy = isStaffPage
     ? "Create staff accounts and update role assignments."
+    : isPartsPage
+      ? "Manage inventory, pricing and stock levels."
     : "Current session and access overview.";
 
   return (

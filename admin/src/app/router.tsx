@@ -10,6 +10,7 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterCustomerPage } from "../features/auth/RegisterCustomerPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
+import Parts from "../pages/Parts";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 
 function PublicOnlyOutlet() {
@@ -97,6 +98,10 @@ export const router = createBrowserRouter([
               {
                 path: "staff",
                 element: <StaffManagementPage />,
+              },
+              {
+                path: "parts",
+                element: <Parts />,
               },
             ],
           },
