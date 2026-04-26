@@ -13,7 +13,7 @@ const baseQuery = fetchBaseQuery({
 
     const token = getToken("token");
     if (token) {
-      headers.set("authorization", `Admin ${token}`);
+      headers.set("authorization", `Bearer ${token}`);
     }
     return headers;
   },
@@ -42,6 +42,8 @@ export const api = createApi({
     "product",
     "product-variant",
     "testimonial",
+    "staff",
+    "parts",
   ],
   endpoints: () => ({}),
 });
