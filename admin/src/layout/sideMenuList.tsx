@@ -16,6 +16,7 @@ import {
   Tag,
   MenuIcon,
   Quote,
+  Package,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -44,13 +45,13 @@ export const SideMenuList: SideListMenuType[] = [
         path: "/admin/product/list",
         icon: <MdOutlineFactCheck />,
       },
-      // {
-      //   key: 3.3,
-      //   name: "Product Variant",
-      //   path: "/admin/product-variant/list",
-      //   icon: <MdOutlineFactCheck />,
-      // },
     ],
+  },
+  {
+    key: 1.5,
+    name: "Parts",
+    path: "/app/parts",
+    icon: <Package />,
   },
   {
     key: 2,
@@ -86,6 +87,12 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Roles",
         path: "/admin/roles/list",
         icon: <MdOutlineFactCheck />,
+      },
+      {
+        key: 5.3,
+        name: "Staff",
+        path: "/admin/staff",
+        icon: <MdOutlinePerson />,
       },
     ],
   },

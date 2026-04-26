@@ -24,7 +24,9 @@ export function AppLayout() {
             to="/app"
             end
             className={({ isActive }) =>
-              isActive ? "shell__nav-link shell__nav-link--active" : "shell__nav-link"
+              isActive
+                ? "shell__nav-link shell__nav-link--active"
+                : "shell__nav-link"
             }
           >
             Dashboard
@@ -33,10 +35,24 @@ export function AppLayout() {
             <NavLink
               to="/app/staff"
               className={({ isActive }) =>
-                isActive ? "shell__nav-link shell__nav-link--active" : "shell__nav-link"
+                isActive
+                  ? "shell__nav-link shell__nav-link--active"
+                  : "shell__nav-link"
               }
             >
               Staff Management
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink
+              to="/app/parts"
+              className={({ isActive }) =>
+                isActive
+                  ? "shell__nav-link shell__nav-link--active"
+                  : "shell__nav-link"
+              }
+            >
+              Parts Management
             </NavLink>
           )}
         </nav>
@@ -56,7 +72,11 @@ export function AppLayout() {
                 <span>{user?.role}</span>
               </div>
 
-              <button type="button" className="button button--secondary" onClick={logout}>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={logout}
+              >
                 Sign out
               </button>
             </div>

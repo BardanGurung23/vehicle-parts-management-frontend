@@ -28,6 +28,8 @@ import Banner from "@/pages/Banner";
 import AddEditBanner from "@/pages/Banner/AddEditBanner";
 import AddEditTestimonial from "@/pages/Testimonial/AddEditTestimonial";
 import Testimonial from "@/pages/Testimonial";
+import Staff from "@/pages/Staff";
+import Parts from "@/pages/Parts";
 
 export const adminLinks = [
   {
@@ -170,5 +172,13 @@ export const adminLinks = [
   {
     path: "/testimonial/list",
     element: <Testimonial />,
+  },
+  {
+    path: "/staff",
+    element: <Staff />,
+  },
+  {
+    path: "/parts",
+    element: <Parts />,
   },
 ];
