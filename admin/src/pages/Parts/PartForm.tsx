@@ -20,7 +20,16 @@ const schema = z.object({
   costPrice: z.coerce.number().min(0, "Must be >= 0"),
   stockQuantity: z.coerce.number().int().min(0, "Must be >= 0"),
   reorderLevel: z.coerce.number().int().min(0, "Must be >= 0"),
-  partCategoryId: z.coerce.number().optional().nullable(),
+  partCategoryId: z.preprocess(
+    (value) => {
+      if (value === "" || value === null || value === undefined) {
+        return null;
+      }
+
+      return Number(value);
+    },
+    z.number().int().positive().nullable(),
+  ),
 });
 
 type FormType = z.infer<typeof schema>;

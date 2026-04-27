@@ -25,6 +25,7 @@ type AuthContextValue = SessionState & {
 };
 
 const storageKey = "autonix.auth.session";
+const legacyTokenStorageKey = "token";
 
 const emptySession: SessionState = {
   token: null,
@@ -65,10 +66,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!session.token || !session.expiresAt) {
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(legacyTokenStorageKey);
       return;
     }
 
     localStorage.setItem(storageKey, JSON.stringify(session));
+    localStorage.setItem(legacyTokenStorageKey, session.token);
   }, [session]);
 
   const logout = useCallback(() => {
