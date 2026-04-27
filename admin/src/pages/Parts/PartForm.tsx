@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import Input from "@/components/Input";
-import Button from "@/components/Button";
 import {
   useCreatePartMutation,
   useUpdatePartMutation,
@@ -34,6 +32,17 @@ const schema = z.object({
 
 type FormType = z.infer<typeof schema>;
 
+const defaultValues: FormType = {
+  partNumber: "",
+  partName: "",
+  description: "",
+  unitPrice: 0,
+  costPrice: 0,
+  stockQuantity: 0,
+  reorderLevel: 10,
+  partCategoryId: null,
+};
+
 type Props = {
   editPart: Part | null;
   onClose: () => void;
@@ -44,6 +53,7 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
   const { data: categories = [] } = useGetPartCategoriesQuery();
   const [createPart, { isLoading: creating }] = useCreatePartMutation();
   const [updatePart, { isLoading: updating }] = useUpdatePartMutation();
+  const isSaving = creating || updating;
 
   const {
     register,
@@ -51,6 +61,10 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
     reset,
     formState: { errors },
   } = useForm<FormType>({ resolver: zodResolver(schema) });
+
+  const resetToDefaults = () => {
+    reset(defaultValues);
+  };
 
   useEffect(() => {
     if (isEdit) {
@@ -64,10 +78,11 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
         reorderLevel: editPart.reorderLevel,
         partCategoryId: editPart.partCategoryId ?? null,
       });
-    } else {
-      reset({ reorderLevel: 10, stockQuantity: 0, unitPrice: 0, costPrice: 0 });
+      return;
     }
-  }, [editPart]);
+
+    resetToDefaults();
+  }, [editPart, isEdit, reset]);
 
   const onSubmit = async (data: FormType) => {
     try {
@@ -104,84 +119,174 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
     }
   };
 
+  const handleSecondaryAction = () => {
+    if (isEdit) {
+      onClose();
+      return;
+    }
+
+    resetToDefaults();
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mt-16 space-y-4">
-      <h2 className="text-lg font-semibold">{isEdit ? "Edit Part" : "Add New Part"}</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="form-grid parts-form">
+      <div className="form-grid form-grid--two-columns">
+        <div className="field">
+          <label className="field__label" htmlFor="partNumber">
+            Part number
+          </label>
+          <input
+            id="partNumber"
+            className="input"
+            placeholder="PT-001"
+            disabled={isEdit}
+            {...register("partNumber")}
+          />
+          {errors.partNumber?.message ? (
+            <span className="field__error">{errors.partNumber.message}</span>
+          ) : isEdit ? (
+            <span className="field__hint">
+              Part numbers remain fixed once the part has been created.
+            </span>
+          ) : null}
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Part Number"
-          placeholder="e.g. PT-001"
-          disabled={isEdit}
-          {...register("partNumber")}
-          error={errors.partNumber?.message}
-        />
-        <Input
-          label="Part Name"
-          placeholder="e.g. Brake Pad"
-          {...register("partName")}
-          error={errors.partName?.message}
-        />
-        <Input
-          label="Unit Price"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          {...register("unitPrice")}
-          error={errors.unitPrice?.message}
-        />
-        <Input
-          label="Cost Price"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          {...register("costPrice")}
-          error={errors.costPrice?.message}
-        />
-        <Input
-          label="Stock Quantity"
-          type="number"
-          placeholder="0"
-          {...register("stockQuantity")}
-          error={errors.stockQuantity?.message}
-        />
-        <Input
-          label="Reorder Level"
-          type="number"
-          placeholder="10"
-          {...register("reorderLevel")}
-          error={errors.reorderLevel?.message}
-        />
+        <div className="field">
+          <label className="field__label" htmlFor="partName">
+            Part name
+          </label>
+          <input
+            id="partName"
+            className="input"
+            placeholder="Brake Pad"
+            {...register("partName")}
+          />
+          {errors.partName?.message ? (
+            <span className="field__error">{errors.partName.message}</span>
+          ) : null}
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="unitPrice">
+            Unit price
+          </label>
+          <input
+            id="unitPrice"
+            className="input"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            {...register("unitPrice")}
+          />
+          {errors.unitPrice?.message ? (
+            <span className="field__error">{errors.unitPrice.message}</span>
+          ) : null}
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="costPrice">
+            Cost price
+          </label>
+          <input
+            id="costPrice"
+            className="input"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            {...register("costPrice")}
+          />
+          {errors.costPrice?.message ? (
+            <span className="field__error">{errors.costPrice.message}</span>
+          ) : null}
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="stockQuantity">
+            Stock quantity
+          </label>
+          <input
+            id="stockQuantity"
+            className="input"
+            type="number"
+            min="0"
+            placeholder="0"
+            {...register("stockQuantity")}
+          />
+          {errors.stockQuantity?.message ? (
+            <span className="field__error">{errors.stockQuantity.message}</span>
+          ) : null}
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="reorderLevel">
+            Reorder level
+          </label>
+          <input
+            id="reorderLevel"
+            className="input"
+            type="number"
+            min="0"
+            placeholder="10"
+            {...register("reorderLevel")}
+          />
+          {errors.reorderLevel?.message ? (
+            <span className="field__error">{errors.reorderLevel.message}</span>
+          ) : null}
+        </div>
+
+        <div className="field form-grid__full-width">
+          <label className="field__label" htmlFor="partCategoryId">
+            Category
+          </label>
+          <select id="partCategoryId" className="input" {...register("partCategoryId")}>
+            <option value="">No category</option>
+            {categories.map((category) => (
+              <option key={category.partCategoryId} value={category.partCategoryId}>
+                {category.categoryName}
+              </option>
+            ))}
+          </select>
+          {errors.partCategoryId?.message ? (
+            <span className="field__error">{errors.partCategoryId.message}</span>
+          ) : (
+            <span className="field__hint">
+              Leave uncategorized if the part should stay available across multiple workflows.
+            </span>
+          )}
+        </div>
+
+        <div className="field form-grid__full-width">
+          <label className="field__label" htmlFor="description">
+            Description
+          </label>
+          <textarea
+            id="description"
+            className="input"
+            rows={5}
+            placeholder="Add supplier notes, fitment guidance, or internal details."
+            {...register("description")}
+          />
+          <span className="field__hint">
+            Optional context helps staff verify the correct part before updating stock.
+          </span>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Category</label>
-        <select
-          {...register("partCategoryId")}
-          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="parts-form__actions">
+        <button type="submit" className="button" disabled={isSaving}>
+          {isSaving ? "Saving..." : isEdit ? "Save changes" : "Create part"}
+        </button>
+        <button
+          type="button"
+          className="button button--secondary"
+          onClick={handleSecondaryAction}
+          disabled={isSaving}
         >
-          <option value="">No category</option>
-          {categories.map((c) => (
-            <option key={c.partCategoryId} value={c.partCategoryId}>
-              {c.categoryName}
-            </option>
-          ))}
-        </select>
+          {isEdit ? "Cancel edit" : "Reset fields"}
+        </button>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Description</label>
-        <textarea
-          {...register("description")}
-          rows={3}
-          placeholder="Optional description..."
-          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-        />
-      </div>
-
-      <Button type="submit" className="submit-button" disabled={creating || updating}>
-        {creating || updating ? "Saving..." : isEdit ? "Update Part" : "Create Part"}
-      </Button>
     </form>
   );
 }
