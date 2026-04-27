@@ -9,7 +9,21 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      spacing: {
+        '4': '4px',
+        '8': '8px',
+        '12': '12px',
+        '16': '16px',
+        'base': '4px',
+      },
       colors: {
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        line: "var(--line)",
+        accent: {
+          DEFAULT: "var(--accent)",
+          faint: "var(--accent-faint)",
+        },
         primaryColor: "var(--primary-color)",
         background: "var(--background)",
         foreground: "var(--foreground)",

@@ -12,12 +12,12 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 
 const trendObj = {
   UP: {
-    color: "#40c057",
-    icon: <TrendingUp color="#40c057" />,
+    color: "var(--accent)",
+    icon: <TrendingUp size={14} color="var(--accent)" />,
   },
   DOWN: {
-    color: "#f00",
-    icon: <TrendingDown color="#f00" />,
+    color: "var(--danger)",
+    icon: <TrendingDown size={14} color="var(--danger)" />,
   },
 };
 
@@ -28,7 +28,7 @@ interface ChartData {
 }
 
 const getPartOfDay = (date: Date = new Date()): string => {
-  const hour = getHours(date); // Get hour (0–23) from the provided or current date
+  const hour = getHours(date); 
   if (hour >= 0 && hour < 6) return "Night";
   if (hour >= 6 && hour < 12) return "Morning";
   if (hour >= 12 && hour < 18) return "Afternoon";
@@ -41,7 +41,7 @@ export default function NewDashboard() {
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="p-4 text-muted animate-pulse uppercase font-bold text-[10px]">Loading Control Panel...</div>;
   }
 
   const {
@@ -58,85 +58,93 @@ export default function NewDashboard() {
   const lastDay = format(hourly_orders.metadata.previous_date, "eeee");
 
   const lineData: ChartData[] = hourly_orders.data.map((data) => ({
-    name: data.hour + " : 00",
+    name: data.hour + ":00",
     ["Last " + lastDay]: data.previous_orders,
     today: data.current_orders,
   }));
 
   const barData: ChartData[] = weekly_sales.data.map((data) => ({
-    name: data.day.slice(0, 3),
+    name: data.day.slice(0, 3).toUpperCase(),
     ["Last Week"]: data.previous_revenue,
     ["This Week"]: data.current_revenue,
   }));
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <Header />
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-[1rem] mt-4">
+      
+      {/* KPI Section */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
           lastDate={summaryMetadata.previous_date}
           icon={CurrencyIcon}
-          title={"Revenue"}
+          title={"REVENUE"}
           value={revenue.today_revenue}
           isPrice={true}
           percent={revenue.percent_change}
         />
         <StatsCard
           icon={ShoppingCart}
-          title={"Orders"}
+          title={"ORDERS"}
           value={order_count.today_order_count}
           isPrice={false}
           percent={order_count.percent_change}
         />
         <StatsCard
           icon={Money}
-          title={"Average Order Value"}
+          title={"AVG ORDER VALUE"}
           value={average_order_value.today_average_order_value}
           isPrice={true}
           percent={average_order_value.percent_change}
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 mt-4 gap-4">
-        <div className="bg-white p-4">
-          <div className="text-xl font-semibold text-left w-[94%] mx-auto mb-4 leading-8 py-4">
-            <div className="border-gray-300 border-b">
-              Hourly Order Statistics
-            </div>
-          </div>
+
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ChartContainer title="HOURLY ORDER STATISTICS">
           <LineChartComponent
             data={lineData}
             dataKeys={["Last " + lastDay, "today"]}
-            height={300}
+            height={260}
             showGrid={true}
             legendPosition="bottom"
             responsive={true}
             tooltipFormatter={({ value }) => `${value}`}
-            yAxisLabel="Hourly Order Count"
+            yAxisLabel=""
             lineType="monotone"
-            dotSize={4}
-            margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+            dotSize={3}
+            margin={{ top: 10, right: 30, left: -20, bottom: 0 }}
           />
-        </div>
-        <div className="bg-white p-4">
-          <div className="text-xl font-semibold text-left w-[94%] mx-auto mb-4 leading-8 py-4">
-            <div className="border-gray-300 border-b">
-              Weekly Sales Statistics
-            </div>
-          </div>
+        </ChartContainer>
+
+        <ChartContainer title="WEEKLY SALES STATISTICS">
           <BarChartComponent
             data={barData}
             dataKeys={["Last Week", "This Week"]}
-            height={300}
-            barSize={40}
+            height={260}
+            barSize={16}
             showGrid={true}
             legendPosition="bottom"
             responsive={true}
-            yAxisLabel="Sales sum by weekdays"
-            tooltipFormatter={({ value }) => `$${value}`}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            yAxisLabel=""
+            tooltipFormatter={({ value }) => `${CurrencySign}${Number(value).toLocaleString()}`}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           />
-        </div>
+        </ChartContainer>
       </div>
+    </div>
+  );
+}
+
+function ChartContainer({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-surface border border-line p-4 rounded-sm shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-accent opacity-10"></div>
+      <div className="text-[10px] uppercase font-bold tracking-widest text-muted mb-6 flex items-center gap-2">
+        <span className="w-1.5 h-1.5 bg-accent rounded-full"></span>
+        {title}
+      </div>
+      {children}
     </div>
   );
 }
@@ -146,40 +154,35 @@ function Header() {
   const userName = useAppSelector((state) => state.profile.username);
   const todayDate = format(new Date(), "PPP");
   return (
-    <div className="w-full flex justify-between">
-      <div className="flex flex-col">
-        <div className="text-left text-2xl font-bold">
-          Good {getPartOfDay()}, {userName}
+    <div className="w-full flex justify-between items-end border-b border-line pb-4">
+      <div className="flex flex-col gap-1">
+        <div className="text-xs uppercase tracking-widest text-muted font-bold">
+          System Overview
         </div>
-        <div>
-          Here are your stats for today{" "}
-          <span className="text-blue-500 font-semibold">{todayDate}</span>
+        <div className="text-xl font-bold tracking-tight">
+          WELCOME, {userName.toUpperCase()}
         </div>
       </div>
-      <a
-        href={FRONTEND_BASE_URL}
-        target="_blank"
-        className="flex items-center gap-4"
-      >
+      <div className="flex flex-col items-end gap-1">
+        <div className="text-[10px] font-bold text-accent uppercase tracking-widest">
+          {todayDate.toUpperCase()}
+        </div>
         <a
           href="https://staging.unimomo.co.uk"
           target="_blank"
-          className=" flex gap-3 text-base font-semibold"
+          className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted hover:text-accent transition-colors"
         >
-          GOTO YOUR WEBSITE
-          <span>
-            {" "}
-            <ExternalLink className="size-5" />
-          </span>
+          VIEW LIVE STORE
+          <ExternalLink size={12} strokeWidth={2.5} />
         </a>
-      </a>
+      </div>
     </div>
   );
 }
 
 function StatsCard({
   icon = "",
-  title = "Revenue",
+  title = "REVENUE",
   value = 0,
   percent = 0,
   isPrice = false,
@@ -188,24 +191,27 @@ function StatsCard({
   const trend = percent >= 0 ? "UP" : "DOWN";
 
   return (
-    <div className="border border-[#eee8ff] p-5 bg-white flex flex-col gap-3">
-      <img className="size-11" src={icon} alt="icon" />
-      <div className="text-[#adb5bd] font-semibold text-base text-left">
-        {title}
-      </div>
-      <div className="text-left text-[1.75rem] font-semibold">
-        {isPrice && <span>{CurrencySign}</span>} {value}
-      </div>
-      <div className={`flex items-center gap-2`}>
-        {trendObj[trend].icon}
-        <div>
-          <span className={trend === "UP" ? "text-[#40c057]" : "text-[#f00]"}>
-            {Number(percent).toFixed(2) + "%"}{" "}
+    <div className="bg-surface border border-line p-4 rounded-sm flex items-center justify-between relative shadow-sm hover:border-accent/30 transition-all">
+      <div className="flex flex-col gap-1">
+        <div className="text-[10px] font-bold text-muted uppercase tracking-widest">
+          {title}
+        </div>
+        <div className="text-xl font-bold tracking-tight">
+          {isPrice && <span className="text-accent mr-0.5">{CurrencySign}</span>}
+          {value.toLocaleString()}
+        </div>
+        <div className="flex items-center gap-1.5 mt-1">
+          {trendObj[trend].icon}
+          <span className={`text-[11px] font-bold ${trend === "UP" ? "text-accent" : "text-danger"}`}>
+            {Math.abs(Number(percent)).toFixed(1)}%
           </span>
-          <span className="text-black">
-            from last {format(lastDate, "eeee")}
+          <span className="text-[9px] uppercase font-bold text-muted/60 tracking-tighter">
+            vs {format(lastDate, "EEE").toUpperCase()}
           </span>
         </div>
+      </div>
+      <div className="bg-bg p-2 rounded-md border border-line">
+        <img className="size-6 grayscale opacity-80" src={icon} alt="icon" />
       </div>
     </div>
   );

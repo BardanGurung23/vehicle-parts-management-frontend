@@ -10,20 +10,20 @@ export default function Layout() {
   return (
     <>
       {/* For Desktop View */}
-      <div className="hidden lg:flex min-h-screen p-6 gap-6 relative">
+      <div className="hidden lg:flex min-h-screen p-4 gap-4 relative bg-bg">
         {/* Floating Side Menu */}
         <div
           className={`glass-panel transition-all duration-300 flex-shrink-0 overflow-y-auto ${
-            sideMenuOpen ? "w-64" : "w-20"
+            sideMenuOpen ? "w-52" : "w-[52px]"
           }`}
         >
           <SideMenu sideMenuOpen={sideMenuOpen} />
         </div>
         
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col gap-6 w-full overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4 w-full overflow-hidden">
           {/* Floating Top Bar */}
-          <div className="glass-panel z-10 flex-shrink-0">
+          <div className="glass-panel z-10 flex-shrink-0 h-12 flex items-center">
             <TopMenu
               sideMenuOpen={sideMenuOpen}
               setSideMenuOpen={setSideMenuOpen}
@@ -31,8 +31,8 @@ export default function Layout() {
           </div>
           
           {/* Page content */}
-          <div className="flex-1 overflow-auto glass-panel p-6">
-            <div className="max-w-7xl mx-auto h-full">
+          <div className="flex-1 overflow-auto glass-panel p-4">
+            <div className="max-w-full h-full animate-stagger">
               <Outlet />
             </div>
           </div>
@@ -40,13 +40,13 @@ export default function Layout() {
       </div>
       
       {/* for Mobile View */}
-      <div className="flex lg:hidden flex-col min-h-screen p-4 gap-4">
-        <div className="glass-panel rounded-2xl flex-shrink-0">
+      <div className="flex lg:hidden flex-col min-h-screen p-2 gap-2 bg-bg">
+        <div className="glass-panel rounded-lg flex-shrink-0">
            <TopMenuMobile />
         </div>
 
         {/* Page content */}
-        <div className="flex-1 glass-panel rounded-2xl p-4 overflow-auto">
+        <div className="flex-1 glass-panel rounded-lg p-2 overflow-auto animate-stagger">
           <Outlet />
         </div>
       </div>
