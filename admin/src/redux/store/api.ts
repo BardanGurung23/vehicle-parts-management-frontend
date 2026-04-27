@@ -2,8 +2,14 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getToken } from "../../utils/tokenHandler";
 import { BACKEND_BASE_URL } from "../../constants";
 
+const configuredBaseUrl = (BACKEND_BASE_URL || "http://localhost:5154").replace(/\/+$/, "");
+
+const apiBaseUrl = configuredBaseUrl.endsWith("/api")
+  ? configuredBaseUrl
+  : `${configuredBaseUrl}/api`;
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: BACKEND_BASE_URL,
+  baseUrl: apiBaseUrl,
   prepareHeaders: (headers) => {
     if (!headers.has("content-type")) {
       headers.set("content-type", "application/json");

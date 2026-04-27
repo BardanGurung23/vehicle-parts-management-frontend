@@ -3,12 +3,10 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type {
-  CustomerDetail,
   CustomerSearchInput,
   CustomerSearchResult,
-  StaffUser,
+  DashboardSummary,
 } from "../../app/types";
-import { useGetPartsQuery } from "../../redux/services/parts";
 import { AlertBox } from "../../shared/components/AlertBox";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -221,12 +219,9 @@ function BreakdownList({ items, accentClass }: { items: BreakdownItem[]; accentC
 
 export function DashboardPage() {
   const { user, token, isAdmin } = useAuth();
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
-  const [staffError, setStaffError] = useState<string | null>(null);
-  const [isStaffLoading, setIsStaffLoading] = useState(false);
-  const [customerProfile, setCustomerProfile] = useState<CustomerDetail | null>(null);
-  const [customerProfileError, setCustomerProfileError] = useState<string | null>(null);
-  const [isCustomerProfileLoading, setIsCustomerProfileLoading] = useState(false);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [searchValues, setSearchValues] = useState<SearchFormState>({
     customerId: "",
     phoneNumber: "",
@@ -242,230 +237,126 @@ export function DashboardPage() {
   const isCustomer = role === "Customer";
   const canViewInventory = role === "Admin" || role === "Staff";
   const canSearchCustomers = canViewInventory;
-  const canViewStaff = isAdmin;
   const canManagePartsPage = isAdmin;
-  const {
-    data: parts = [],
-    isLoading: isPartsLoading,
-    error: partsError,
-  } = useGetPartsQuery(undefined, {
-    skip: !canViewInventory,
-  });
 
   useEffect(() => {
-    if (!canViewStaff || !token) {
-      setStaffUsers([]);
-      setStaffError(null);
-      setIsStaffLoading(false);
+    if (!token) {
+      setSummary(null);
+      setSummaryError(null);
+      setIsSummaryLoading(false);
       return;
     }
 
     let isActive = true;
-    setIsStaffLoading(true);
+    setIsSummaryLoading(true);
 
     void api
-      .getStaffUsers(token)
+      .getDashboardSummary(token)
       .then((response) => {
         if (!isActive) {
           return;
         }
 
-        setStaffUsers(response);
-        setStaffError(null);
+        setSummary(response);
+        setSummaryError(null);
       })
       .catch((error: unknown) => {
         if (!isActive) {
           return;
         }
 
-        setStaffError(extractErrorMessage(error, "Could not load the staff snapshot."));
+        setSummary(null);
+        setSummaryError(extractErrorMessage(error, "Could not load the dashboard summary."));
       })
       .finally(() => {
         if (isActive) {
-          setIsStaffLoading(false);
+          setIsSummaryLoading(false);
         }
       });
 
     return () => {
       isActive = false;
     };
-  }, [canViewStaff, token]);
+  }, [token]);
 
-  useEffect(() => {
-    if (!isCustomer || !token) {
-      setCustomerProfile(null);
-      setCustomerProfileError(null);
-      setIsCustomerProfileLoading(false);
-      return;
-    }
+  const inventory = summary?.inventory ?? null;
+  const staff = summary?.staff ?? null;
+  const customerProfile = summary?.currentCustomer ?? null;
 
-    let isActive = true;
-    setIsCustomerProfileLoading(true);
-
-    void api
-      .getCurrentCustomer(token)
-      .then((response) => {
-        if (!isActive) {
-          return;
-        }
-
-        setCustomerProfile(response);
-        setCustomerProfileError(null);
-      })
-      .catch((error: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
-        setCustomerProfileError(extractErrorMessage(error, "Could not load your customer profile."));
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsCustomerProfileLoading(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [isCustomer, token]);
-
-  const partsErrorMessage =
-    canViewInventory && partsError
-      ? extractErrorMessage(partsError, "Could not load the inventory snapshot.")
-      : null;
-
-  const outOfStockCount = useMemo(
-    () => parts.filter((part) => part.stockQuantity === 0).length,
-    [parts],
-  );
-
-  const reorderSoonCount = useMemo(
-    () => parts.filter((part) => part.stockQuantity > 0 && part.stockQuantity <= part.reorderLevel).length,
-    [parts],
-  );
-
-  const healthyStockCount = useMemo(
-    () => parts.filter((part) => part.stockQuantity > part.reorderLevel).length,
-    [parts],
-  );
-
-  const totalUnitsOnHand = useMemo(
-    () => parts.reduce((total, part) => total + part.stockQuantity, 0),
-    [parts],
-  );
-
-  const inventoryCost = useMemo(
-    () => parts.reduce((total, part) => total + part.costPrice * part.stockQuantity, 0),
-    [parts],
-  );
-
-  const lowStockWatchlist = useMemo(() => {
-    const lowStockParts = parts.filter((part) => part.stockQuantity <= part.reorderLevel);
-
-    return [...lowStockParts]
-      .sort((left, right) => {
-        const leftGap = left.reorderLevel - left.stockQuantity;
-        const rightGap = right.reorderLevel - right.stockQuantity;
-
-        if (rightGap !== leftGap) {
-          return rightGap - leftGap;
-        }
-
-        return left.partName.localeCompare(right.partName);
-      })
-      .slice(0, 5);
-  }, [parts]);
-
-  const latestParts = useMemo(
-    () =>
-      [...parts]
-        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-        .slice(0, 5),
-    [parts],
-  );
+  const trackedPartCount = inventory?.trackedPartCount ?? 0;
+  const lowStockCount = inventory?.lowStockCount ?? 0;
+  const outOfStockCount = inventory?.outOfStockCount ?? 0;
+  const totalUnitsOnHand = inventory?.totalUnitsOnHand ?? 0;
+  const inventoryCost = inventory?.inventoryCost ?? 0;
+  const activeStaffCount = staff?.activeStaffCount ?? 0;
+  const totalStaffCount = staff?.totalStaffCount ?? 0;
+  const lowStockWatchlist = inventory?.lowStockParts ?? [];
+  const latestParts = inventory?.recentParts ?? [];
+  const recentStaff = staff?.recentStaff ?? [];
 
   const inventorySegments = useMemo<StatusSegment[]>(
-    () => [
-      {
-        label: "Healthy",
-        count: healthyStockCount,
-        description: "Stock sits above its reorder threshold.",
-        color: "#0f766e",
-      },
-      {
-        label: "Reorder soon",
-        count: reorderSoonCount,
-        description: "Still available, but already at the reorder line.",
-        color: "#d97706",
-      },
-      {
-        label: "Out of stock",
-        count: outOfStockCount,
-        description: "Requires immediate replenishment.",
-        color: "#b91c1c",
-      },
-    ],
-    [healthyStockCount, reorderSoonCount, outOfStockCount],
-  );
-
-  const categoryBreakdown = useMemo<BreakdownItem[]>(() => {
-    const groupedCategories = new Map<string, number>();
-
-    parts.forEach((part) => {
-      const categoryName = part.categoryName?.trim() || "Uncategorized";
-      groupedCategories.set(categoryName, (groupedCategories.get(categoryName) ?? 0) + 1);
-    });
-
-    return [...groupedCategories.entries()]
-      .map(([label, value]) => ({
-        label,
-        value,
-        helper: pluralize("part", value),
-      }))
-      .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label))
-      .slice(0, 5);
-  }, [parts]);
-
-  const staffRoleBreakdown = useMemo<BreakdownItem[]>(() => {
-    const groupedRoles = new Map<string, number>();
-
-    staffUsers.forEach((staffUser) => {
-      groupedRoles.set(staffUser.role, (groupedRoles.get(staffUser.role) ?? 0) + 1);
-    });
-
-    return [...groupedRoles.entries()]
-      .map(([label, value]) => ({
-        label,
-        value,
-        helper: pluralize("account", value),
-      }))
-      .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label));
-  }, [staffUsers]);
-
-  const activeStaffCount = useMemo(
-    () => staffUsers.filter((staffUser) => staffUser.isActive).length,
-    [staffUsers],
-  );
-
-  const recentStaff = useMemo(
     () =>
-      [...staffUsers]
-        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-        .slice(0, 4),
-    [staffUsers],
+      (inventory?.stockStatus ?? []).map((segment) => {
+        if (segment.label === "Healthy") {
+          return {
+            label: segment.label,
+            count: segment.count,
+            description: "Stock sits above its reorder threshold.",
+            color: "#0f766e",
+          };
+        }
+
+        if (segment.label === "Reorder soon") {
+          return {
+            label: segment.label,
+            count: segment.count,
+            description: "Still available, but already at the reorder line.",
+            color: "#d97706",
+          };
+        }
+
+        return {
+          label: segment.label,
+          count: segment.count,
+          description: "Requires immediate replenishment.",
+          color: "#b91c1c",
+        };
+      }),
+    [inventory],
   );
+
+  const categoryBreakdown = useMemo<BreakdownItem[]>(
+    () =>
+      (inventory?.topCategories ?? []).map((item) => ({
+        label: item.label,
+        value: item.count,
+        helper: pluralize("part", item.count),
+      })),
+    [inventory],
+  );
+
+  const staffRoleBreakdown = useMemo<BreakdownItem[]>(
+    () =>
+      (staff?.roleBreakdown ?? []).map((item) => ({
+        label: item.label,
+        value: item.count,
+        helper: pluralize("account", item.count),
+      })),
+    [staff],
+  );
+
+  const dashboardUnavailable = Boolean(summaryError) && !isSummaryLoading;
 
   const heroStats = useMemo<HeroStat[]>(() => {
     if (isCustomer) {
       return [
         {
           label: "Customer ID",
-          value: customerProfile ? `#${customerProfile.customerId}` : "Waiting...",
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : customerProfile ? `#${customerProfile.customerId}` : "Not found",
         },
         {
           label: "Vehicles",
-          value: customerProfile ? formatNumber(customerProfile.vehicles.length) : "Waiting...",
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : customerProfile ? formatNumber(customerProfile.vehicles.length) : "0",
         },
         {
           label: "Status",
@@ -478,11 +369,11 @@ export function DashboardPage() {
       return [
         {
           label: "Low-stock items",
-          value: isPartsLoading ? "Loading..." : formatNumber(lowStockWatchlist.length),
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(lowStockCount),
         },
         {
           label: "Active staff",
-          value: isStaffLoading ? "Loading..." : `${formatNumber(activeStaffCount)}/${formatNumber(staffUsers.length)}`,
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : `${formatNumber(activeStaffCount)}/${formatNumber(totalStaffCount)}`,
         },
         {
           label: "Customer lookup",
@@ -494,11 +385,11 @@ export function DashboardPage() {
     return [
       {
         label: "Units on hand",
-        value: isPartsLoading ? "Loading..." : formatNumber(totalUnitsOnHand),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(totalUnitsOnHand),
       },
       {
         label: "Low-stock items",
-        value: isPartsLoading ? "Loading..." : formatNumber(lowStockWatchlist.length),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(lowStockCount),
       },
       {
         label: "Customer lookup",
@@ -510,10 +401,10 @@ export function DashboardPage() {
     customerProfile,
     isAdmin,
     isCustomer,
-    isPartsLoading,
-    isStaffLoading,
-    lowStockWatchlist.length,
-    staffUsers.length,
+    dashboardUnavailable,
+    isSummaryLoading,
+    lowStockCount,
+    totalStaffCount,
     totalUnitsOnHand,
     user?.isActive,
   ]);
@@ -546,22 +437,22 @@ export function DashboardPage() {
     const cards: MetricCard[] = [
       {
         label: "Tracked SKUs",
-        value: isPartsLoading ? "Loading..." : formatNumber(parts.length),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(trackedPartCount),
         note: "Distinct parts currently represented in inventory.",
       },
       {
         label: "Low-stock items",
-        value: isPartsLoading ? "Loading..." : formatNumber(lowStockWatchlist.length),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(lowStockCount),
         note: "Parts already at or below their reorder level.",
       },
       {
         label: "Out of stock",
-        value: isPartsLoading ? "Loading..." : formatNumber(outOfStockCount),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(outOfStockCount),
         note: "Parts with no sellable stock left.",
       },
       {
         label: "Inventory value",
-        value: isPartsLoading ? "Loading..." : formatCurrency(inventoryCost),
+        value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatCurrency(inventoryCost),
         note: "Cost basis of stock currently on hand.",
       },
     ];
@@ -570,12 +461,12 @@ export function DashboardPage() {
       cards.push(
         {
           label: "Staff accounts",
-          value: isStaffLoading ? "Loading..." : formatNumber(staffUsers.length),
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(totalStaffCount),
           note: "Admin and staff users available in the system.",
         },
         {
           label: "Active staff",
-          value: isStaffLoading ? "Loading..." : formatNumber(activeStaffCount),
+          value: isSummaryLoading ? "Loading..." : dashboardUnavailable ? "Unavailable" : formatNumber(activeStaffCount),
           note: "Staff accounts currently marked active.",
         },
       );
@@ -588,12 +479,12 @@ export function DashboardPage() {
     inventoryCost,
     isAdmin,
     isCustomer,
-    isPartsLoading,
-    isStaffLoading,
-    lowStockWatchlist.length,
+    dashboardUnavailable,
+    isSummaryLoading,
+    lowStockCount,
     outOfStockCount,
-    parts.length,
-    staffUsers.length,
+    totalStaffCount,
+    trackedPartCount,
     user?.isActive,
   ]);
 
@@ -660,8 +551,7 @@ export function DashboardPage() {
 
   return (
     <section className="page-stack">
-      {partsErrorMessage ? <AlertBox tone="error" message={partsErrorMessage} /> : null}
-      {staffError ? <AlertBox tone="error" message={staffError} /> : null}
+      {summaryError ? <AlertBox tone="error" message={summaryError} /> : null}
 
       <header className="card dashboard-hero">
         <div className="dashboard-hero__copy">
@@ -678,6 +568,10 @@ export function DashboardPage() {
                   Open parts workspace
                 </Link>
               </>
+            ) : canViewInventory ? (
+              <Link className="button button--secondary" to="/app/parts">
+                Open parts workspace
+              </Link>
             ) : null}
             {canSearchCustomers ? (
               <a className="button button--secondary" href="#dashboard-customer-lookup">
@@ -711,10 +605,10 @@ export function DashboardPage() {
               <p className="card__copy">The customer profile and linked vehicles available from the current backend.</p>
             </div>
 
-            {customerProfileError ? <AlertBox tone="error" message={customerProfileError} /> : null}
-
-            {isCustomerProfileLoading ? (
+            {isSummaryLoading ? (
               <p className="dashboard-card-placeholder">Loading your profile snapshot...</p>
+            ) : dashboardUnavailable ? (
+              <p className="dashboard-card-placeholder">Customer summary is unavailable right now.</p>
             ) : customerProfile ? (
               <dl className="detail-list">
                 <div>
@@ -745,8 +639,10 @@ export function DashboardPage() {
               <p className="card__copy">Vehicles currently attached to your account.</p>
             </div>
 
-            {isCustomerProfileLoading ? (
+            {isSummaryLoading ? (
               <p className="dashboard-card-placeholder">Loading vehicle records...</p>
+            ) : dashboardUnavailable ? (
+              <p className="dashboard-card-placeholder">Vehicle records are unavailable right now.</p>
             ) : customerProfile?.vehicles.length ? (
               <div className="dashboard-vehicle-list">
                 {customerProfile.vehicles.map((vehicle) => (
@@ -794,16 +690,18 @@ export function DashboardPage() {
               <p className="card__copy">A single view of stock pressure, reorder exposure, and the busiest categories.</p>
             </div>
 
-            {isPartsLoading ? (
+            {isSummaryLoading ? (
               <p className="dashboard-card-placeholder">Loading inventory health...</p>
-            ) : parts.length === 0 ? (
+            ) : dashboardUnavailable ? (
+              <p className="dashboard-card-placeholder">Inventory summary is unavailable right now.</p>
+            ) : trackedPartCount === 0 ? (
               <p className="empty-state">No parts are tracked yet. Create a part entry to unlock the inventory view.</p>
             ) : (
               <div className="dashboard-health-layout">
                 <div className="dashboard-donut-block">
                   <div className="dashboard-donut" style={inventoryDonutStyle} aria-hidden="true">
                     <div className="dashboard-donut__center">
-                      <strong>{formatNumber(parts.length)}</strong>
+                      <strong>{formatNumber(trackedPartCount)}</strong>
                       <span>tracked parts</span>
                     </div>
                   </div>
@@ -858,9 +756,11 @@ export function DashboardPage() {
                 <p className="card__copy">Role coverage and the latest staff onboarding activity.</p>
               </div>
 
-              {isStaffLoading ? (
+              {isSummaryLoading ? (
                 <p className="dashboard-card-placeholder">Loading staff mix...</p>
-              ) : staffUsers.length === 0 ? (
+              ) : dashboardUnavailable ? (
+                <p className="dashboard-card-placeholder">Staff summary is unavailable right now.</p>
+              ) : totalStaffCount === 0 ? (
                 <p className="empty-state">No staff accounts are available yet.</p>
               ) : (
                 <>
@@ -917,8 +817,10 @@ export function DashboardPage() {
               <p className="card__copy">The parts that need attention first, ranked by reorder gap.</p>
             </div>
 
-            {isPartsLoading ? (
+            {isSummaryLoading ? (
               <p className="dashboard-card-placeholder">Loading watchlist...</p>
+            ) : dashboardUnavailable ? (
+              <p className="dashboard-card-placeholder">The watchlist is unavailable right now.</p>
             ) : lowStockWatchlist.length === 0 ? (
               <p className="empty-state">Everything currently sits above its reorder threshold.</p>
             ) : (
@@ -964,8 +866,10 @@ export function DashboardPage() {
               <p className="card__copy">Recently added parts, useful when stock is still being built out.</p>
             </div>
 
-            {isPartsLoading ? (
+            {isSummaryLoading ? (
               <p className="dashboard-card-placeholder">Loading recent parts...</p>
+            ) : dashboardUnavailable ? (
+              <p className="dashboard-card-placeholder">Recent part activity is unavailable right now.</p>
             ) : latestParts.length === 0 ? (
               <p className="empty-state">No parts have been created yet.</p>
             ) : (
@@ -1002,12 +906,16 @@ export function DashboardPage() {
                     </Link>
                   ) : null}
                 </>
+              ) : canViewInventory ? (
+                <Link className="button button--secondary" to="/app/parts">
+                  Open parts workspace
+                </Link>
               ) : null}
               <a className="button button--secondary" href="#dashboard-customer-lookup">
                 Use customer lookup
               </a>
-              {!isAdmin ? (
-                <p className="dashboard-quick-note">Inventory visibility is live here even though the dedicated parts workspace is still admin-only in the current router.</p>
+              {!isAdmin && canViewInventory ? (
+                <p className="dashboard-quick-note">Staff access to the parts workspace is read-only. Catalogue changes still require an admin account.</p>
               ) : null}
             </div>
           </article>
@@ -1127,6 +1035,10 @@ export function DashboardPage() {
                       ) : (
                         <p className="dashboard-card-placeholder">No vehicles are attached to this customer yet.</p>
                       )}
+
+                      <Link className="button button--secondary" to={`/app/customers/${customer.customerId}`}>
+                        Open full profile
+                      </Link>
                     </article>
                   ))}
                 </div>

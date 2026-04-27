@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGetPartsQuery, useDeletePartMutation, Part } from "@/redux/services/parts";
+import { useAuth } from "../../app/auth";
 import PartForm from "./PartForm";
 import { toast } from "react-toastify";
 
@@ -42,7 +43,8 @@ function getMutationErrorMessage(error: unknown, fallback: string): string {
   return asMessage(payload.detail) ?? asMessage(payload.message) ?? asMessage(payload.title) ?? fallback;
 }
 
-export default function Parts() {
+export default function PartsPage() {
+  const { isAdmin } = useAuth();
   const { data: parts = [], isLoading } = useGetPartsQuery();
   const [deletePart, { isLoading: deleting }] = useDeletePartMutation();
   const [editPart, setEditPart] = useState<Part | null>(null);
@@ -56,16 +58,28 @@ export default function Parts() {
   );
 
   const handleCreateMode = () => {
+    if (!isAdmin) {
+      return;
+    }
+
     setEditPart(null);
     setConfirmDeleteId(null);
   };
 
   const handleEdit = (part: Part) => {
+    if (!isAdmin) {
+      return;
+    }
+
     setEditPart(part);
     setConfirmDeleteId(null);
   };
 
   const handleDelete = async (partId: number) => {
+    if (!isAdmin) {
+      return;
+    }
+
     try {
       await deletePart(partId).unwrap();
       if (editPart?.partId === partId) {
@@ -95,14 +109,17 @@ export default function Parts() {
             <p className="eyebrow">Inventory Workspace</p>
             <h2>Keep stock, cost, and pricing aligned</h2>
             <p className="card__copy">
-              Create new parts, surface low-stock items, and update pricing from a
-              single management view.
+              {isAdmin
+                ? "Create new parts, surface low-stock items, and update pricing from a single management view."
+                : "Review stock levels, pricing, and low-stock pressure from the same inventory workspace."}
             </p>
           </div>
 
-          <button type="button" className="button" onClick={handleCreateMode}>
-            {editPart ? "Create another part" : "New part"}
-          </button>
+          {isAdmin ? (
+            <button type="button" className="button" onClick={handleCreateMode}>
+              {editPart ? "Create another part" : "New part"}
+            </button>
+          ) : null}
         </div>
 
         <dl className="parts-stats">
@@ -128,16 +145,37 @@ export default function Parts() {
       <div className="parts-layout">
         <article className="card parts-form-card">
           <div className="card__header">
-            <p className="eyebrow">{editPart ? "Edit selected part" : "Create a new part"}</p>
-            <h2>{editPart ? editPart.partName : "Part setup"}</h2>
+            <p className="eyebrow">{isAdmin ? (editPart ? "Edit selected part" : "Create a new part") : "Read-only access"}</p>
+            <h2>{isAdmin ? (editPart ? editPart.partName : "Part setup") : "Inventory overview"}</h2>
             <p className="card__copy">
-              {editPart
-                ? "Update stock thresholds, pricing, and descriptions without leaving the inventory list."
-                : "Add a SKU, baseline cost, sale price, and reorder target in one place."}
+              {isAdmin
+                ? editPart
+                  ? "Update stock thresholds, pricing, and descriptions without leaving the inventory list."
+                  : "Add a SKU, baseline cost, sale price, and reorder target in one place."
+                : "Staff can review inventory here, while catalogue changes stay restricted to admin accounts."}
             </p>
           </div>
 
-          <PartForm editPart={editPart} onClose={handleCreateMode} />
+          {isAdmin ? (
+            <PartForm editPart={editPart} onClose={handleCreateMode} />
+          ) : (
+            <div className="dashboard-panel__section">
+              <dl className="detail-list">
+                <div>
+                  <dt>Access level</dt>
+                  <dd>Read-only inventory access</dd>
+                </div>
+                <div>
+                  <dt>Available actions</dt>
+                  <dd>Review stock, price, category, and reorder information</dd>
+                </div>
+                <div>
+                  <dt>Restricted actions</dt>
+                  <dd>Create, edit, and delete remain admin-only</dd>
+                </div>
+              </dl>
+            </div>
+          )}
         </article>
 
         <section className="card parts-list-card">
@@ -192,23 +230,25 @@ export default function Parts() {
                         </p>
                       </div>
 
-                      <div className="parts-item-card__actions">
-                        <button
-                          type="button"
-                          className="button button--secondary"
-                          onClick={() => handleEdit(part)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="button button--danger"
-                          onClick={() => setConfirmDeleteId(part.partId)}
-                          disabled={deleting && isPendingDelete}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="parts-item-card__actions">
+                          <button
+                            type="button"
+                            className="button button--secondary"
+                            onClick={() => handleEdit(part)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="button button--danger"
+                            onClick={() => setConfirmDeleteId(part.partId)}
+                            disabled={deleting && isPendingDelete}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
 
                     <dl className="parts-item-card__meta">
@@ -234,7 +274,7 @@ export default function Parts() {
                       <p className="parts-item-card__description">{part.description}</p>
                     ) : null}
 
-                    {isPendingDelete ? (
+                    {isAdmin && isPendingDelete ? (
                       <div className="parts-item-card__confirm">
                         <p>Delete {part.partName}? This action cannot be undone.</p>
                         <div className="parts-item-card__confirm-actions">

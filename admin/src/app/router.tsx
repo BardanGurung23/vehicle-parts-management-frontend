@@ -5,9 +5,10 @@ import { useAuth } from "./auth";
 import { AppLayout } from "./shell/AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterCustomerPage } from "../features/auth/RegisterCustomerPage";
+import { CustomerDetailPage } from "../features/customers/CustomerDetailPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
+import PartsPage from "../features/parts/PartsPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
-import Parts from "../pages/Parts";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
 import { MyAppointmentsPage } from "../features/appointments/MyAppointmentsPage";
@@ -20,7 +21,6 @@ import { MySalesPage } from "../features/sales/MySalesPage";
 import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
 import { MyPartRequestsPage } from "../features/part-requests/MyPartRequestsPage";
-import { ViewCustomerPage } from "../pages/Customer/ViewCustomerPage";
 import { CustomersListPage } from "../pages/Customer/CustomersListPage";
 import { ProfilePage } from "../features/customers/ProfilePage";
 import { StaffCustomerRegistrationPage } from "../features/customers/StaffCustomerRegistrationPage";
@@ -81,6 +81,14 @@ function AdminOnlyOutlet() {
   const { isAdmin } = useAuth();
 
   return isAdmin ? <Outlet /> : <Navigate to="/app" replace />;
+}
+
+function EmployeeOnlyOutlet() {
+  const { user } = useAuth();
+
+  return user?.role === "Admin" || user?.role === "Staff"
+    ? <Outlet />
+    : <Navigate to="/app" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -153,15 +161,24 @@ export const router = createBrowserRouter([
             element: <ProfilePage />,
           },
           {
+            element: <EmployeeOnlyOutlet />,
+            children: [
+              {
+                path: "customers/:customerId",
+                element: <CustomerDetailPage />,
+              },
+              {
+                path: "parts",
+                element: <PartsPage />,
+              },
+            ],
+          },
+          {
             element: <AdminOnlyOutlet />,
             children: [
               {
                 path: "staff",
                 element: <StaffManagementPage />,
-              },
-              {
-                path: "parts",
-                element: <Parts />,
               },
               {
                 path: "appointments",
@@ -178,10 +195,6 @@ export const router = createBrowserRouter([
               {
                 path: "customers",
                 element: <CustomersListPage />,
-              },
-              {
-                path: "customers/:id",
-                element: <ViewCustomerPage />,
               },
               {
                 path: "part-requests",

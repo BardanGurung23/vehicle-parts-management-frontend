@@ -4,6 +4,7 @@ import { useAuth } from "../auth";
 export function AppLayout() {
   const location = useLocation();
   const { user, isAdmin, logout } = useAuth();
+  const canViewParts = user?.role === "Admin" || user?.role === "Staff";
 
   const isStaffPage = location.pathname.startsWith("/app/staff");
   const isPartsPage = location.pathname.startsWith("/app/parts");
@@ -16,8 +17,8 @@ export function AppLayout() {
   const isMyPartRequestsPage = location.pathname.startsWith("/app/my-part-requests");
   const isPartRequestsPage = location.pathname.startsWith("/app/part-requests");
   const isCustomersPage = location.pathname.startsWith("/app/customers");
-  const isViewCustomerPage = location.pathname.startsWith("/app/customers/");
   const isProfilePage = location.pathname.startsWith("/app/profile");
+  const isCustomerDetailPage = location.pathname.startsWith("/app/customers/");
   const headerTitle = isStaffPage
     ? "Staff management"
     : isPartsPage
@@ -40,7 +41,7 @@ export function AppLayout() {
                       ? "Part Requests"
                       : isCustomersPage
                         ? "Customers"
-              : isViewCustomerPage
+              : isCustomerDetailPage
                 ? "Customer Details"
                 : isProfilePage
                   ? "My Profile"
@@ -63,7 +64,7 @@ export function AppLayout() {
                   ? "Track the status of your part requests."
                   : isPartRequestsPage
                     ? "Manage customer part requests and update their status."
-                    : isCustomersPage || isViewCustomerPage
+                    : isCustomersPage || isCustomerDetailPage
                       ? "Review customer profiles, vehicles, and service history."
       : user?.role === "Customer"
         ? "Review your customer profile and linked vehicles."
@@ -191,7 +192,7 @@ export function AppLayout() {
               Staff Management
             </NavLink>
           )}
-          {isAdmin && (
+          {canViewParts && (
             <NavLink
               to="/app/parts"
               className={({ isActive }) =>

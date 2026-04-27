@@ -69,6 +69,46 @@ export interface CustomerSearchResult {
   vehicles: VehicleSummary[];
 }
 
+export interface DashboardCountItem {
+  label: string;
+  count: number;
+}
+
+export interface DashboardInventoryPart {
+  partId: number;
+  partNumber: string;
+  partName: string;
+  stockQuantity: number;
+  reorderLevel: number;
+  categoryName?: string | null;
+  createdAt: string;
+}
+
+export interface DashboardInventorySummary {
+  trackedPartCount: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  totalUnitsOnHand: number;
+  inventoryCost: number;
+  stockStatus: DashboardCountItem[];
+  topCategories: DashboardCountItem[];
+  lowStockParts: DashboardInventoryPart[];
+  recentParts: DashboardInventoryPart[];
+}
+
+export interface DashboardStaffSummary {
+  totalStaffCount: number;
+  activeStaffCount: number;
+  roleBreakdown: DashboardCountItem[];
+  recentStaff: StaffUser[];
+}
+
+export interface DashboardSummary {
+  inventory?: DashboardInventorySummary | null;
+  staff?: DashboardStaffSummary | null;
+  currentCustomer?: CustomerDetail | null;
+}
+
 export interface RoleOption {
   roleId: number;
   name: string;

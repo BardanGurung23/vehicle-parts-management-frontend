@@ -5,6 +5,7 @@ import type {
   CustomerDetail,
   CustomerSearchInput,
   CustomerSearchResult,
+  DashboardSummary,
   CreateStaffUserInput,
   LoginInput,
   RegisterCustomerInput,
@@ -146,6 +147,8 @@ export const api = {
 
   getCurrentUser: (token: string) => request<UserProfile>("/auth/me", {}, token),
 
+  getDashboardSummary: (token: string) => request<DashboardSummary>("/dashboard/summary", {}, token),
+
   registerCustomer: (payload: RegisterCustomerInput) =>
     request<RegisterCustomerResponse>("/customers/register", {
       method: "POST",
@@ -153,6 +156,9 @@ export const api = {
     }),
 
   getCurrentCustomer: (token: string) => request<CustomerDetail>("/customers/me", {}, token),
+
+  getCustomerById: (token: string, customerId: number) =>
+    request<CustomerDetail>(`/customers/${customerId}`, {}, token),
 
   searchCustomers: (token: string, payload: CustomerSearchInput) => {
     const searchParams = new URLSearchParams();
