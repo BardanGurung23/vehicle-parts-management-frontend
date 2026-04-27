@@ -63,7 +63,11 @@ export function AppLayout() {
                   ? "Track the status of your part requests."
                   : isPartRequestsPage
                     ? "Manage customer part requests and update their status."
-                    : "Current session and access overview.";
+                    : isCustomersPage || isViewCustomerPage
+                      ? "Review customer profiles, vehicles, and service history."
+      : user?.role === "Customer"
+        ? "Review your customer profile and linked vehicles."
+        : "Monitor inventory health, staffing coverage, and customer lookup from one board.";
 
   return (
     <div className="shell">

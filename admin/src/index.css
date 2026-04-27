@@ -588,6 +588,300 @@ main {
   width: fit-content;
 }
 
+.dashboard-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-kpi-grid--ops {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-kpi-grid--customer {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-kpi-card {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dashboard-kpi-card__label,
+.dashboard-bar-item__helper,
+.dashboard-quick-note,
+.dashboard-card-placeholder {
+  margin: 0;
+}
+
+.dashboard-kpi-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.dashboard-kpi-card__value {
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  line-height: 1.1;
+  color: #111827;
+}
+
+.dashboard-kpi-card__note,
+.dashboard-card-placeholder,
+.dashboard-watchlist__title p,
+.dashboard-watchlist__meta,
+.dashboard-list__item p,
+.dashboard-list__item small,
+.dashboard-result-card p,
+.dashboard-vehicle-card p,
+.dashboard-legend__item p,
+.dashboard-bar-item__helper,
+.dashboard-quick-note {
+  color: #4b5563;
+}
+
+.dashboard-kpi-card__note {
+  margin: 0;
+}
+
+.dashboard-board {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.dashboard-board .card {
+  height: 100%;
+}
+
+.dashboard-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-panel--wide {
+  grid-column: span 2;
+}
+
+.dashboard-health-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.dashboard-donut-block,
+.dashboard-health-breakdown,
+.dashboard-bar-list,
+.dashboard-list,
+.dashboard-watchlist,
+.dashboard-results,
+.dashboard-vehicle-list,
+.dashboard-quick-actions,
+.dashboard-search-form,
+.dashboard-panel__section {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.dashboard-donut {
+  position: relative;
+  width: min(100%, 14rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 999px;
+}
+
+.dashboard-donut::after {
+  content: "";
+  position: absolute;
+  inset: 1.8rem;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+
+.dashboard-donut__center {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  gap: 0.25rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.dashboard-donut__center strong {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.dashboard-donut__center span {
+  color: #4b5563;
+}
+
+.dashboard-legend {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dashboard-legend__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.dashboard-legend__item strong,
+.dashboard-list__item strong,
+.dashboard-result-card h4,
+.dashboard-watchlist__title h4,
+.dashboard-vehicle-card strong {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-legend__item p,
+.dashboard-result-card h4,
+.dashboard-watchlist__title h4,
+.dashboard-vehicle-card p,
+.dashboard-list__item p,
+.dashboard-list__item small {
+  margin: 0;
+}
+
+.dashboard-legend__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  margin-top: 0.375rem;
+}
+
+.dashboard-meta-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-meta-grid div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.dashboard-meta-grid span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.dashboard-meta-grid strong {
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.dashboard-bar-item {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-bar-item__meta,
+.dashboard-list__row,
+.dashboard-watchlist__top,
+.dashboard-result-card__top,
+.dashboard-vehicle-card__top,
+.dashboard-search-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.dashboard-bar-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.dashboard-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.dashboard-bar-fill--teal {
+  background: linear-gradient(90deg, #0f766e, #14b8a6);
+}
+
+.dashboard-bar-fill--slate {
+  background: linear-gradient(90deg, #1f2937, #64748b);
+}
+
+.dashboard-watchlist__item,
+.dashboard-list__item,
+.dashboard-result-card,
+.dashboard-vehicle-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.dashboard-watchlist__title {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.dashboard-watchlist__meta,
+.dashboard-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+}
+
+.dashboard-search-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-search-grid label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dashboard-chip-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid #dbe1ea;
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 0.75rem;
+  color: #374151;
+}
+
 .staff-layout {
   display: grid;
   gap: 1rem;
@@ -934,6 +1228,15 @@ main {
 }
 
 @media (max-width: 1100px) {
+  .dashboard-kpi-grid,
+  .dashboard-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-panel--wide {
+    grid-column: span 2;
+  }
+
   .dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -941,6 +1244,10 @@ main {
   .dashboard-hero,
   .staff-layout,
   .parts-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-health-layout {
     grid-template-columns: 1fr;
   }
 
@@ -975,6 +1282,13 @@ main {
   }
 
   .shell__header-inner,
+  .dashboard-bar-item__meta,
+  .dashboard-hero__actions,
+  .dashboard-list__row,
+  .dashboard-result-card__top,
+  .dashboard-search-actions,
+  .dashboard-vehicle-card__top,
+  .dashboard-watchlist__top,
   .staff-list-card__header,
   .parts-overview__top,
   .parts-list-card__header,
@@ -995,12 +1309,20 @@ main {
   }
 
   .form-grid--two-columns,
+  .dashboard-board,
+  .dashboard-kpi-grid,
+  .dashboard-meta-grid,
+  .dashboard-search-grid,
   .dashboard-grid,
   .dashboard-stats,
   .staff-user-card__meta,
   .staff-user-card__actions,
   .parts-item-card__meta {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-panel--wide {
+    grid-column: auto;
   }
 
   .parts-stats {
@@ -1024,6 +1346,10 @@ main {
 @media (max-width: 640px) {
   .auth-shell {
     padding: 1rem 0.75rem;
+  }
+
+  .dashboard-donut {
+    width: 12rem;
   }
 
   .parts-stats {

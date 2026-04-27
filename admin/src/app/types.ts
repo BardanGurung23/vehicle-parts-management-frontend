@@ -35,6 +35,40 @@ export interface RegisterCustomerResponse {
   phoneNumber: string;
 }
 
+export interface VehicleSummary {
+  vehicleId: number;
+  vehicleNumber: string;
+  model?: string | null;
+}
+
+export interface CustomerDetail {
+  customerId: number;
+  userId?: number | null;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  address?: string | null;
+  registeredAt: string;
+  vehicles: VehicleSummary[];
+}
+
+export interface CustomerSearchInput {
+  customerId?: number;
+  phoneNumber?: string;
+  vehicleNumber?: string;
+  name?: string;
+}
+
+export interface CustomerSearchResult {
+  customerId: number;
+  userId?: number | null;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  vehicleCount: number;
+  vehicles: VehicleSummary[];
+}
+
 export interface RoleOption {
   roleId: number;
   name: string;

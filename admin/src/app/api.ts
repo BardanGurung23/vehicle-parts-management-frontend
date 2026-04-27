@@ -1,11 +1,16 @@
 import type {
   AuthResponse,
   CreateAppointmentRequest,
+  CreateReviewRequest,
+  CustomerDetail,
+  CustomerSearchInput,
+  CustomerSearchResult,
   CreateStaffUserInput,
   LoginInput,
   RegisterCustomerInput,
   RegisterCustomerResponse,
   RoleOption,
+  ServiceReview,
   StaffUser,
   UpdateStaffRoleInput,
   UserProfile,
@@ -146,6 +151,33 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  getCurrentCustomer: (token: string) => request<CustomerDetail>("/customers/me", {}, token),
+
+  searchCustomers: (token: string, payload: CustomerSearchInput) => {
+    const searchParams = new URLSearchParams();
+
+    if (payload.customerId) {
+      searchParams.set("customerId", String(payload.customerId));
+    }
+
+    if (payload.phoneNumber) {
+      searchParams.set("phoneNumber", payload.phoneNumber);
+    }
+
+    if (payload.vehicleNumber) {
+      searchParams.set("vehicleNumber", payload.vehicleNumber);
+    }
+
+    if (payload.name) {
+      searchParams.set("name", payload.name);
+    }
+
+    const queryString = searchParams.toString();
+    const path = queryString ? `/customers/search?${queryString}` : "/customers/search";
+
+    return request<CustomerSearchResult[]>(path, {}, token);
+  },
 
   getStaffUsers: (token: string) => request<StaffUser[]>("/admin/staff", {}, token),
 
