@@ -4,6 +4,7 @@ import {
   Outlet,
   createBrowserRouter,
 } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useAuth } from "./auth";
 import { AppLayout } from "./shell/AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
@@ -36,6 +37,7 @@ function ProtectedOutlet() {
     void refreshProfile()
       .catch(() => {
         if (isActive) {
+          toast.error("Your session could not be validated. Please sign in again.");
           logout();
         }
       })

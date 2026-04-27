@@ -19,6 +19,29 @@ function formatNumber(value: number) {
   return numberFormatter.format(value);
 }
 
+function asMessage(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getMutationErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") {
+    return fallback;
+  }
+
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return fallback;
+  }
+
+  const payload = data as { detail?: unknown; title?: unknown; message?: unknown };
+  return asMessage(payload.detail) ?? asMessage(payload.message) ?? asMessage(payload.title) ?? fallback;
+}
+
 export default function Parts() {
   const { data: parts = [], isLoading } = useGetPartsQuery();
   const [deletePart, { isLoading: deleting }] = useDeletePartMutation();
@@ -49,8 +72,8 @@ export default function Parts() {
         setEditPart(null);
       }
       toast.success("Part deleted");
-    } catch (err: any) {
-      toast.error(err?.data?.title ?? "Failed to delete part");
+    } catch (error: unknown) {
+      toast.error(getMutationErrorMessage(error, "Failed to delete part"));
     } finally {
       setConfirmDeleteId(null);
     }

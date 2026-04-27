@@ -7,6 +7,7 @@ import { api, ApiError } from "../../app/api";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { toast } from "react-toastify";
 
 const registerSchema = z
   .object({
@@ -48,10 +49,14 @@ export function RegisterCustomerPage() {
         password: values.password,
       });
 
-      setSuccessMessage(`Customer account created for ${response.fullName}. You can sign in now.`);
+      const successMessageText = `Customer account created for ${response.fullName}. You can sign in now.`;
+      setSuccessMessage(successMessageText);
+      toast.success(successMessageText);
       reset();
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Registration failed.");
+      const message = error instanceof ApiError ? error.message : "Registration failed.";
+      setErrorMessage(message);
+      toast.error(message);
     }
   });
 

@@ -8,6 +8,7 @@ import { useAuth } from "../../app/auth";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { toast } from "react-toastify";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address.").trim(),
@@ -35,7 +36,9 @@ export function LoginPage() {
       setSession(response);
       navigate("/app", { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Login failed.");
+      const message = error instanceof ApiError ? error.message : "Login failed.";
+      setErrorMessage(message);
+      toast.error(message);
     }
   });
 

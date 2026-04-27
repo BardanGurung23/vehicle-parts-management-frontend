@@ -4,5 +4,11 @@ type AlertBoxProps = {
 };
 
 export function AlertBox({ tone = "info", message }: AlertBoxProps) {
-  return <div className={`alert alert--${tone}`}>{message}</div>;
+  const role = tone === "error" ? "alert" : "status";
+
+  return (
+    <div className={`alert alert--${tone}`} role={role} aria-live={tone === "error" ? "assertive" : "polite"}>
+      {message}
+    </div>
+  );
 }

@@ -48,6 +48,29 @@ type Props = {
   onClose: () => void;
 };
 
+function asMessage(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getMutationErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") {
+    return fallback;
+  }
+
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return fallback;
+  }
+
+  const payload = data as { detail?: unknown; title?: unknown; message?: unknown };
+  return asMessage(payload.detail) ?? asMessage(payload.message) ?? asMessage(payload.title) ?? fallback;
+}
+
 export default function PartForm({ editPart, onClose }: Readonly<Props>) {
   const isEdit = editPart !== null;
   const { data: categories = [] } = useGetPartCategoriesQuery();
@@ -114,8 +137,8 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
         toast.success("Part created successfully");
       }
       onClose();
-    } catch (err: any) {
-      toast.error(err?.data?.title ?? err?.data?.message ?? "Operation failed");
+    } catch (error: unknown) {
+      toast.error(getMutationErrorMessage(error, "Operation failed"));
     }
   };
 

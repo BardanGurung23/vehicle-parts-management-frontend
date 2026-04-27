@@ -9,6 +9,7 @@ import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
 import { LoadingScreen } from "../../shared/components/LoadingScreen";
+import { toast } from "react-toastify";
 
 const staffSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),
@@ -84,11 +85,15 @@ export function StaffManagementPage() {
       setPageSuccess(null);
 
       await api.createStaffUser(token, values);
-      setPageSuccess("Staff account created successfully.");
+      const successMessageText = "Staff account created successfully.";
+      setPageSuccess(successMessageText);
+      toast.success(successMessageText);
       reset();
       await loadPageData();
     } catch (error) {
-      setPageError(error instanceof ApiError ? error.message : "Could not create the staff account.");
+      const message = error instanceof ApiError ? error.message : "Could not create the staff account.";
+      setPageError(message);
+      toast.error(message);
     }
   });
 
@@ -123,9 +128,13 @@ export function StaffManagementPage() {
       setStaffUsers((current) =>
         current.map((user) => (user.userId === userId ? updatedUser : user)),
       );
-      setPageSuccess(`Updated role for ${updatedUser.fullName}.`);
+      const successMessageText = `Updated role for ${updatedUser.fullName}.`;
+      setPageSuccess(successMessageText);
+      toast.success(successMessageText);
     } catch (error) {
-      setPageError(error instanceof ApiError ? error.message : "Could not update the role.");
+      const message = error instanceof ApiError ? error.message : "Could not update the role.";
+      setPageError(message);
+      toast.error(message);
     } finally {
       setSavingUserId(null);
     }
