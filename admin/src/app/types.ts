@@ -27,6 +27,15 @@ export interface RegisterCustomerInput {
   address?: string;
 }
 
+export interface CreateCustomerInput {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  address?: string;
+  vehicleNumber: string;
+  vehicleModel?: string;
+}
+
 export interface RegisterCustomerResponse {
   userId: number;
   customerId: number;
@@ -50,6 +59,18 @@ export interface CustomerDetail {
   address?: string | null;
   registeredAt: string;
   vehicles: VehicleSummary[];
+}
+
+export interface UpdateCustomerProfileInput {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  address?: string;
+}
+
+export interface AddVehicleInput {
+  vehicleNumber: string;
+  vehicleModel?: string;
 }
 
 export interface CustomerSearchInput {

@@ -1,6 +1,8 @@
 import type {
+  AddVehicleInput,
   AuthResponse,
   CreateAppointmentRequest,
+  CreateCustomerInput,
   CreateReviewRequest,
   CustomerDetail,
   CustomerSearchInput,
@@ -13,6 +15,7 @@ import type {
   RoleOption,
   ServiceReview,
   StaffUser,
+  UpdateCustomerProfileInput,
   UpdateStaffRoleInput,
   UserProfile,
   Vehicle,
@@ -155,7 +158,33 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  createCustomer: (token: string, payload: CreateCustomerInput) =>
+    request<CustomerDetail>("/customers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
   getCurrentCustomer: (token: string) => request<CustomerDetail>("/customers/me", {}, token),
+
+  updateCurrentCustomer: (token: string, payload: UpdateCustomerProfileInput) =>
+    request<CustomerDetail>("/customers/me", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }, token),
+
+  addCurrentCustomerVehicle: (token: string, payload: AddVehicleInput) =>
+    request<CustomerDetail>("/customers/me/vehicles", {
+      method: "POST",
+      body: JSON.stringify({
+        vehicleNumber: payload.vehicleNumber,
+        model: payload.vehicleModel,
+      }),
+    }, token),
+
+  removeCurrentCustomerVehicle: (token: string, vehicleId: number) =>
+    request<CustomerDetail>(`/customers/me/vehicles/${vehicleId}`, {
+      method: "DELETE",
+    }, token),
 
   getCustomerById: (token: string, customerId: number) =>
     request<CustomerDetail>(`/customers/${customerId}`, {}, token),

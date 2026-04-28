@@ -1,157 +1,127 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../app/auth";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "react-toastify";
 import { api, ApiError } from "../../app/api";
-import { Field } from "../../shared/components/Field";
+import { useAuth } from "../../app/auth";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
+import { Field } from "../../shared/components/Field";
+
+const createCustomerSchema = z.object({
+  fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),
+  phoneNumber: z.string().min(7, "Phone number must be at least 7 characters.").trim(),
+  email: z.union([z.string().email("Enter a valid email address.").trim(), z.literal("")]),
+  address: z.string().max(500, "Address is too long.").optional(),
+  vehicleNumber: z.string().min(2, "Vehicle number must be at least 2 characters.").trim(),
+  vehicleModel: z.string().max(80, "Vehicle model is too long.").optional(),
+});
+
+type CreateCustomerFormValues = z.infer<typeof createCustomerSchema>;
 
 export function StaffCustomerRegistrationPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateCustomerFormValues>({
+    resolver: zodResolver(createCustomerSchema),
+    defaultValues: {
+      email: "",
+      address: "",
+      vehicleModel: "",
+    },
+  });
+  const [pageError, setPageError] = useState<string | null>(null);
 
-  const [fullName, setFullName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [vehicleNumber, setVehicleNumber] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("");
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-
-    if (!fullName.trim() || !phoneNumber.trim() || !vehicleNumber.trim()) {
-      setErrorMessage("Full name, phone number, and vehicle number are required.");
+  const onSubmit = handleSubmit(async (values) => {
+    if (!token) {
       return;
     }
 
     try {
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      setSubmitting(true);
+      setPageError(null);
 
-      const payload = {
-        fullName: fullName.trim(),
-        phoneNumber: phoneNumber.trim(),
-        email: email.trim() || undefined,
-        address: address.trim() || undefined,
-        vehicleNumber: vehicleNumber.trim(),
-        vehicleModel: vehicleModel.trim() || undefined,
-      };
+      const createdCustomer = await api.createCustomer(token, {
+        fullName: values.fullName,
+        phoneNumber: values.phoneNumber,
+        email: values.email || undefined,
+        address: values.address,
+        vehicleNumber: values.vehicleNumber,
+        vehicleModel: values.vehicleModel,
+      });
 
-      const result = await api.createCustomerWithVehicle(token, payload);
-      setSuccessMessage(`Customer registered! Customer ID: ${result.customerId}, Vehicle ID: ${result.vehicleId}`);
-      toast.success("Customer and vehicle registered successfully!");
-
-      // Reset form
-      setFullName("");
-      setPhoneNumber("");
-      setEmail("");
-      setAddress("");
-      setVehicleNumber("");
-      setVehicleModel("");
+      toast.success(`Customer profile created for ${createdCustomer.fullName}.`);
+      navigate(`/app/customers/${createdCustomer.customerId}`);
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Failed to register customer.";
-      setErrorMessage(message);
+      const message = error instanceof ApiError ? error.message : "Could not create the customer profile.";
+      setPageError(message);
       toast.error(message);
-    } finally {
-      setSubmitting(false);
     }
-  };
+  });
 
   return (
-    <main className="auth-shell">
-      <section className="auth-panel auth-panel--wide">
-        <div className="section-header">
-          <h1>Register Customer</h1>
-          <p>Register a new customer and their vehicle (for walk-in customers).</p>
+    <section className="page-stack">
+      {pageError ? <AlertBox tone="error" message={pageError} /> : null}
+
+      <header className="card dashboard-hero">
+        <div className="dashboard-hero__copy">
+          <p className="eyebrow">Feature 6</p>
+          <h2>Register customer</h2>
+          <p className="card__copy">
+            Create a staff-managed customer record with one required vehicle so the front desk can search and revisit it later.
+          </p>
         </div>
 
-        {errorMessage ? <AlertBox tone="error" message={errorMessage} /> : null}
-        {successMessage ? <AlertBox tone="success" message={successMessage} /> : null}
+        <div className="dashboard-hero__actions">
+          <Link className="button button--secondary" to="/app/customers/search">
+            Search customers
+          </Link>
+        </div>
+      </header>
 
-        <form className="form-grid form-grid--two-columns" onSubmit={handleSubmit}>
-          <div className="form-grid__full-width">
-            <h3>Customer Details</h3>
-          </div>
+      <article className="card dashboard-panel dashboard-panel--wide">
+        <div className="card__header">
+          <h3>Customer details</h3>
+          <p className="card__copy">Portal login credentials stay in the self-registration flow. This page creates the customer and initial vehicle only.</p>
+        </div>
 
-          <Field label="Full Name" error={!fullName ? "Required" : undefined}>
-            <input
-              className="input"
-              type="text"
-              placeholder="John Doe"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
+        <form className="form-grid form-grid--two-columns" onSubmit={onSubmit}>
+          <Field label="Full name" error={errors.fullName?.message}>
+            <input className="input" type="text" placeholder="Alex Johnson" {...register("fullName")} />
           </Field>
 
-          <Field label="Phone Number" error={!phoneNumber ? "Required" : undefined}>
-            <input
-              className="input"
-              type="tel"
-              placeholder="+9779800000000"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-            />
+          <Field label="Phone number" error={errors.phoneNumber?.message}>
+            <input className="input" type="tel" placeholder="+9779800000000" {...register("phoneNumber")} />
           </Field>
 
-          <Field label="Email (Optional)">
-            <input
-              className="input"
-              type="email"
-              placeholder="john@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          <Field label="Email" error={errors.email?.message} hint="Optional for staff-created profiles.">
+            <input className="input" type="email" placeholder="alex@example.com" {...register("email")} />
           </Field>
 
-          <Field label="Address (Optional)">
-            <textarea
-              className="input input--textarea"
-              rows={3}
-              placeholder="Customer address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
+          <Field label="Address" error={errors.address?.message}>
+            <textarea className="input input--textarea" rows={4} placeholder="Optional address" {...register("address")} />
+          </Field>
+
+          <Field label="Vehicle number" error={errors.vehicleNumber?.message}>
+            <input className="input" type="text" placeholder="BA 1 PA 1234" {...register("vehicleNumber")} />
+          </Field>
+
+          <Field label="Vehicle model" error={errors.vehicleModel?.message}>
+            <input className="input" type="text" placeholder="Civic" {...register("vehicleModel")} />
           </Field>
 
           <div className="form-grid__full-width">
-            <h3>Vehicle Details</h3>
-          </div>
-
-          <Field label="Vehicle Number" error={!vehicleNumber ? "Required" : undefined}>
-            <input
-              className="input"
-              type="text"
-              placeholder="BA 1 PA 1234"
-              value={vehicleNumber}
-              onChange={(e) => setVehicleNumber(e.target.value)}
-            />
-          </Field>
-
-          <Field label="Vehicle Model (Optional)">
-            <input
-              className="input"
-              type="text"
-              placeholder="Toyota Corolla"
-              value={vehicleModel}
-              onChange={(e) => setVehicleModel(e.target.value)}
-            />
-          </Field>
-
-          <div className="form-grid__full-width">
-            <ActionButton type="submit" disabled={submitting}>
-              {submitting ? "Registering..." : "Register Customer"}
+            <ActionButton type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating customer..." : "Create customer"}
             </ActionButton>
           </div>
         </form>
-      </section>
-    </main>
+      </article>
+    </section>
   );
 }

@@ -6,8 +6,12 @@ import { AppLayout } from "./shell/AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterCustomerPage } from "../features/auth/RegisterCustomerPage";
 import { CustomerDetailPage } from "../features/customers/CustomerDetailPage";
+import { CustomerSearchPage } from "../features/customers/CustomerSearchPage";
+import { StaffCustomerRegistrationPage } from "../features/customers/StaffCustomerRegistrationPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import PartsPage from "../features/parts/PartsPage";
+import { CustomerProfilePage } from "../features/profile/CustomerProfilePage";
+import { CustomerVehiclesPage } from "../features/profile/CustomerVehiclesPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
@@ -22,8 +26,6 @@ import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
 import { MyPartRequestsPage } from "../features/part-requests/MyPartRequestsPage";
 import { CustomersListPage } from "../pages/Customer/CustomersListPage";
-import { ProfilePage } from "../features/customers/ProfilePage";
-import { StaffCustomerRegistrationPage } from "../features/customers/StaffCustomerRegistrationPage";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 
 function PublicOnlyOutlet() {
@@ -87,6 +89,14 @@ function EmployeeOnlyOutlet() {
   const { user } = useAuth();
 
   return user?.role === "Admin" || user?.role === "Staff"
+    ? <Outlet />
+    : <Navigate to="/app" replace />;
+}
+
+function CustomerOnlyOutlet() {
+  const { user } = useAuth();
+
+  return user?.role === "Customer"
     ? <Outlet />
     : <Navigate to="/app" replace />;
 }
@@ -157,12 +167,29 @@ export const router = createBrowserRouter([
             element: <MyPartRequestsPage />,
           },
           {
-            path: "profile",
-            element: <ProfilePage />,
+            element: <CustomerOnlyOutlet />,
+            children: [
+              {
+                path: "profile",
+                element: <CustomerProfilePage />,
+              },
+              {
+                path: "profile/vehicles",
+                element: <CustomerVehiclesPage />,
+              },
+            ],
           },
           {
             element: <EmployeeOnlyOutlet />,
             children: [
+              {
+                path: "customers/register",
+                element: <StaffCustomerRegistrationPage />,
+              },
+              {
+                path: "customers/search",
+                element: <CustomerSearchPage />,
+              },
               {
                 path: "customers/:customerId",
                 element: <CustomerDetailPage />,

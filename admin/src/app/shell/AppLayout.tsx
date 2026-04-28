@@ -5,6 +5,8 @@ export function AppLayout() {
   const location = useLocation();
   const { user, isAdmin, logout } = useAuth();
   const canViewParts = user?.role === "Admin" || user?.role === "Staff";
+  const canManageCustomers = user?.role === "Admin" || user?.role === "Staff";
+  const isCustomer = user?.role === "Customer";
 
   const isStaffPage = location.pathname.startsWith("/app/staff");
   const isPartsPage = location.pathname.startsWith("/app/parts");
@@ -16,9 +18,14 @@ export function AppLayout() {
   const isRequestPartPage = location.pathname.startsWith("/app/request-part");
   const isMyPartRequestsPage = location.pathname.startsWith("/app/my-part-requests");
   const isPartRequestsPage = location.pathname.startsWith("/app/part-requests");
-  const isCustomersPage = location.pathname.startsWith("/app/customers");
-  const isProfilePage = location.pathname.startsWith("/app/profile");
-  const isCustomerDetailPage = location.pathname.startsWith("/app/customers/");
+  const isCustomersPage = location.pathname === "/app/customers";
+  const isCustomerRegisterPage = location.pathname === "/app/customers/register" || location.pathname === "/app/register-customer";
+  const isCustomerSearchPage = location.pathname === "/app/customers/search";
+  const isProfilePage = location.pathname === "/app/profile";
+  const isVehiclesPage = location.pathname === "/app/profile/vehicles";
+  const isCustomerDetailPage = location.pathname.startsWith("/app/customers/")
+    && !isCustomerRegisterPage
+    && !isCustomerSearchPage;
   const headerTitle = isStaffPage
     ? "Staff management"
     : isPartsPage
@@ -39,13 +46,19 @@ export function AppLayout() {
                     ? "My Part Requests"
                     : isPartRequestsPage
                       ? "Part Requests"
+                      : isCustomerRegisterPage
+                        ? "Customer Registration"
+                        : isCustomerSearchPage
+                          ? "Customer Search"
                       : isCustomersPage
                         ? "Customers"
-              : isCustomerDetailPage
-                ? "Customer Details"
-                : isProfilePage
-                  ? "My Profile"
-                  : "Dashboard";
+                      : isCustomerDetailPage
+                        ? "Customer Details"
+                        : isVehiclesPage
+                          ? "My Vehicles"
+                          : isProfilePage
+                            ? "My Profile"
+                            : "Dashboard";
   const headerCopy = isStaffPage
     ? "Create staff accounts and update role assignments."
     : isPartsPage
@@ -64,8 +77,14 @@ export function AppLayout() {
                   ? "Track the status of your part requests."
                   : isPartRequestsPage
                     ? "Manage customer part requests and update their status."
+                    : isCustomerRegisterPage
+                      ? "Create staff-managed customer records with an initial vehicle."
+                      : isCustomerSearchPage
+                        ? "Search customer records by ID, phone number, vehicle number, or name."
                     : isCustomersPage || isCustomerDetailPage
                       ? "Review customer profiles, vehicles, and service history."
+                      : isVehiclesPage
+                        ? "Add and remove the vehicles linked to your customer account."
       : user?.role === "Customer"
         ? "Review your customer profile and linked vehicles."
         : "Monitor inventory health, staffing coverage, and customer lookup from one board.";
@@ -160,16 +179,30 @@ export function AppLayout() {
           >
             My Reviews
           </NavLink>
-          <NavLink
-            to="/app/profile"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            Profile
-          </NavLink>
+          {isCustomer && (
+            <>
+              <NavLink
+                to="/app/profile"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Profile
+              </NavLink>
+              <NavLink
+                to="/app/profile/vehicles"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Manage Vehicles
+              </NavLink>
+            </>
+          )}
           <NavLink
             to="/app/my-sales"
             className={({ isActive }) =>
@@ -180,6 +213,30 @@ export function AppLayout() {
           >
             My Purchases
           </NavLink>
+          {canManageCustomers && (
+            <>
+              <NavLink
+                to="/app/customers/register"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Customer Register
+              </NavLink>
+              <NavLink
+                to="/app/customers/search"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Customer Search
+              </NavLink>
+            </>
+          )}
           {isAdmin && (
             <NavLink
               to="/app/staff"
@@ -253,19 +310,6 @@ export function AppLayout() {
               }
             >
               Customers
-            </NavLink>
-          )}
-
-          {isAdmin && (
-            <NavLink
-              to="/app/register-customer"
-              className={({ isActive }) =>
-                isActive
-                  ? "shell__nav-link shell__nav-link--active"
-                  : "shell__nav-link"
-              }
-            >
-              Register Customer
             </NavLink>
           )}
         </nav>
