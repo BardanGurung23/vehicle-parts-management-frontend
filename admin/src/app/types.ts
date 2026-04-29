@@ -63,3 +63,65 @@ export interface StaffUser {
 export interface UpdateStaffRoleInput {
   roleId: number;
 }
+
+export interface Vehicle {
+  vehicleId: number;
+  vehicleNumber: string;
+  model: string;
+}
+
+export interface Appointment {
+  appointmentId: number;
+  customerId: number;
+  customerName: string;
+  vehicleId: number;
+  vehicleNumber: string;
+  vehicleModel: string;
+  appointmentDate: string;
+  serviceType: string;
+  status: string;
+  notes?: string | null;
+  createdAt: string;
+  hasReview: boolean;
+}
+
+export interface CreateAppointmentRequest {
+  vehicleId: number;
+  appointmentDate: string;
+  serviceType: string;
+  notes?: string;
+}
+
+export interface ServiceReview {
+  reviewId: number;
+  appointmentId: number;
+  customerId: number;
+  customerName: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+}
+
+export interface CreateReviewRequest {
+  appointmentId: number;
+  rating: number;
+  comment?: string;
+}
+
+export interface Vendor {
+  vendorId: number;
+  vendorName: string;
+  contactPerson?: string | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  address?: string | null;
+  createdAt: string;
+}
+
+export interface CreateVendorRequest {
+  vendorName: string;
+  contactPerson?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+}

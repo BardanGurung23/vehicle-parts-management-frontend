@@ -44,6 +44,8 @@ export const api = createApi({
     "testimonial",
     "staff",
     "parts",
+    "appointments",
+    "vendors",
   ],
   endpoints: () => ({}),
 });

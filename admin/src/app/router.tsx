@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Navigate,
-  Outlet,
-  createBrowserRouter,
-} from "react-router-dom";
+import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "./auth";
 import { AppLayout } from "./shell/AppLayout";
@@ -12,6 +8,22 @@ import { RegisterCustomerPage } from "../features/auth/RegisterCustomerPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Parts from "../pages/Parts";
+import Appointments from "../pages/Appointments";
+import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
+import { MyAppointmentsPage } from "../features/appointments/MyAppointmentsPage";
+import { AddVehiclePage } from "../features/vehicles/AddVehiclePage";
+import { MyVehiclesPage } from "../features/vehicles/MyVehiclesPage";
+import { MyReviewsPage } from "../features/reviews/MyReviewsPage";
+import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
+import Vendors from "../pages/Vendors";
+import { MySalesPage } from "../features/sales/MySalesPage";
+import { ShopPage } from "../features/sales/ShopPage";
+import { RequestPartPage } from "../features/part-requests/RequestPartPage";
+import { MyPartRequestsPage } from "../features/part-requests/MyPartRequestsPage";
+import { ViewCustomerPage } from "../pages/Customer/ViewCustomerPage";
+import { CustomersListPage } from "../pages/Customer/CustomersListPage";
+import { ProfilePage } from "../features/customers/ProfilePage";
+import { StaffCustomerRegistrationPage } from "../features/customers/StaffCustomerRegistrationPage";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 
 function PublicOnlyOutlet() {
@@ -37,7 +49,9 @@ function ProtectedOutlet() {
     void refreshProfile()
       .catch(() => {
         if (isActive) {
-          toast.error("Your session could not be validated. Please sign in again.");
+          toast.error(
+            "Your session could not be validated. Please sign in again.",
+          );
           logout();
         }
       })
@@ -95,6 +109,50 @@ export const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           {
+            path: "book-appointment",
+            element: <BookAppointmentPage />,
+          },
+          {
+            path: "my-appointments",
+            element: <MyAppointmentsPage />,
+          },
+          {
+            path: "add-vehicle",
+            element: <AddVehiclePage />,
+          },
+          {
+            path: "my-vehicles",
+            element: <MyVehiclesPage />,
+          },
+          {
+            path: "my-reviews",
+            element: <MyReviewsPage />,
+          },
+          {
+            path: "write-review/:appointmentId",
+            element: <WriteReviewPage />,
+          },
+          {
+            path: "my-sales",
+            element: <MySalesPage />,
+          },
+          {
+            path: "shop",
+            element: <ShopPage />,
+          },
+          {
+            path: "request-part",
+            element: <RequestPartPage />,
+          },
+          {
+            path: "my-part-requests",
+            element: <MyPartRequestsPage />,
+          },
+          {
+            path: "profile",
+            element: <ProfilePage />,
+          },
+          {
             element: <AdminOnlyOutlet />,
             children: [
               {
@@ -104,6 +162,30 @@ export const router = createBrowserRouter([
               {
                 path: "parts",
                 element: <Parts />,
+              },
+              {
+                path: "appointments",
+                element: <Appointments />,
+              },
+              {
+                path: "vendors",
+                element: <Vendors />,
+              },
+              {
+                path: "register-customer",
+                element: <StaffCustomerRegistrationPage />,
+              },
+              {
+                path: "customers",
+                element: <CustomersListPage />,
+              },
+              {
+                path: "customers/:id",
+                element: <ViewCustomerPage />,
+              },
+              {
+                path: "part-requests",
+                element: <MyPartRequestsPage />,
               },
             ],
           },

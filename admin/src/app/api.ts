@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  CreateAppointmentRequest,
   CreateStaffUserInput,
   LoginInput,
   RegisterCustomerInput,
@@ -8,6 +9,7 @@ import type {
   StaffUser,
   UpdateStaffRoleInput,
   UserProfile,
+  Vehicle,
 } from "./types";
 
 const configuredBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5154").replace(/\/+$/, "");
@@ -159,6 +161,49 @@ export const api = {
   updateStaffRole: (token: string, userId: number, payload: UpdateStaffRoleInput) =>
     request<StaffUser>(`/admin/staff/${userId}/role`, {
       method: "PUT",
+      body: JSON.stringify(payload),
+    }, token),
+
+  getMyVehicles: (token: string) =>
+    request<Vehicle[]>("/customers/me/vehicles", {}, token),
+
+  getMyAppointments: (token: string) =>
+    request<import("./types").Appointment[]>("/appointments/me", {}, token),
+
+  createAppointment: (token: string, payload: CreateAppointmentRequest) =>
+    request<import("./types").Appointment>("/appointments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  createVehicle: (token: string, payload: { vehicleNumber: string; model?: string }) =>
+    request<Vehicle>("/customers/me/vehicles", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  createReview: (token: string, payload: CreateReviewRequest) =>
+    request<ServiceReview>("/reviews", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  getMyReviews: (token: string) =>
+    request<ServiceReview[]>("/reviews/me", {}, token),
+
+  getReviewByAppointment: (token: string, appointmentId: number) =>
+    request<ServiceReview>(`/reviews/appointment/${appointmentId}`, {}, token),
+
+  createCustomerWithVehicle: (token: string, payload: {
+    fullName: string;
+    phoneNumber: string;
+    email?: string;
+    address?: string;
+    vehicleNumber: string;
+    vehicleModel?: string;
+  }) =>
+    request<{ customerId: number; vehicleId: number }>("/customers", {
+      method: "POST",
       body: JSON.stringify(payload),
     }, token),
 };

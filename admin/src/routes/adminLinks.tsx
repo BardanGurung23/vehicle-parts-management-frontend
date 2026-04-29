@@ -30,6 +30,7 @@ import AddEditTestimonial from "@/pages/Testimonial/AddEditTestimonial";
 import Testimonial from "@/pages/Testimonial";
 import Staff from "@/pages/Staff";
 import Parts from "@/pages/Parts";
+import { Appointments } from "@/pages/Appointments";
 
 export const adminLinks = [
   {
@@ -180,5 +181,9 @@ export const adminLinks = [
   {
     path: "/parts",
     element: <Parts />,
+  },
+  {
+    path: "/appointments",
+    element: <Appointments />,
   },
 ];
