@@ -1,19 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap");
 
 :root {
   /* Color Palette - Autonix Refined Industrial */
-  --bg: #F4F4F5;
-  --surface: #FFFFFF;
-  --muted: #71717A;
-  --line: #E4E4E7;
-  --accent: #1F6FEB;
+  --bg: #f4f4f5;
+  --surface: #ffffff;
+  --muted: #71717a;
+  --line: #e4e4e7;
+  --accent: #1f6feb;
   --accent-faint: rgba(31, 111, 235, 0.1);
-  --danger: #F43F5E;
-  
+  --danger: #f43f5e;
+
   /* Shared Defaults */
   --radius: 6px;
-  --font-display: 'IBM Plex Sans Condensed', sans-serif;
-  --font-body: 'IBM Plex Sans Condensed', sans-serif;
+  --font-display: "IBM Plex Sans Condensed", sans-serif;
+  --font-body: "IBM Plex Sans Condensed", sans-serif;
 
   color: var(--muted);
   background-color: var(--bg);
@@ -23,11 +27,11 @@
 }
 
 .dark {
-  --bg: #09090B;
+  --bg: #09090b;
   --surface: #121212;
-  --muted: #A1A1AA;
-  --line: #27272A;
-  --accent: #1F6FEB;
+  --muted: #a1a1aa;
+  --line: #27272a;
+  --accent: #1f6feb;
   --accent-faint: rgba(31, 111, 235, 0.12);
 }
 
@@ -50,14 +54,22 @@ body {
 }
 
 /* Typography Scale */
-h1, h2, h3, h4, .ui-headline {
+h1,
+h2,
+h3,
+h4,
+.ui-headline {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: #111827; /* Darker for accessibility in light mode */
 }
-.dark h1, .dark h2, .dark h3, .dark h4, .dark .ui-headline {
-  color: #FAFAFA;
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark .ui-headline {
+  color: #fafafa;
 }
 
 .nav-label {
@@ -71,7 +83,7 @@ h1, h2, h3, h4, .ui-headline {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   opacity: 0.7;
 }
 
@@ -156,8 +168,14 @@ button:disabled {
 
 /* Entry Animation */
 @keyframes staggerIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-stagger {
@@ -792,7 +810,8 @@ main {
 }
 
 .parts-item-card__part-number {
-  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.875rem;
   color: #374151;
 }
