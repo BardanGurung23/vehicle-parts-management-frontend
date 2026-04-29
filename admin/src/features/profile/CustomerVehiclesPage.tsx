@@ -34,6 +34,7 @@ export function CustomerVehiclesPage() {
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [removingVehicleId, setRemovingVehicleId] = useState<number | null>(null);
+  const vehicles = customer?.vehicles ?? [];
 
   const loadCustomer = useCallback(async () => {
     if (!token) {
@@ -80,12 +81,12 @@ export function CustomerVehiclesPage() {
       setPageError(null);
       setPageSuccess(null);
 
-      const updatedCustomer = await api.addCurrentCustomerVehicle(token, {
+      await api.addCurrentCustomerVehicle(token, {
         vehicleNumber: values.vehicleNumber,
         vehicleModel: values.vehicleModel,
       });
 
-      setCustomer(updatedCustomer);
+      await loadCustomer();
       reset();
       const successMessage = "Vehicle added to your customer profile.";
       setPageSuccess(successMessage);
@@ -93,7 +94,6 @@ export function CustomerVehiclesPage() {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Could not add the vehicle.";
       setPageError(message);
-      toast.error(message);
     }
   });
 
@@ -116,7 +116,6 @@ export function CustomerVehiclesPage() {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Could not remove the vehicle.";
       setPageError(message);
-      toast.error(message);
     } finally {
       setRemovingVehicleId(null);
     }
@@ -173,15 +172,15 @@ export function CustomerVehiclesPage() {
           <div className="card__header">
             <h3>Linked vehicles</h3>
             <p className="card__copy">
-              {customer?.vehicles.length
-                ? `${customer.vehicles.length} vehicle${customer.vehicles.length === 1 ? "" : "s"} currently linked.`
+              {vehicles.length
+                ? `${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} currently linked.`
                 : "No vehicles are linked to your account yet."}
             </p>
           </div>
 
-          {customer?.vehicles.length ? (
+          {vehicles.length ? (
             <div className="dashboard-vehicle-list">
-              {customer.vehicles.map((vehicle) => (
+              {vehicles.map((vehicle) => (
                 <article key={vehicle.vehicleId} className="dashboard-vehicle-card">
                   <div className="dashboard-vehicle-card__top">
                     <strong>{vehicle.vehicleNumber}</strong>

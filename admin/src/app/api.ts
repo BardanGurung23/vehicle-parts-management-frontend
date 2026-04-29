@@ -173,7 +173,7 @@ export const api = {
     }, token),
 
   addCurrentCustomerVehicle: (token: string, payload: AddVehicleInput) =>
-    request<CustomerDetail>("/customers/me/vehicles", {
+    request<Vehicle>("/customers/me/vehicles", {
       method: "POST",
       body: JSON.stringify({
         vehicleNumber: payload.vehicleNumber,

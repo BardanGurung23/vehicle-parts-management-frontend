@@ -32,7 +32,6 @@ export function MyReviewsPage() {
       const message =
         err instanceof ApiError ? err.message : "Failed to load reviews.";
       setError(message);
-      toast.error(message);
     } finally {
       setLoading(false);
     }

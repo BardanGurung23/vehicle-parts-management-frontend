@@ -23,7 +23,7 @@ const Table: React.FC<TableProps> = ({
   return (
     <div className="overflow-x-auto">
       {/* Table */}
-      <table className="min-w-full border-collapse bg-surface text-foreground border border-line">
+      <table className="w-max min-w-full border-collapse bg-surface text-foreground border border-line">
         <thead className="bg-surface border-b border-line">
           <tr>
             {isSN && (
@@ -47,7 +47,7 @@ const Table: React.FC<TableProps> = ({
               <tr key={index} className="border-b border-line hover:bg-accent-faint transition-colors h-[36px]">
                 {isSN && <td className="px-3 py-1 font-medium text-[12px]">{index + 1}</td>}
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-3 py-1 text-[12px]">
+                  <td key={cellIndex} className="px-3 py-1 text-[12px] align-top">
                     {React.isValidElement(cell) ? cell : `${cell}`}
                   </td>
                 ))}

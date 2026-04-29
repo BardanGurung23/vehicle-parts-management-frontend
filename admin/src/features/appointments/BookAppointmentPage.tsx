@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../app/auth";
 import { api, ApiError } from "../../app/api";
 import { Field } from "../../shared/components/Field";
@@ -7,12 +7,41 @@ import { AlertBox } from "../../shared/components/AlertBox";
 import { toast } from "react-toastify";
 import type { Vehicle, CreateAppointmentRequest } from "../../app/types";
 
+function formatDateTimeLocal(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toOffsetDateTime(value: string) {
+  const localDate = new Date(value);
+
+  if (Number.isNaN(localDate.getTime())) {
+    return value;
+  }
+
+  const offsetMinutes = -localDate.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffsetMinutes = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absoluteOffsetMinutes / 60)).padStart(2, "0");
+  const offsetRemainingMinutes = String(absoluteOffsetMinutes % 60).padStart(2, "0");
+
+  return `${value}:00${sign}${offsetHours}:${offsetRemainingMinutes}`;
+}
+
 export function BookAppointmentPage() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
+  const appointmentDateInputRef = useRef<HTMLInputElement | null>(null);
+  const [minimumAppointmentDate] = useState(() => formatDateTimeLocal(new Date()));
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [appointmentDateError, setAppointmentDateError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState<CreateAppointmentRequest>({
@@ -49,32 +78,44 @@ export function BookAppointmentPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAppointmentDateInput = (value: string) => {
+    setForm((prev) => ({ ...prev, appointmentDate: value }));
+    setAppointmentDateError(undefined);
+    setErrorMessage((current) => (current === "Please fill in all required fields." ? null : current));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
 
-    if (!form.vehicleId || !form.appointmentDate || !form.serviceType) {
+    const appointmentDate = appointmentDateInputRef.current?.value.trim() || form.appointmentDate;
+
+    if (!form.vehicleId || !appointmentDate || !form.serviceType) {
+      setAppointmentDateError(appointmentDate ? undefined : "Select date and time");
       setErrorMessage("Please fill in all required fields.");
       return;
     }
 
     try {
+      setAppointmentDateError(undefined);
       setErrorMessage(null);
       setSuccessMessage(null);
       setSubmitting(true);
 
       await api.createAppointment(token, {
         ...form,
-        appointmentDate: new Date(form.appointmentDate).toISOString(),
+        appointmentDate: toOffsetDateTime(appointmentDate),
       });
 
       setSuccessMessage("Appointment booked successfully!");
       toast.success("Appointment booked successfully!");
       setForm({ vehicleId: vehicles[0]?.vehicleId || 0, appointmentDate: "", serviceType: "", notes: "" });
+      if (appointmentDateInputRef.current) {
+        appointmentDateInputRef.current.value = "";
+      }
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Failed to book appointment.";
       setErrorMessage(message);
-      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -115,19 +156,23 @@ export function BookAppointmentPage() {
                 <option value={0} disabled>Select vehicle</option>
                 {vehicles.map((v) => (
                   <option key={v.vehicleId} value={v.vehicleId}>
-                    {v.vehicleNumber} - {v.vehicleBrand} {v.vehicleModel}
+                    {v.vehicleNumber} - {v.model || "Model not recorded"}
                   </option>
                 ))}
               </select>
             </Field>
 
-            <Field label="Appointment Date & Time" error={form.appointmentDate ? undefined : "Select date and time"}>
+            <Field label="Appointment Date & Time" error={appointmentDateError}>
               <input
+                ref={appointmentDateInputRef}
                 className="input"
                 type="datetime-local"
-                value={form.appointmentDate}
-                onChange={(e) => handleChange("appointmentDate", e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
+                defaultValue=""
+                onChange={(e) => handleAppointmentDateInput(e.currentTarget.value)}
+                onInput={(e) => handleAppointmentDateInput((e.target as HTMLInputElement).value)}
+                onFocus={() => setAppointmentDateError(undefined)}
+                min={minimumAppointmentDate}
+                step={60}
               />
             </Field>
 

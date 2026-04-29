@@ -5,13 +5,17 @@ export interface SaleItem {
   partName: string;
   quantity: number;
   unitPrice: number;
+  subtotal: number;
 }
 
 export interface Sale {
   saleId: number;
+  invoiceNumber: string;
   customerName: string;
   vehicleNumber: string | null;
   saleDate: string;
+  subtotal: number;
+  discountAmount: number;
   totalAmount: number;
   notes: string | null;
   items: SaleItem[];
@@ -23,6 +27,7 @@ export interface CreateSaleItemRequest {
 }
 
 export interface CreateSaleRequest {
+  customerId?: number;
   vehicleId?: number;
   items: CreateSaleItemRequest[];
   notes?: string;

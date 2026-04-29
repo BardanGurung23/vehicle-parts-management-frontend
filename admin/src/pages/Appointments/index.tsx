@@ -47,7 +47,7 @@ export default function Appointments() {
     appointment.notes || "-",
     <select
       key={`action-${appointment.appointmentId}`}
-      className="px-2 py-1 text-xs border rounded"
+      className="w-full min-w-[8.5rem] px-2 py-1 text-xs border rounded bg-white"
       defaultValue=""
       onChange={async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newStatus = e.target.value;
@@ -104,7 +104,11 @@ export default function Appointments() {
       {filtered.length === 0 && !error ? (
         <p className="empty-state">No appointments found.</p>
       ) : (
-        <Table isSN headers={headers} data={tableData} />
+        <div className="overflow-x-auto">
+          <div className="min-w-[78rem]">
+            <Table isSN headers={headers} data={tableData} />
+          </div>
+        </div>
       )}
     </div>
   );

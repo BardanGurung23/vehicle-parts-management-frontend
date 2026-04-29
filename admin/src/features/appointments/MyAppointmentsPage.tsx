@@ -37,7 +37,6 @@ export function MyAppointmentsPage() {
       const message =
         err instanceof ApiError ? err.message : "Failed to load appointments.";
       setError(message);
-      toast.error(message);
     } finally {
       setLoading(false);
     }

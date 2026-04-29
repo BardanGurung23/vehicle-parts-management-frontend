@@ -26,6 +26,7 @@ import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
 import { MyPartRequestsPage } from "../features/part-requests/MyPartRequestsPage";
 import { CustomersListPage } from "../pages/Customer/CustomersListPage";
+import { PartRequestsPage } from "../pages/PartRequests";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 
 function PublicOnlyOutlet() {
@@ -127,48 +128,48 @@ export const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           {
-            path: "book-appointment",
-            element: <BookAppointmentPage />,
-          },
-          {
-            path: "my-appointments",
-            element: <MyAppointmentsPage />,
-          },
-          {
-            path: "add-vehicle",
-            element: <AddVehiclePage />,
-          },
-          {
-            path: "my-vehicles",
-            element: <MyVehiclesPage />,
-          },
-          {
-            path: "my-reviews",
-            element: <MyReviewsPage />,
-          },
-          {
-            path: "write-review/:appointmentId",
-            element: <WriteReviewPage />,
-          },
-          {
-            path: "my-sales",
-            element: <MySalesPage />,
-          },
-          {
             path: "shop",
             element: <ShopPage />,
           },
           {
-            path: "request-part",
-            element: <RequestPartPage />,
-          },
-          {
-            path: "my-part-requests",
-            element: <MyPartRequestsPage />,
-          },
-          {
             element: <CustomerOnlyOutlet />,
             children: [
+              {
+                path: "book-appointment",
+                element: <BookAppointmentPage />,
+              },
+              {
+                path: "my-appointments",
+                element: <MyAppointmentsPage />,
+              },
+              {
+                path: "add-vehicle",
+                element: <AddVehiclePage />,
+              },
+              {
+                path: "my-vehicles",
+                element: <MyVehiclesPage />,
+              },
+              {
+                path: "my-reviews",
+                element: <MyReviewsPage />,
+              },
+              {
+                path: "write-review/:appointmentId",
+                element: <WriteReviewPage />,
+              },
+              {
+                path: "my-sales",
+                element: <MySalesPage />,
+              },
+              {
+                path: "request-part",
+                element: <RequestPartPage />,
+              },
+              {
+                path: "my-part-requests",
+                element: <MyPartRequestsPage />,
+              },
               {
                 path: "profile",
                 element: <CustomerProfilePage />,
@@ -225,7 +226,7 @@ export const router = createBrowserRouter([
               },
               {
                 path: "part-requests",
-                element: <MyPartRequestsPage />,
+                element: <PartRequestsPage />,
               },
             ],
           },

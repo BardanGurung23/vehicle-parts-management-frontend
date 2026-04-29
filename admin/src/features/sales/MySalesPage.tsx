@@ -18,7 +18,7 @@ export function MySalesPage() {
             <div key={sale.saleId} className="border rounded-lg p-4 shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h2 className="font-semibold">Sale #{sale.saleId}</h2>
+                  <h2 className="font-semibold">{sale.invoiceNumber || `Sale #${sale.saleId}`}</h2>
                   <p className="text-sm text-gray-600">
                     {new Date(sale.saleDate).toLocaleDateString()}
                   </p>
@@ -26,7 +26,10 @@ export function MySalesPage() {
                     <p className="text-sm text-gray-600">Vehicle: {sale.vehicleNumber}</p>
                   )}
                 </div>
-                <span className="text-lg font-bold">${sale.totalAmount.toFixed(2)}</span>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Total</p>
+                  <span className="text-lg font-bold">${sale.totalAmount.toFixed(2)}</span>
+                </div>
               </div>
 
               {sale.notes && (
@@ -34,18 +37,37 @@ export function MySalesPage() {
               )}
 
               <div className="mt-2">
-                <h3 className="text-sm font-semibold mb-1">Items:</h3>
+                <h3 className="text-sm font-semibold mb-1">
+                  {sale.discountAmount > 0 ? "Items (before discount):" : "Items:"}
+                </h3>
                 <ul className="space-y-1">
                   {sale.items.map((item, idx) => (
                     <li key={idx} className="text-sm flex justify-between">
                       <span>
                         {item.partName} x {item.quantity}
                       </span>
-                      <span>${(item.unitPrice * item.quantity).toFixed(2)}</span>
+                      <span>${item.subtotal.toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              <dl className="mt-3 space-y-1 border-t pt-3 text-sm text-gray-700">
+                <div className="flex justify-between">
+                  <dt>Subtotal</dt>
+                  <dd>${sale.subtotal.toFixed(2)}</dd>
+                </div>
+                {sale.discountAmount > 0 ? (
+                  <div className="flex justify-between text-green-700">
+                    <dt>Discount</dt>
+                    <dd>- ${sale.discountAmount.toFixed(2)}</dd>
+                  </div>
+                ) : null}
+                <div className="flex justify-between font-semibold text-gray-900">
+                  <dt>Total paid</dt>
+                  <dd>${sale.totalAmount.toFixed(2)}</dd>
+                </div>
+              </dl>
             </div>
           ))}
         </div>

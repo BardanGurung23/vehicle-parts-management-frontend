@@ -11,6 +11,7 @@ export function AppLayout() {
   const isStaffPage = location.pathname.startsWith("/app/staff");
   const isPartsPage = location.pathname.startsWith("/app/parts");
   const isAppointmentsPage = location.pathname.startsWith("/app/appointments");
+  const isVendorsPage = location.pathname.startsWith("/app/vendors");
   const isBookAppointmentPage = location.pathname.startsWith("/app/book-appointment");
   const isMyAppointmentsPage = location.pathname.startsWith("/app/my-appointments");
   const isMySalesPage = location.pathname.startsWith("/app/my-sales");
@@ -32,6 +33,8 @@ export function AppLayout() {
       ? "Parts management"
       : isAppointmentsPage
         ? "Appointments management"
+        : isVendorsPage
+          ? "Vendors"
         : isBookAppointmentPage
           ? "Book Appointment"
           : isMyAppointmentsPage
@@ -63,6 +66,10 @@ export function AppLayout() {
     ? "Create staff accounts and update role assignments."
     : isPartsPage
       ? "Manage inventory, pricing and stock levels."
+      : isAppointmentsPage
+        ? "Review scheduled appointments and update their service status."
+        : isVendorsPage
+          ? "Manage supplier records and keep vendor contact details current."
       : isBookAppointmentPage
         ? "Schedule a service for your vehicle."
         : isMyAppointmentsPage
@@ -81,10 +88,10 @@ export function AppLayout() {
                       ? "Create staff-managed customer records with an initial vehicle."
                       : isCustomerSearchPage
                         ? "Search customer records by ID, phone number, vehicle number, or name."
-                    : isCustomersPage || isCustomerDetailPage
-                      ? "Review customer profiles, vehicles, and service history."
-                      : isVehiclesPage
-                        ? "Add and remove the vehicles linked to your customer account."
+                        : isCustomersPage || isCustomerDetailPage
+                          ? "Review customer profiles, vehicles, and service history."
+                          : isVehiclesPage
+                            ? "Add and remove the vehicles linked to your customer account."
       : user?.role === "Customer"
         ? "Review your customer profile and linked vehicles."
         : "Monitor inventory health, staffing coverage, and customer lookup from one board.";
@@ -109,36 +116,40 @@ export function AppLayout() {
           >
             Dashboard
           </NavLink>
-          <NavLink
-            to="/app/book-appointment"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            Book Appointment
-          </NavLink>
-          <NavLink
-            to="/app/my-appointments"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            My Appointments
-          </NavLink>
-          <NavLink
-            to="/app/my-vehicles"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            My Vehicles
-          </NavLink>
+          {isCustomer && (
+            <>
+              <NavLink
+                to="/app/book-appointment"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Book Appointment
+              </NavLink>
+              <NavLink
+                to="/app/my-appointments"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                My Appointments
+              </NavLink>
+              <NavLink
+                to="/app/my-vehicles"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                My Vehicles
+              </NavLink>
+            </>
+          )}
           <NavLink
             to="/app/shop"
             className={({ isActive }) =>
@@ -149,36 +160,40 @@ export function AppLayout() {
           >
             Shop Parts
           </NavLink>
-          <NavLink
-            to="/app/request-part"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            Request Part
-          </NavLink>
-          <NavLink
-            to="/app/my-part-requests"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            My Requests
-          </NavLink>
-          <NavLink
-            to="/app/my-reviews"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            My Reviews
-          </NavLink>
+          {isCustomer && (
+            <>
+              <NavLink
+                to="/app/request-part"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                Request Part
+              </NavLink>
+              <NavLink
+                to="/app/my-part-requests"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                My Requests
+              </NavLink>
+              <NavLink
+                to="/app/my-reviews"
+                className={({ isActive }) =>
+                  isActive
+                    ? "shell__nav-link shell__nav-link--active"
+                    : "shell__nav-link"
+                }
+              >
+                My Reviews
+              </NavLink>
+            </>
+          )}
           {isCustomer && (
             <>
               <NavLink
@@ -203,16 +218,18 @@ export function AppLayout() {
               </NavLink>
             </>
           )}
-          <NavLink
-            to="/app/my-sales"
-            className={({ isActive }) =>
-              isActive
-                ? "shell__nav-link shell__nav-link--active"
-                : "shell__nav-link"
-            }
-          >
-            My Purchases
-          </NavLink>
+          {isCustomer && (
+            <NavLink
+              to="/app/my-sales"
+              className={({ isActive }) =>
+                isActive
+                  ? "shell__nav-link shell__nav-link--active"
+                  : "shell__nav-link"
+              }
+            >
+              My Purchases
+            </NavLink>
+          )}
           {canManageCustomers && (
             <>
               <NavLink
