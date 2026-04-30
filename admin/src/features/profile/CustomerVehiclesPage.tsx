@@ -11,10 +11,11 @@ import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
 import { LoadingScreen } from "../../shared/components/LoadingScreen";
+import { requiredVehicleNumberSchema, vehicleModelSchema } from "../../shared/validation/member4Validation";
 
 const vehicleSchema = z.object({
-  vehicleNumber: z.string().min(2, "Vehicle number must be at least 2 characters.").trim(),
-  vehicleModel: z.string().max(80, "Vehicle model is too long.").optional(),
+  vehicleNumber: requiredVehicleNumberSchema,
+  vehicleModel: vehicleModelSchema,
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;

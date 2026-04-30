@@ -16,8 +16,6 @@ import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
 import { MyAppointmentsPage } from "../features/appointments/MyAppointmentsPage";
-import { AddVehiclePage } from "../features/vehicles/AddVehiclePage";
-import { MyVehiclesPage } from "../features/vehicles/MyVehiclesPage";
 import { MyReviewsPage } from "../features/reviews/MyReviewsPage";
 import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
 import Vendors from "../pages/Vendors";
@@ -144,11 +142,11 @@ export const router = createBrowserRouter([
               },
               {
                 path: "add-vehicle",
-                element: <AddVehiclePage />,
+                element: <Navigate to="/app/profile/vehicles" replace />,
               },
               {
                 path: "my-vehicles",
-                element: <MyVehiclesPage />,
+                element: <Navigate to="/app/profile/vehicles" replace />,
               },
               {
                 path: "my-reviews",

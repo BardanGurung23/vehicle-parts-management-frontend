@@ -8,18 +8,22 @@ import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { toast } from "react-toastify";
+import {
+  fullNameSchema,
+  optionalVehicleNumberSchema,
+  phoneNumberSchema,
+  requiredEmailSchema,
+  vehicleModelSchema,
+} from "../../shared/validation/member4Validation";
 
 const registerSchema = z
   .object({
-    fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),
-    email: z.string().email("Enter a valid email address.").trim(),
-    phoneNumber: z.string().min(7, "Phone number must be at least 7 characters.").trim(),
+    fullName: fullNameSchema,
+    email: requiredEmailSchema,
+    phoneNumber: phoneNumberSchema,
     address: z.string().max(500, "Address is too long.").optional(),
-    vehicleNumber: z.union([
-      z.string().min(2, "Vehicle number must be at least 2 characters.").trim(),
-      z.literal(""),
-    ]),
-    vehicleModel: z.string().max(80, "Vehicle model is too long.").optional(),
+    vehicleNumber: optionalVehicleNumberSchema,
+    vehicleModel: vehicleModelSchema,
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(8, "Confirm your password."),
   })

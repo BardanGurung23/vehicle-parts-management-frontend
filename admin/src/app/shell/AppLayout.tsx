@@ -138,16 +138,6 @@ export function AppLayout() {
               >
                 My Appointments
               </NavLink>
-              <NavLink
-                to="/app/my-vehicles"
-                className={({ isActive }) =>
-                  isActive
-                    ? "shell__nav-link shell__nav-link--active"
-                    : "shell__nav-link"
-                }
-              >
-                My Vehicles
-              </NavLink>
             </>
           )}
           <NavLink

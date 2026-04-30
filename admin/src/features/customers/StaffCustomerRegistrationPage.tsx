@@ -9,14 +9,21 @@ import { useAuth } from "../../app/auth";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
+import {
+  fullNameSchema,
+  optionalEmailSchema,
+  phoneNumberSchema,
+  requiredVehicleNumberSchema,
+  vehicleModelSchema,
+} from "../../shared/validation/member4Validation";
 
 const createCustomerSchema = z.object({
-  fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),
-  phoneNumber: z.string().min(7, "Phone number must be at least 7 characters.").trim(),
-  email: z.union([z.string().email("Enter a valid email address.").trim(), z.literal("")]),
+  fullName: fullNameSchema,
+  phoneNumber: phoneNumberSchema,
+  email: optionalEmailSchema,
   address: z.string().max(500, "Address is too long.").optional(),
-  vehicleNumber: z.string().min(2, "Vehicle number must be at least 2 characters.").trim(),
-  vehicleModel: z.string().max(80, "Vehicle model is too long.").optional(),
+  vehicleNumber: requiredVehicleNumberSchema,
+  vehicleModel: vehicleModelSchema,
 });
 
 type CreateCustomerFormValues = z.infer<typeof createCustomerSchema>;

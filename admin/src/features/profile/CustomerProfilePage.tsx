@@ -11,11 +11,12 @@ import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
 import { LoadingScreen } from "../../shared/components/LoadingScreen";
+import { fullNameSchema, phoneNumberSchema, requiredEmailSchema } from "../../shared/validation/member4Validation";
 
 const profileSchema = z.object({
-  fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),
-  email: z.string().email("Enter a valid email address.").trim(),
-  phoneNumber: z.string().min(7, "Phone number must be at least 7 characters.").trim(),
+  fullName: fullNameSchema,
+  email: requiredEmailSchema,
+  phoneNumber: phoneNumberSchema,
   address: z.string().max(500, "Address is too long.").optional(),
 });
 
