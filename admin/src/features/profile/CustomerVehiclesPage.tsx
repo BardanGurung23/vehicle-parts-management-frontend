@@ -22,17 +22,30 @@ type VehicleFormValues = z.infer<typeof vehicleSchema>;
 export function CustomerVehiclesPage() {
   const { token } = useAuth();
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
+    register: registerAddVehicle,
+    handleSubmit: handleAddVehicleSubmit,
+    reset: resetAddVehicleForm,
+    formState: { errors: addVehicleErrors, isSubmitting: isAddingVehicle },
   } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
+  });
+  const {
+    register: registerEditVehicle,
+    handleSubmit: handleEditVehicleSubmit,
+    reset: resetEditVehicleForm,
+    formState: { errors: editVehicleErrors, isSubmitting: isUpdatingVehicle },
+  } = useForm<VehicleFormValues>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: {
+      vehicleNumber: "",
+      vehicleModel: "",
+    },
   });
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
   const [removingVehicleId, setRemovingVehicleId] = useState<number | null>(null);
   const vehicles = customer?.vehicles ?? [];
 
@@ -72,7 +85,7 @@ export function CustomerVehiclesPage() {
     };
   }, [loadCustomer, token]);
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = handleAddVehicleSubmit(async (values) => {
     if (!token) {
       return;
     }
@@ -87,13 +100,57 @@ export function CustomerVehiclesPage() {
       });
 
       await loadCustomer();
-      reset();
+      resetAddVehicleForm();
       const successMessage = "Vehicle added to your customer profile.";
       setPageSuccess(successMessage);
       toast.success(successMessage);
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Could not add the vehicle.";
       setPageError(message);
+    }
+  });
+
+  const startEditingVehicle = (vehicle: CustomerDetail["vehicles"][number]) => {
+    setEditingVehicleId(vehicle.vehicleId);
+    setPageError(null);
+    setPageSuccess(null);
+    resetEditVehicleForm({
+      vehicleNumber: vehicle.vehicleNumber,
+      vehicleModel: vehicle.model ?? "",
+    });
+  };
+
+  const stopEditingVehicle = () => {
+    setEditingVehicleId(null);
+    resetEditVehicleForm({
+      vehicleNumber: "",
+      vehicleModel: "",
+    });
+  };
+
+  const onUpdateVehicle = handleEditVehicleSubmit(async (values) => {
+    if (!token || editingVehicleId === null) {
+      return;
+    }
+
+    try {
+      setPageError(null);
+      setPageSuccess(null);
+
+      await api.updateCurrentCustomerVehicle(token, editingVehicleId, {
+        vehicleNumber: values.vehicleNumber,
+        vehicleModel: values.vehicleModel,
+      });
+
+      await loadCustomer();
+      stopEditingVehicle();
+      const successMessage = "Vehicle details updated.";
+      setPageSuccess(successMessage);
+      toast.success(successMessage);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Could not update the vehicle.";
+      setPageError(message);
+      toast.error(message);
     }
   });
 
@@ -154,16 +211,16 @@ export function CustomerVehiclesPage() {
           </div>
 
           <form className="form-grid" onSubmit={onSubmit}>
-            <Field label="Vehicle number" error={errors.vehicleNumber?.message}>
-              <input className="input" type="text" placeholder="BA 1 PA 1234" {...register("vehicleNumber")} />
+            <Field label="Vehicle number" error={addVehicleErrors.vehicleNumber?.message}>
+              <input className="input" type="text" placeholder="BA 1 PA 1234" {...registerAddVehicle("vehicleNumber")} />
             </Field>
 
-            <Field label="Vehicle model" error={errors.vehicleModel?.message}>
-              <input className="input" type="text" placeholder="Civic" {...register("vehicleModel")} />
+            <Field label="Vehicle model" error={addVehicleErrors.vehicleModel?.message}>
+              <input className="input" type="text" placeholder="Civic" {...registerAddVehicle("vehicleModel")} />
             </Field>
 
-            <ActionButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Adding vehicle..." : "Add vehicle"}
+            <ActionButton type="submit" disabled={isAddingVehicle}>
+              {isAddingVehicle ? "Adding vehicle..." : "Add vehicle"}
             </ActionButton>
           </form>
         </article>
@@ -182,23 +239,56 @@ export function CustomerVehiclesPage() {
             <div className="dashboard-vehicle-list">
               {vehicles.map((vehicle) => (
                 <article key={vehicle.vehicleId} className="dashboard-vehicle-card">
-                  <div className="dashboard-vehicle-card__top">
-                    <strong>{vehicle.vehicleNumber}</strong>
-                    <span className="status-pill">Vehicle #{vehicle.vehicleId}</span>
-                  </div>
+                  {editingVehicleId === vehicle.vehicleId ? (
+                    <form className="form-grid" onSubmit={onUpdateVehicle}>
+                      <div className="dashboard-vehicle-card__top">
+                        <strong>Editing vehicle #{vehicle.vehicleId}</strong>
+                        <span className="status-pill">Editing</span>
+                      </div>
 
-                  <p>{vehicle.model ?? "Model not recorded"}</p>
+                      <Field label="Vehicle number" error={editVehicleErrors.vehicleNumber?.message}>
+                        <input className="input" type="text" {...registerEditVehicle("vehicleNumber")} />
+                      </Field>
 
-                  <div className="dashboard-hero__actions">
-                    <ActionButton
-                      type="button"
-                      tone="secondary"
-                      disabled={removingVehicleId === vehicle.vehicleId}
-                      onClick={() => void removeVehicle(vehicle.vehicleId)}
-                    >
-                      {removingVehicleId === vehicle.vehicleId ? "Removing..." : "Remove vehicle"}
-                    </ActionButton>
-                  </div>
+                      <Field label="Vehicle model" error={editVehicleErrors.vehicleModel?.message}>
+                        <input className="input" type="text" {...registerEditVehicle("vehicleModel")} />
+                      </Field>
+
+                      <div className="dashboard-hero__actions">
+                        <ActionButton type="submit" disabled={isUpdatingVehicle}>
+                          {isUpdatingVehicle ? "Saving..." : "Save changes"}
+                        </ActionButton>
+
+                        <ActionButton type="button" tone="secondary" onClick={stopEditingVehicle}>
+                          Cancel
+                        </ActionButton>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="dashboard-vehicle-card__top">
+                        <strong>{vehicle.vehicleNumber}</strong>
+                        <span className="status-pill">Vehicle #{vehicle.vehicleId}</span>
+                      </div>
+
+                      <p>{vehicle.model ?? "Model not recorded"}</p>
+
+                      <div className="dashboard-hero__actions">
+                        <ActionButton type="button" onClick={() => startEditingVehicle(vehicle)}>
+                          Edit vehicle
+                        </ActionButton>
+
+                        <ActionButton
+                          type="button"
+                          tone="secondary"
+                          disabled={removingVehicleId === vehicle.vehicleId}
+                          onClick={() => void removeVehicle(vehicle.vehicleId)}
+                        >
+                          {removingVehicleId === vehicle.vehicleId ? "Removing..." : "Remove vehicle"}
+                        </ActionButton>
+                      </div>
+                    </>
+                  )}
                 </article>
               ))}
             </div>

@@ -181,6 +181,15 @@ export const api = {
       }),
     }, token),
 
+  updateCurrentCustomerVehicle: (token: string, vehicleId: number, payload: AddVehicleInput) =>
+    request<Vehicle>(`/customers/me/vehicles/${vehicleId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        vehicleNumber: payload.vehicleNumber,
+        model: payload.vehicleModel,
+      }),
+    }, token),
+
   removeCurrentCustomerVehicle: (token: string, vehicleId: number) =>
     request<CustomerDetail>(`/customers/me/vehicles/${vehicleId}`, {
       method: "DELETE",

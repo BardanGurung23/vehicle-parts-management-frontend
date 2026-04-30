@@ -25,6 +25,8 @@ export interface RegisterCustomerInput {
   phoneNumber: string;
   password: string;
   address?: string;
+  vehicleNumber?: string;
+  vehicleModel?: string;
 }
 
 export interface CreateCustomerInput {

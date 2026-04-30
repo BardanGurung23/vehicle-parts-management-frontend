@@ -6,17 +6,17 @@ This folder-level `frontend/` package is not the app runtime. The shipped UI is 
 
 ## Current Status
 
-This README reflects the latest roadmap update in `doc/progress.md` from `2026-04-29`.
+This README reflects the latest roadmap update in `doc/progress.md` from `2026-04-30`.
 
 Implemented in the active frontend:
 
 - Router-based application shell with protected, public-only, admin-only, employee-only, and customer-only route guards.
 - Login and session restore using `/api/auth/login` and `/api/auth/me`.
-- Customer self-registration using `/api/auth/register`.
+- Customer self-registration using `/api/customers/register`, including optional initial vehicle capture during signup.
 - Role-aware dashboard backed by `/api/dashboard/summary`.
 - Staff customer registration, customer search, and dedicated customer detail pages.
 - Admin staff management, vendors, appointments, and part-request management pages.
-- Customer profile editing, vehicle management, appointment booking, part requests, reviews, shop, and purchase-history flows.
+- Customer profile editing, vehicle add/edit/remove management, appointment booking, part requests, reviews, shop, and purchase-history flows.
 - Active parts workspace at `/app/parts`, with admin write access and staff read-only access.
 
 Still incomplete or needing cleanup:
@@ -119,11 +119,11 @@ npm --prefix frontend/admin run lint
 | Service | Default URL |
 | --- | --- |
 | Backend API | `http://localhost:5154` |
-| Frontend admin app | `http://localhost:7001` |
+| Frontend admin app | `http://localhost:5173` |
 
 Notes:
 
-- The Vite dev server uses `VITE_PORT` when provided; otherwise it defaults to `7001`.
+- The Vite dev server uses `VITE_PORT` when provided; otherwise it defaults to `5173`.
 - API requests use `VITE_BACKEND_BASE_URL` when provided; otherwise they default to `http://localhost:5154`.
 
 ## Backend Dependency And Demo Data
@@ -143,11 +143,11 @@ The seeded canonical demo accounts use the `demo.*@autonix.local` pattern, and t
 Latest documented verification from `doc/progress.md`:
 
 - `npm --prefix frontend/admin run build` succeeds.
-- Latest browser smoke and retest passes covered admin login, dashboard rendering, customer detail navigation, parts workspace access, appointment booking, vehicle add-and-refresh behavior, purchase-history totals, vendors page copy, appointments page copy, and appointments action-column visibility.
+- Latest browser smoke and retest passes covered admin login, dashboard rendering, customer detail navigation, parts workspace access, appointment booking, customer vehicle add-and-refresh behavior, purchase-history totals, vendors page copy, appointments page copy, and appointments action-column visibility.
 - No frontend test command exists because no frontend test suite is committed.
 
 ## Highest-Priority Frontend Follow-Up
 
-- Add regression coverage for the recent runtime fixes.
+- Add regression coverage for the recent customer self-service and scheduling fixes.
 - Decide whether the remaining active flows using Redux services should move into the newer feature-oriented API layer.
 - Clean up or retire inactive legacy frontend code to reduce maintenance drift.

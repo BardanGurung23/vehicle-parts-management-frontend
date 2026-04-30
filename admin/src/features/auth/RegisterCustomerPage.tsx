@@ -15,8 +15,17 @@ const registerSchema = z
     email: z.string().email("Enter a valid email address.").trim(),
     phoneNumber: z.string().min(7, "Phone number must be at least 7 characters.").trim(),
     address: z.string().max(500, "Address is too long.").optional(),
+    vehicleNumber: z.union([
+      z.string().min(2, "Vehicle number must be at least 2 characters.").trim(),
+      z.literal(""),
+    ]),
+    vehicleModel: z.string().max(80, "Vehicle model is too long.").optional(),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(8, "Confirm your password."),
+  })
+  .refine((values) => values.vehicleNumber || !values.vehicleModel?.trim(), {
+    path: ["vehicleNumber"],
+    message: "Vehicle number is required when providing vehicle details.",
   })
   .refine((values) => values.password === values.confirmPassword, {
     path: ["confirmPassword"],
@@ -46,6 +55,8 @@ export function RegisterCustomerPage() {
         email: values.email,
         phoneNumber: values.phoneNumber,
         address: values.address,
+        vehicleNumber: values.vehicleNumber || undefined,
+        vehicleModel: values.vehicleModel?.trim() || undefined,
         password: values.password,
       });
 
@@ -65,7 +76,7 @@ export function RegisterCustomerPage() {
       <section className="auth-panel auth-panel--wide">
         <div className="section-header">
           <h1>Create customer account</h1>
-          <p>This creates a customer record and a matching login.</p>
+          <p>This creates a customer record, a matching login, and optionally your first vehicle.</p>
         </div>
 
         {errorMessage ? <AlertBox tone="error" message={errorMessage} /> : null}
@@ -86,6 +97,14 @@ export function RegisterCustomerPage() {
 
           <Field label="Address" error={errors.address?.message}>
             <textarea className="input input--textarea" rows={4} placeholder="Optional address" {...register("address")} />
+          </Field>
+
+          <Field label="Vehicle number" error={errors.vehicleNumber?.message} hint="Optional now. You can add more vehicles later.">
+            <input className="input" type="text" placeholder="BA 1 PA 1234" {...register("vehicleNumber")} />
+          </Field>
+
+          <Field label="Vehicle model" error={errors.vehicleModel?.message}>
+            <input className="input" type="text" placeholder="Civic" {...register("vehicleModel")} />
           </Field>
 
           <Field label="Password" error={errors.password?.message}>
