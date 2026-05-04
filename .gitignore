@@ -39,3 +39,6 @@ sh-logs/*
 
 
 things-to-remove-file.md
+
+# Visual Studio workspace files
+.vs/
