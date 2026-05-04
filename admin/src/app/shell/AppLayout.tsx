@@ -19,7 +19,6 @@ export function AppLayout() {
   const isRequestPartPage = location.pathname.startsWith("/app/request-part");
   const isMyPartRequestsPage = location.pathname.startsWith("/app/my-part-requests");
   const isPartRequestsPage = location.pathname.startsWith("/app/part-requests");
-  const isCustomersPage = location.pathname === "/app/customers";
   const isCustomerRegisterPage = location.pathname === "/app/customers/register" || location.pathname === "/app/register-customer";
   const isCustomerSearchPage = location.pathname === "/app/customers/search";
   const isProfilePage = location.pathname === "/app/profile";
@@ -53,10 +52,8 @@ export function AppLayout() {
                         ? "Customer Registration"
                         : isCustomerSearchPage
                           ? "Customer Search"
-                      : isCustomersPage
-                        ? "Customers"
-                      : isCustomerDetailPage
-                        ? "Customer Details"
+                          : isCustomerDetailPage
+                            ? "Customer Details"
                         : isVehiclesPage
                           ? "My Vehicles"
                           : isProfilePage
@@ -88,7 +85,7 @@ export function AppLayout() {
                       ? "Create staff-managed customer records with an initial vehicle."
                       : isCustomerSearchPage
                         ? "Search customer records by ID, phone number, vehicle number, or name."
-                        : isCustomersPage || isCustomerDetailPage
+                        : isCustomerDetailPage
                           ? "Review customer profiles, vehicles, and service history."
                           : isVehiclesPage
                             ? "Add and remove the vehicles linked to your customer account."
@@ -304,19 +301,6 @@ export function AppLayout() {
               }
             >
               Part Requests
-            </NavLink>
-          )}
-
-          {isAdmin && (
-            <NavLink
-              to="/app/customers"
-              className={({ isActive }) =>
-                isActive
-                  ? "shell__nav-link shell__nav-link--active"
-                  : "shell__nav-link"
-              }
-            >
-              Customers
             </NavLink>
           )}
         </nav>

@@ -28,8 +28,8 @@ export function ViewCustomerPage() {
   return (
     <div className="p-4 max-w-6xl">
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/app/customers" className="text-blue-600 hover:underline">
-          ← Back to Customers
+        <Link to="/app/customers/search" className="text-blue-600 hover:underline">
+          ← Back to Customer Search
         </Link>
         <h1 className="text-2xl font-bold">{customer.fullName}</h1>
       </div>

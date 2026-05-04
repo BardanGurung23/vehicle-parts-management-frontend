@@ -23,7 +23,6 @@ import { MySalesPage } from "../features/sales/MySalesPage";
 import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
 import { MyPartRequestsPage } from "../features/part-requests/MyPartRequestsPage";
-import { CustomersListPage } from "../pages/Customer/CustomersListPage";
 import { PartRequestsPage } from "../pages/PartRequests";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 
@@ -220,7 +219,7 @@ export const router = createBrowserRouter([
               },
               {
                 path: "customers",
-                element: <CustomersListPage />,
+                element: <Navigate to="/app/customers/search" replace />,
               },
               {
                 path: "part-requests",
