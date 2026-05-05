@@ -1,77 +1,64 @@
+import { Receipt } from "lucide-react";
 import { useGetMySalesQuery } from "../../redux/services/sales";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { EmptyState } from "../../shared/components/EmptyState";
+import { SkeletonCard } from "../../shared/components/Skeleton";
 
 export function MySalesPage() {
   const { data: sales = [], isLoading, error } = useGetMySalesQuery();
 
-  if (isLoading) return <p className="p-4">Loading purchase history...</p>;
-  if (error) return <p className="p-4 text-red-600">Failed to load purchase history.</p>;
+  if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
+  if (error) return <PageShell><div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">Failed to load purchase history.</div></PageShell>;
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">My Purchase History</h1>
+    <PageShell>
+      <PageHeader eyebrow="Purchases" title="My Purchase History" description="View your past purchases and service history." />
 
       {sales.length === 0 ? (
-        <p className="text-gray-500">No purchases found.</p>
+        <EmptyState icon={Receipt} title="No purchases" description="You haven't made any purchases yet." />
       ) : (
         <div className="space-y-4">
           {sales.map((sale) => (
-            <div key={sale.saleId} className="border rounded-lg p-4 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h2 className="font-semibold">{sale.invoiceNumber || `Sale #${sale.saleId}`}</h2>
-                  <p className="text-sm text-gray-600">
-                    {new Date(sale.saleDate).toLocaleDateString()}
-                  </p>
-                  {sale.vehicleNumber && (
-                    <p className="text-sm text-gray-600">Vehicle: {sale.vehicleNumber}</p>
-                  )}
+            <Card key={sale.saleId}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-on-surface">{sale.invoiceNumber || `Sale #${sale.saleId}`}</h3>
+                  <p className="text-xs text-on-surface-variant">{new Date(sale.saleDate).toLocaleDateString()}</p>
+                  {sale.vehicleNumber && <p className="text-xs text-on-surface-variant">Vehicle: {sale.vehicleNumber}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Total</p>
-                  <span className="text-lg font-bold">${sale.totalAmount.toFixed(2)}</span>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-on-surface-variant">Total</p>
+                  <span className="text-lg font-bold text-on-surface">${sale.totalAmount.toFixed(2)}</span>
                 </div>
               </div>
 
-              {sale.notes && (
-                <p className="text-sm text-gray-600 mb-2">Notes: {sale.notes}</p>
-              )}
+              {sale.notes && <p className="text-xs text-on-surface-variant">Notes: {sale.notes}</p>}
 
-              <div className="mt-2">
-                <h3 className="text-sm font-semibold mb-1">
+              <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <p className="text-xs font-semibold text-on-surface-variant mb-2">
                   {sale.discountAmount > 0 ? "Items (before discount):" : "Items:"}
-                </h3>
+                </p>
                 <ul className="space-y-1">
                   {sale.items.map((item, idx) => (
-                    <li key={idx} className="text-sm flex justify-between">
-                      <span>
-                        {item.partName} x {item.quantity}
-                      </span>
+                    <li key={idx} className="flex justify-between text-xs text-on-surface-variant">
+                      <span>{item.partName} x {item.quantity}</span>
                       <span>${item.subtotal.toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <dl className="mt-3 space-y-1 border-t pt-3 text-sm text-gray-700">
-                <div className="flex justify-between">
-                  <dt>Subtotal</dt>
-                  <dd>${sale.subtotal.toFixed(2)}</dd>
-                </div>
-                {sale.discountAmount > 0 ? (
-                  <div className="flex justify-between text-green-700">
-                    <dt>Discount</dt>
-                    <dd>- ${sale.discountAmount.toFixed(2)}</dd>
-                  </div>
-                ) : null}
-                <div className="flex justify-between font-semibold text-gray-900">
-                  <dt>Total paid</dt>
-                  <dd>${sale.totalAmount.toFixed(2)}</dd>
-                </div>
+              <dl className="mt-3 pt-3 border-t border-white/[0.06] space-y-1 text-xs">
+                <div className="flex justify-between"><dt className="text-on-surface-variant">Subtotal</dt><dd className="text-on-surface-variant">${sale.subtotal.toFixed(2)}</dd></div>
+                {sale.discountAmount > 0 && <div className="flex justify-between text-success-600"><dt>Discount</dt><dd>- ${sale.discountAmount.toFixed(2)}</dd></div>}
+                <div className="flex justify-between font-semibold text-sm text-on-surface"><dt>Total paid</dt><dd>${sale.totalAmount.toFixed(2)}</dd></div>
               </dl>
-            </div>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

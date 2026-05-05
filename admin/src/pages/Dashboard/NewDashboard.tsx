@@ -13,11 +13,11 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 const trendObj = {
   UP: {
     color: "var(--accent)",
-    icon: <TrendingUp size={14} color="var(--accent)" />,
+    icon: <TrendingUp size={16} strokeWidth={2.5} color="var(--accent)" />,
   },
   DOWN: {
     color: "var(--danger)",
-    icon: <TrendingDown size={14} color="var(--danger)" />,
+    icon: <TrendingDown size={16} strokeWidth={2.5} color="var(--danger)" />,
   },
 };
 
@@ -191,27 +191,36 @@ function StatsCard({
   const trend = percent >= 0 ? "UP" : "DOWN";
 
   return (
-    <div className="bg-surface border border-line p-4 rounded-sm flex items-center justify-between relative shadow-sm hover:border-accent/30 transition-all">
-      <div className="flex flex-col gap-1">
-        <div className="text-[10px] font-bold text-muted uppercase tracking-widest">
-          {title}
+    <div className="bg-surface border border-line rounded-xl p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-lg">
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-[10px] font-bold text-muted uppercase tracking-[0.12em]">
+              {title}
+            </span>
+          </div>
+
+          <div className="tabular-nums font-extrabold tracking-tight text-[clamp(1.5rem,3vw,2.5rem)] leading-none">
+            {isPrice && <span className="text-accent mr-0.5 text-[0.6em] align-super">{CurrencySign}</span>}
+            {value.toLocaleString()}
+          </div>
+
+          <div className="flex items-center gap-1.5 mt-1">
+            {trendObj[trend].icon}
+            <span className={`text-[12px] font-bold ${trend === "UP" ? "text-accent" : "text-danger"}`}>
+              {Math.abs(Number(percent)).toFixed(1)}%
+            </span>
+            <span className="text-[9px] uppercase font-bold text-muted/50 tracking-wider ml-0.5">
+              vs {format(lastDate, "EEE").toUpperCase()}
+            </span>
+          </div>
         </div>
-        <div className="text-xl font-bold tracking-tight">
-          {isPrice && <span className="text-accent mr-0.5">{CurrencySign}</span>}
-          {value.toLocaleString()}
+
+        <div className="shrink-0 bg-bg p-3 rounded-xl border border-line group-hover:border-accent/20 transition-colors">
+          <img className="size-7 grayscale opacity-70 group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300" src={icon} alt="icon" />
         </div>
-        <div className="flex items-center gap-1.5 mt-1">
-          {trendObj[trend].icon}
-          <span className={`text-[11px] font-bold ${trend === "UP" ? "text-accent" : "text-danger"}`}>
-            {Math.abs(Number(percent)).toFixed(1)}%
-          </span>
-          <span className="text-[9px] uppercase font-bold text-muted/60 tracking-tighter">
-            vs {format(lastDate, "EEE").toUpperCase()}
-          </span>
-        </div>
-      </div>
-      <div className="bg-bg p-2 rounded-md border border-line">
-        <img className="size-6 grayscale opacity-80" src={icon} alt="icon" />
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ import {
   useGetPartCategoriesQuery,
   Part,
 } from "@/redux/services/parts";
+import { Field } from "../../shared/components/Field";
+import { ActionButton } from "../../shared/components/ActionButton";
 import { toast } from "react-toastify";
 
 const schema = z.object({
@@ -19,13 +21,7 @@ const schema = z.object({
   stockQuantity: z.coerce.number().int().min(0, "Must be >= 0"),
   reorderLevel: z.coerce.number().int().min(0, "Must be >= 0"),
   partCategoryId: z.preprocess(
-    (value) => {
-      if (value === "" || value === null || value === undefined) {
-        return null;
-      }
-
-      return Number(value);
-    },
+    (value) => (value === "" || value === null || value === undefined ? null : Number(value)),
     z.number().int().positive().nullable(),
   ),
 });
@@ -49,24 +45,15 @@ type Props = {
 };
 
 function asMessage(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
 
 function getMutationErrorMessage(error: unknown, fallback: string): string {
-  if (!error || typeof error !== "object") {
-    return fallback;
-  }
-
+  if (!error || typeof error !== "object") return fallback;
   const data = (error as { data?: unknown }).data;
-  if (!data || typeof data !== "object") {
-    return fallback;
-  }
-
+  if (!data || typeof data !== "object") return fallback;
   const payload = data as { detail?: unknown; title?: unknown; message?: unknown };
   return asMessage(payload.detail) ?? asMessage(payload.message) ?? asMessage(payload.title) ?? fallback;
 }
@@ -85,10 +72,6 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
     formState: { errors },
   } = useForm<FormType>({ resolver: zodResolver(schema) });
 
-  const resetToDefaults = () => {
-    reset(defaultValues);
-  };
-
   useEffect(() => {
     if (isEdit) {
       reset({
@@ -103,8 +86,7 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
       });
       return;
     }
-
-    resetToDefaults();
+    reset(defaultValues);
   }, [editPart, isEdit, reset]);
 
   const onSubmit = async (data: FormType) => {
@@ -142,173 +124,51 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
     }
   };
 
-  const handleSecondaryAction = () => {
-    if (isEdit) {
-      onClose();
-      return;
-    }
-
-    resetToDefaults();
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="form-grid parts-form">
-      <div className="form-grid form-grid--two-columns">
-        <div className="field">
-          <label className="field__label" htmlFor="partNumber">
-            Part number
-          </label>
-          <input
-            id="partNumber"
-            className="input"
-            placeholder="PT-001"
-            disabled={isEdit}
-            {...register("partNumber")}
-          />
-          {errors.partNumber?.message ? (
-            <span className="field__error">{errors.partNumber.message}</span>
-          ) : isEdit ? (
-            <span className="field__hint">
-              Part numbers remain fixed once the part has been created.
-            </span>
-          ) : null}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Part number" error={errors.partNumber?.message} required htmlFor="partNumber">
+          <input id="partNumber" className="input" placeholder="PT-001" disabled={isEdit} {...register("partNumber")} />
+        </Field>
+        <Field label="Part name" error={errors.partName?.message} required htmlFor="partName">
+          <input id="partName" className="input" placeholder="Brake Pad" {...register("partName")} />
+        </Field>
+        <Field label="Unit price" error={errors.unitPrice?.message} required htmlFor="unitPrice">
+          <input id="unitPrice" className="input" type="number" step="0.01" min="0" placeholder="0.00" {...register("unitPrice")} />
+        </Field>
+        <Field label="Cost price" error={errors.costPrice?.message} required htmlFor="costPrice">
+          <input id="costPrice" className="input" type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice")} />
+        </Field>
+        <Field label="Stock quantity" error={errors.stockQuantity?.message} required htmlFor="stockQuantity">
+          <input id="stockQuantity" className="input" type="number" min="0" placeholder="0" {...register("stockQuantity")} />
+        </Field>
+        <Field label="Reorder level" error={errors.reorderLevel?.message} required htmlFor="reorderLevel">
+          <input id="reorderLevel" className="input" type="number" min="0" placeholder="10" {...register("reorderLevel")} />
+        </Field>
+        <div className="col-span-2">
+          <Field label="Category" error={errors.partCategoryId?.message} htmlFor="partCategoryId" hint="Leave uncategorized if needed.">
+            <select id="partCategoryId" className="input" {...register("partCategoryId")}>
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c.partCategoryId} value={c.partCategoryId}>{c.categoryName}</option>
+              ))}
+            </select>
+          </Field>
         </div>
-
-        <div className="field">
-          <label className="field__label" htmlFor="partName">
-            Part name
-          </label>
-          <input
-            id="partName"
-            className="input"
-            placeholder="Brake Pad"
-            {...register("partName")}
-          />
-          {errors.partName?.message ? (
-            <span className="field__error">{errors.partName.message}</span>
-          ) : null}
-        </div>
-
-        <div className="field">
-          <label className="field__label" htmlFor="unitPrice">
-            Unit price
-          </label>
-          <input
-            id="unitPrice"
-            className="input"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            {...register("unitPrice")}
-          />
-          {errors.unitPrice?.message ? (
-            <span className="field__error">{errors.unitPrice.message}</span>
-          ) : null}
-        </div>
-
-        <div className="field">
-          <label className="field__label" htmlFor="costPrice">
-            Cost price
-          </label>
-          <input
-            id="costPrice"
-            className="input"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            {...register("costPrice")}
-          />
-          {errors.costPrice?.message ? (
-            <span className="field__error">{errors.costPrice.message}</span>
-          ) : null}
-        </div>
-
-        <div className="field">
-          <label className="field__label" htmlFor="stockQuantity">
-            Stock quantity
-          </label>
-          <input
-            id="stockQuantity"
-            className="input"
-            type="number"
-            min="0"
-            placeholder="0"
-            {...register("stockQuantity")}
-          />
-          {errors.stockQuantity?.message ? (
-            <span className="field__error">{errors.stockQuantity.message}</span>
-          ) : null}
-        </div>
-
-        <div className="field">
-          <label className="field__label" htmlFor="reorderLevel">
-            Reorder level
-          </label>
-          <input
-            id="reorderLevel"
-            className="input"
-            type="number"
-            min="0"
-            placeholder="10"
-            {...register("reorderLevel")}
-          />
-          {errors.reorderLevel?.message ? (
-            <span className="field__error">{errors.reorderLevel.message}</span>
-          ) : null}
-        </div>
-
-        <div className="field form-grid__full-width">
-          <label className="field__label" htmlFor="partCategoryId">
-            Category
-          </label>
-          <select id="partCategoryId" className="input" {...register("partCategoryId")}>
-            <option value="">No category</option>
-            {categories.map((category) => (
-              <option key={category.partCategoryId} value={category.partCategoryId}>
-                {category.categoryName}
-              </option>
-            ))}
-          </select>
-          {errors.partCategoryId?.message ? (
-            <span className="field__error">{errors.partCategoryId.message}</span>
-          ) : (
-            <span className="field__hint">
-              Leave uncategorized if the part should stay available across multiple workflows.
-            </span>
-          )}
-        </div>
-
-        <div className="field form-grid__full-width">
-          <label className="field__label" htmlFor="description">
-            Description
-          </label>
-          <textarea
-            id="description"
-            className="input"
-            rows={5}
-            placeholder="Add supplier notes, fitment guidance, or internal details."
-            {...register("description")}
-          />
-          <span className="field__hint">
-            Optional context helps staff verify the correct part before updating stock.
-          </span>
+        <div className="col-span-2">
+          <Field label="Description" error={errors.description?.message} htmlFor="description" hint="Optional context for staff.">
+            <textarea id="description" className="input" rows={4} placeholder="Add supplier notes, fitment guidance..." {...register("description")} />
+          </Field>
         </div>
       </div>
 
-      <div className="parts-form__actions">
-        <button type="submit" className="button" disabled={isSaving}>
+      <div className="flex items-center gap-3 pt-2">
+        <ActionButton type="submit" disabled={isSaving}>
           {isSaving ? "Saving..." : isEdit ? "Save changes" : "Create part"}
-        </button>
-        <button
-          type="button"
-          className="button button--secondary"
-          onClick={handleSecondaryAction}
-          disabled={isSaving}
-        >
+        </ActionButton>
+        <ActionButton type="button" tone="secondary" onClick={isEdit ? onClose : () => reset(defaultValues)} disabled={isSaving}>
           {isEdit ? "Cancel edit" : "Reset fields"}
-        </button>
+        </ActionButton>
       </div>
     </form>
   );

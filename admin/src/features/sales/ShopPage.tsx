@@ -1,68 +1,31 @@
 import { useState, type FormEvent } from "react";
+import { ShoppingCart, Trash2, Search, X, User } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
 import { useGetPartsQuery } from "../../redux/services/parts";
 import { useCreateSaleMutation } from "../../redux/services/sales";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { Badge } from "../../shared/components/Badge";
+import { ActionButton } from "../../shared/components/ActionButton";
+import { AlertBox } from "../../shared/components/AlertBox";
 import { toast } from "react-toastify";
 
-interface CartItem {
-  partId: number;
-  partName: string;
-  unitPrice: number;
-  quantity: number;
-}
+interface CartItem { partId: number; partName: string; unitPrice: number; quantity: number; }
 
-type SearchFormState = {
-  customerId: string;
-  phoneNumber: string;
-  vehicleNumber: string;
-  name: string;
-};
+type SearchFormState = { customerId: string; phoneNumber: string; vehicleNumber: string; name: string; };
 
-function buildCustomerSearchPayload(values: SearchFormState): {
-  payload: CustomerSearchInput | null;
-  error: string | null;
-} {
-  const customerIdValue = values.customerId.trim();
-  const phoneNumber = values.phoneNumber.trim();
-  const vehicleNumber = values.vehicleNumber.trim();
-  const name = values.name.trim();
-
-  if (!customerIdValue && !phoneNumber && !vehicleNumber && !name) {
-    return {
-      payload: null,
-      error: "Provide at least one search field to look up a customer.",
-    };
-  }
-
+function buildCustomerSearchPayload(values: SearchFormState): { payload: CustomerSearchInput | null; error: string | null } {
+  const cid = values.customerId.trim(); const ph = values.phoneNumber.trim();
+  const vn = values.vehicleNumber.trim(); const nm = values.name.trim();
+  if (!cid && !ph && !vn && !nm) return { payload: null, error: "Provide at least one search field." };
   const payload: CustomerSearchInput = {};
-
-  if (customerIdValue) {
-    const parsedCustomerId = Number(customerIdValue);
-
-    if (!Number.isInteger(parsedCustomerId) || parsedCustomerId <= 0) {
-      return {
-        payload: null,
-        error: "Customer ID must be a positive whole number.",
-      };
-    }
-
-    payload.customerId = parsedCustomerId;
-  }
-
-  if (phoneNumber) {
-    payload.phoneNumber = phoneNumber;
-  }
-
-  if (vehicleNumber) {
-    payload.vehicleNumber = vehicleNumber;
-  }
-
-  if (name) {
-    payload.name = name;
-  }
-
+  if (cid) { const n = Number(cid); if (!Number.isInteger(n) || n <= 0) return { payload: null, error: "Customer ID must be a positive whole number." }; payload.customerId = n; }
+  if (ph) payload.phoneNumber = ph;
+  if (vn) payload.vehicleNumber = vn;
+  if (nm) payload.name = nm;
   return { payload, error: null };
 }
 
@@ -74,357 +37,173 @@ export function ShopPage() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [notes, setNotes] = useState("");
-  const inStockParts = parts.filter((part) => part.stockQuantity > 0);
-  const [searchValues, setSearchValues] = useState<SearchFormState>({
-    customerId: "",
-    phoneNumber: "",
-    vehicleNumber: "",
-    name: "",
-  });
+  const inStockParts = parts.filter((p) => p.stockQuantity > 0);
+  const [searchValues, setSearchValues] = useState<SearchFormState>({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
   const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
-  const [customerSearchError, setCustomerSearchError] = useState<string | null>(null);
-  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [hasSearchRun, setHasSearchRun] = useState(false);
 
   const addToCart = (partId: number, partName: string, unitPrice: number) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.partId === partId);
-      if (existing) {
-        return prev.map((i) =>
-          i.partId === partId ? { ...i, quantity: i.quantity + 1 } : i
-        );
-      }
-      return [...prev, { partId, partName, unitPrice, quantity: 1 }];
-    });
+    setCart((prev) => { const e = prev.find((i) => i.partId === partId); return e ? prev.map((i) => i.partId === partId ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { partId, partName, unitPrice, quantity: 1 }]; });
   };
-
-  const updateQuantity = (partId: number, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((i) => i.partId !== partId));
-    } else {
-      setCart((prev) =>
-        prev.map((i) => (i.partId === partId ? { ...i, quantity } : i))
-      );
-    }
-  };
-
-  const removeFromCart = (partId: number) => {
-    setCart((prev) => prev.filter((i) => i.partId !== partId));
-  };
-
+  const updateQuantity = (partId: number, quantity: number) => { setCart((prev) => quantity <= 0 ? prev.filter((i) => i.partId !== partId) : prev.map((i) => i.partId === partId ? { ...i, quantity } : i)); };
+  const removeFromCart = (partId: number) => setCart((prev) => prev.filter((i) => i.partId !== partId));
   const cartTotal = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
 
   const handleCustomerSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     const { payload, error } = buildCustomerSearchPayload(searchValues);
-    if (!payload) {
-      setCustomerSearchError(error);
-      setCustomerResults([]);
-      setHasSearchRun(false);
-      return;
-    }
-
+    if (!payload) { setSearchError(error); setCustomerResults([]); setHasSearchRun(false); return; }
     try {
-      setIsSearchingCustomers(true);
-      setCustomerSearchError(null);
+      setIsSearching(true); setSearchError(null);
       const results = await api.searchCustomers(token, payload);
-      setCustomerResults(results);
-      setHasSearchRun(true);
-
-      if (selectedCustomer && results.every((customer) => customer.customerId !== selectedCustomer.customerId)) {
-        setSelectedCustomer(null);
-      }
-    } catch (error) {
-      setCustomerSearchError(
-        error instanceof ApiError ? error.message : "Could not search customers right now.",
-      );
-      setCustomerResults([]);
-      setHasSearchRun(true);
-    } finally {
-      setIsSearchingCustomers(false);
-    }
+      setCustomerResults(results); setHasSearchRun(true);
+      if (selectedCustomer && results.every((c) => c.customerId !== selectedCustomer.customerId)) setSelectedCustomer(null);
+    } catch (error) { setSearchError(error instanceof ApiError ? error.message : "Could not search customers."); setCustomerResults([]); setHasSearchRun(true); }
+    finally { setIsSearching(false); }
   };
 
   const resetCustomerSearch = () => {
-    setSearchValues({
-      customerId: "",
-      phoneNumber: "",
-      vehicleNumber: "",
-      name: "",
-    });
-    setCustomerResults([]);
-    setCustomerSearchError(null);
-    setSelectedCustomer(null);
-    setHasSearchRun(false);
+    setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
+    setCustomerResults([]); setSearchError(null); setSelectedCustomer(null); setHasSearchRun(false);
   };
 
   const handleCheckout = async () => {
-    if (cart.length === 0) {
-      toast.error("Your cart is empty.");
-      return;
-    }
-
-    if (isEmployee && !selectedCustomer) {
-      toast.error("Select a customer before checkout.");
-      return;
-    }
-
+    if (cart.length === 0) { toast.error("Your cart is empty."); return; }
+    if (isEmployee && !selectedCustomer) { toast.error("Select a customer before checkout."); return; }
     try {
-      await createSale({
-        customerId: isEmployee ? selectedCustomer?.customerId : undefined,
-        items: cart.map((i) => ({ partId: i.partId, quantity: i.quantity })),
-        notes: notes || undefined,
-      }).unwrap();
-
+      await createSale({ customerId: isEmployee ? selectedCustomer?.customerId : undefined, items: cart.map((i) => ({ partId: i.partId, quantity: i.quantity })), notes: notes || undefined }).unwrap();
       toast.success("Purchase completed successfully!");
-      setCart([]);
-      setNotes("");
-    } catch {
-      toast.error("Failed to complete purchase. Please try again.");
-    }
+      setCart([]); setNotes("");
+    } catch { toast.error("Failed to complete purchase."); }
   };
 
-  if (partsLoading) return <p className="p-4">Loading parts...</p>;
+  if (partsLoading) {
+    return <PageShell><div className="space-y-4"><div className="h-8 rounded-md bg-surface-container-high animate-shimmer" /><div className="h-64 rounded-xl border border-outline-variant/20 animate-shimmer" /></div></PageShell>;
+  }
 
   return (
-    <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Parts List */}
-      <div className="lg:col-span-2">
-        <h1 className="text-2xl font-bold mb-4">Shop Parts</h1>
-        {inStockParts.length === 0 ? (
-          <div className="border rounded-lg p-6 bg-white">
-            <p className="text-gray-600">
-              No parts are currently in stock. Check back later or ask staff for availability.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {inStockParts.map((part) => (
-              <div key={part.partId} className="border rounded-lg p-4">
-                <h3 className="font-semibold">{part.partName}</h3>
-                <p className="text-sm text-gray-600">{part.partNumber}</p>
-                <p className="text-sm">In stock: {part.stockQuantity}</p>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="font-bold">${part.unitPrice.toFixed(2)}</span>
-                  <button
-                    type="button"
-                    className="button button--primary text-sm"
-                    onClick={() =>
-                      addToCart(part.partId, part.partName, part.unitPrice)
-                    }
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <PageShell>
+      <PageHeader title="Shop Parts" description="Browse and purchase vehicle parts." />
 
-      {/* Cart */}
-      <div className="border rounded-lg p-4 h-fit">
-        <h2 className="text-xl font-bold mb-4">Cart</h2>
-
-        {isEmployee && (
-          <div className="border rounded-lg p-4 mb-4 bg-white">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">Select customer</h3>
-              <p className="text-sm text-gray-600">
-                Staff and admin purchases must be assigned to a customer profile.
-              </p>
-            </div>
-
-            {selectedCustomer && (
-              <div className="border rounded-md p-3 mb-4 bg-gray-50">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{selectedCustomer.fullName}</p>
-                    <p className="text-sm text-gray-600">
-                      Customer #{selectedCustomer.customerId}
-                    </p>
-                    <p className="text-sm text-gray-600">{selectedCustomer.phoneNumber}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          {inStockParts.length === 0 ? (
+            <Card><p className="text-sm text-on-surface-variant text-center py-8">No parts are currently in stock.</p></Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {inStockParts.map((part) => (
+                <Card key={part.partId}>
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="text-sm font-semibold text-on-surface">{part.partName}</h3>
+                        <p className="text-xs text-on-surface-variant">{part.partNumber}</p>
+                      </div>
+                      <Badge variant={part.stockQuantity > 10 ? "success" : "warning"}>In stock: {part.stockQuantity}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-lg font-bold text-on-surface">${part.unitPrice.toFixed(2)}</span>
+                      <ActionButton size="sm" icon={ShoppingCart} onClick={() => addToCart(part.partId, part.partName, part.unitPrice)}>Add to Cart</ActionButton>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    onClick={() => setSelectedCustomer(null)}
-                  >
-                    Clear
-                  </button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <Card
+            header={<h2 className="text-base font-semibold text-on-surface">Cart ({cart.length})</h2>}
+          >
+            {isEmployee && (
+              <div className="mb-4 pb-4 border-b border-white/[0.06] space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-on-surface flex items-center gap-2"><User className="w-4 h-4" /> Select Customer</h3>
+                  <p className="text-xs text-on-surface-variant">Staff purchases must be assigned to a customer.</p>
                 </div>
+
+                {selectedCustomer && (
+                  <div className="flex items-start justify-between gap-2 p-3 rounded-lg bg-surface-container-low ring-1 ring-white/[0.06]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-on-surface">{selectedCustomer.fullName}</p>
+                      <p className="text-xs text-on-surface-variant">Customer #{selectedCustomer.customerId}</p>
+                    </div>
+                    <ActionButton size="sm" tone="secondary" onClick={() => setSelectedCustomer(null)}>Clear</ActionButton>
+                  </div>
+                )}
+
+                {searchError ? <AlertBox tone="error" message={searchError} dismissible /> : null}
+
+                <form onSubmit={handleCustomerSearch} className="space-y-2">
+                  <input className="input h-8 text-xs" type="text" inputMode="numeric" placeholder="Customer ID" value={searchValues.customerId}
+                    onChange={(e) => setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))} />
+                  <input className="input h-8 text-xs" type="text" placeholder="Phone number" value={searchValues.phoneNumber}
+                    onChange={(e) => setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))} />
+                  <input className="input h-8 text-xs" type="text" placeholder="Vehicle number" value={searchValues.vehicleNumber}
+                    onChange={(e) => setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))} />
+                  <input className="input h-8 text-xs" type="text" placeholder="Customer name" value={searchValues.name}
+                    onChange={(e) => setSearchValues((prev) => ({ ...prev, name: e.target.value }))} />
+                  <div className="flex gap-2">
+                    <ActionButton type="submit" size="sm" icon={Search} disabled={isSearching}>{isSearching ? "Searching..." : "Search"}</ActionButton>
+                    <ActionButton type="button" size="sm" tone="secondary" icon={X} onClick={resetCustomerSearch}>Reset</ActionButton>
+                  </div>
+                </form>
+
+                {hasSearchRun && customerResults.length === 0 && <p className="text-xs text-on-surface-variant">No customers found.</p>}
+
+                {customerResults.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {customerResults.map((c) => (
+                      <div key={c.customerId} className="flex items-center justify-between gap-2 p-2 rounded ring-1 ring-white/[0.06]">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-on-surface">{c.fullName}</p>
+                          <p className="text-[10px] text-on-surface-variant">#{c.customerId} &middot; {c.vehicleCount} vehicle{c.vehicleCount === 1 ? "" : "s"}</p>
+                        </div>
+                        <ActionButton size="sm" tone={selectedCustomer?.customerId === c.customerId ? "primary" : "secondary"} onClick={() => setSelectedCustomer(c)}>
+                          {selectedCustomer?.customerId === c.customerId ? "Selected" : "Select"}
+                        </ActionButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {customerSearchError ? (
-              <p className="text-sm text-red-600 mb-3">{customerSearchError}</p>
-            ) : null}
-
-            <form className="space-y-3" onSubmit={handleCustomerSearch}>
-              <input
-                className="w-full border rounded p-2"
-                type="text"
-                inputMode="numeric"
-                placeholder="Customer ID"
-                value={searchValues.customerId}
-                onChange={(event) =>
-                  setSearchValues((current) => ({ ...current, customerId: event.target.value }))
-                }
-              />
-              <input
-                className="w-full border rounded p-2"
-                type="text"
-                placeholder="Phone number"
-                value={searchValues.phoneNumber}
-                onChange={(event) =>
-                  setSearchValues((current) => ({ ...current, phoneNumber: event.target.value }))
-                }
-              />
-              <input
-                className="w-full border rounded p-2"
-                type="text"
-                placeholder="Vehicle number"
-                value={searchValues.vehicleNumber}
-                onChange={(event) =>
-                  setSearchValues((current) => ({ ...current, vehicleNumber: event.target.value }))
-                }
-              />
-              <input
-                className="w-full border rounded p-2"
-                type="text"
-                placeholder="Customer name"
-                value={searchValues.name}
-                onChange={(event) =>
-                  setSearchValues((current) => ({ ...current, name: event.target.value }))
-                }
-              />
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="button button--primary"
-                  disabled={isSearchingCustomers}
-                >
-                  {isSearchingCustomers ? "Searching..." : "Search customers"}
-                </button>
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={resetCustomerSearch}
-                >
-                  Reset
-                </button>
-              </div>
-            </form>
-
-            {hasSearchRun && customerResults.length === 0 ? (
-              <p className="text-sm text-gray-600 mt-3">No customer matched the filters you entered.</p>
-            ) : null}
-
-            {customerResults.length > 0 ? (
-              <div className="mt-4 space-y-2">
-                {customerResults.map((customer) => (
-                  <div key={customer.customerId} className="border rounded-md p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{customer.fullName}</p>
-                        <p className="text-sm text-gray-600">
-                          Customer #{customer.customerId} · {customer.phoneNumber}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="button button--secondary"
-                        onClick={() => setSelectedCustomer(customer)}
-                      >
-                        {selectedCustomer?.customerId === customer.customerId ? "Selected" : "Select"}
-                      </button>
+            {cart.length === 0 ? (
+              <p className="text-sm text-on-surface-variant text-center py-4">Your cart is empty.</p>
+            ) : (
+              <div className="space-y-3">
+                {cart.map((item) => (
+                  <div key={item.partId} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-on-surface">{item.partName}</p>
+                      <p className="text-[10px] text-on-surface-variant">${item.unitPrice.toFixed(2)} x {item.quantity}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input type="number" min="1" value={item.quantity} className="w-12 h-7 text-xs border border-outline-variant/20 rounded px-1 text-center"
+                        onChange={(e) => updateQuantity(item.partId, Number(e.target.value))} />
+                      <button type="button" onClick={() => removeFromCart(item.partId)} className="p-1 text-danger-500 hover:text-danger-600"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </div>
                 ))}
+                <div className="flex justify-between font-bold text-sm text-on-surface pt-2 border-t border-white/[0.06]">
+                  <span>Total:</span>
+                  <span>${cartTotal.toFixed(2)}</span>
+                </div>
+                <textarea className="input h-16 text-xs" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (Optional)" />
+                <ActionButton className="w-full" disabled={isCreating} onClick={handleCheckout}>
+                  {isCreating ? "Processing..." : "Checkout"}
+                </ActionButton>
               </div>
-            ) : null}
-          </div>
-        )}
-
-        {cart.length === 0 ? (
-          <p className="text-gray-500">Your cart is empty.</p>
-        ) : (
-          <>
-            <ul className="space-y-2 mb-4">
-              {cart.map((item) => (
-                <li
-                  key={item.partId}
-                  className="flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-medium">{item.partName}</p>
-                    <p className="text-sm text-gray-600">
-                      ${item.unitPrice.toFixed(2)} x {item.quantity}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateQuantity(item.partId, Number(e.target.value))
-                      }
-                      className="w-16 border rounded p-1 text-center"
-                    />
-                    <button
-                      type="button"
-                      className="text-red-600 text-sm"
-                      onClick={() => removeFromCart(item.partId)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            <div className="border-t pt-2 mb-4">
-              <div className="flex justify-between font-bold">
-                <span>Total:</span>
-                <span>${cartTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Notes (Optional)
-              </label>
-              <textarea
-                className="w-full border rounded p-2"
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any notes about this purchase..."
-              />
-            </div>
-
-            <button
-              type="button"
-              className="button button--primary w-full"
-              disabled={isCreating}
-              onClick={handleCheckout}
-            >
-              {isCreating ? "Processing..." : "Checkout"}
-            </button>
-          </>
-        )}
+            )}
+          </Card>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

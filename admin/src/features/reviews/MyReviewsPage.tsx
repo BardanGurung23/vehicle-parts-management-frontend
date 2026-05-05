@@ -1,18 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
+import { Star } from "lucide-react";
 import { useAuth } from "../../app/auth";
 import { api, ApiError } from "../../app/api";
-import { toast } from "react-toastify";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { EmptyState } from "../../shared/components/EmptyState";
 import type { ServiceReview } from "../../app/types";
 
-function renderStars(rating: number) {
-  return "★".repeat(rating) + "☆".repeat(5 - rating);
-}
-
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return new Date(dateStr).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function MyReviewsPage() {
@@ -23,87 +20,58 @@ export function MyReviewsPage() {
 
   const loadReviews = useCallback(async () => {
     if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await api.getMyReviews(token);
-      setReviews(data);
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Failed to load reviews.";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    try { setLoading(true); setError(null); setReviews(await api.getMyReviews(token)); }
+    catch (err) { setError(err instanceof ApiError ? err.message : "Failed to load reviews."); }
+    finally { setLoading(false); }
   }, [token]);
 
-  useEffect(() => {
-    loadReviews();
-  }, [loadReviews]);
+  useEffect(() => { loadReviews(); }, [loadReviews]);
 
   if (loading) {
-    return <p className="loading-screen">Loading your reviews...</p>;
+    return (
+      <PageShell>
+        <div className="space-y-4"><div className="h-8 rounded-md bg-surface-container-high animate-shimmer" /><div className="h-32 rounded-xl border border-outline-variant/20 animate-shimmer" /></div>
+      </PageShell>
+    );
   }
 
   return (
-    <main className="page-stack">
-      <section className="bg-white rounded-lg p-6 flex flex-col gap-[15px]">
-        <div className="flex flex-col gap-2">
-          <p className="eyebrow">My Reviews</p>
-          <h2>Your Service Reviews</h2>
-          <p className="card__copy">
-            View all reviews you have submitted for completed appointments.
-          </p>
+    <PageShell>
+      <PageHeader eyebrow="My Reviews" title="Your Service Reviews" description="View all reviews you have submitted for completed appointments." />
+
+      {error && (
+        <div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">
+          {error} <button onClick={loadReviews} className="text-primary font-medium underline ml-2">Retry</button>
         </div>
+      )}
 
-        {error && (
-          <div className="alert alert--error">
-            <p>
-              {error}{" "}
-              <button onClick={loadReviews} className="text-blue-600 underline">
-                Retry
-              </button>
-            </p>
-          </div>
-        )}
-
-        {reviews.length === 0 ? (
-          <p className="empty-state">
-            You haven't submitted any reviews yet. Reviews can be added for
-            completed appointments.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {reviews.map((review) => (
-              <article key={review.reviewId} className="card parts-item-card">
-                <div className="parts-item-card__top">
-                  <div className="parts-item-card__identity">
-                    <div className="parts-item-card__title-row">
-                      <h3>Review #{review.reviewId}</h3>
-                      <span className="text-yellow-500 text-lg">
-                        {renderStars(review.rating)}
-                      </span>
-                    </div>
-                    <p className="parts-item-card__subtitle">
-                      Appointment #{review.appointmentId}
-                    </p>
+      {reviews.length === 0 ? (
+        <EmptyState icon={Star} title="No reviews yet" description="Reviews can be added for completed appointments." />
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((review) => (
+            <Card key={review.reviewId}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-on-surface">Review #{review.reviewId}</h3>
+                    <span className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} className={`w-4 h-4 ${star <= review.rating ? "text-warning-500 fill-warning-500" : "text-border"}`} />
+                      ))}
+                    </span>
                   </div>
+                  <p className="text-xs text-on-surface-variant">Appointment #{review.appointmentId}</p>
                 </div>
-
-                {review.comment && (
-                  <p className="parts-item-card__description">
-                    "{review.comment}"
-                  </p>
-                )}
-
-                <p className="text-sm text-gray-500 mt-2">
-                  Submitted on {formatDate(review.createdAt)}
-                </p>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+              </div>
+              {review.comment && (
+                <p className="text-sm text-on-surface-variant italic mt-2">"{review.comment}"</p>
+              )}
+              <p className="text-xs text-on-surface-variant mt-2">Submitted on {formatDate(review.createdAt)}</p>
+            </Card>
+          ))}
+        </div>
+      )}
+    </PageShell>
   );
 }

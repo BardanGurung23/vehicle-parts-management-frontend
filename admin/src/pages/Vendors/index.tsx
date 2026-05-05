@@ -1,10 +1,17 @@
 import { useState } from "react";
-import PageTitle from "../../components/PageTitle";
-import PageHeader from "../../components/PageHeader";
+import { Plus, Edit3, Trash2 } from "lucide-react";
 import { useGetAllVendorsQuery, useCreateVendorMutation, useUpdateVendorMutation, useDeleteVendorMutation } from "../../redux/services/vendors";
-import Table from "../../components/Table";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { DataTable, type Column } from "../../shared/components/DataTable";
+import { Field } from "../../shared/components/Field";
+import { ActionButton } from "../../shared/components/ActionButton";
+import { SkeletonCard } from "../../shared/components/Skeleton";
 import { toast } from "react-toastify";
 import type { Vendor, CreateVendorRequest } from "../../app/types";
+
+const defaultForm: CreateVendorRequest = { vendorName: "", contactPerson: "", phoneNumber: "", email: "", address: "" };
 
 export default function Vendors() {
   const { data: vendors = [], isLoading, refetch } = useGetAllVendorsQuery();
@@ -13,174 +20,101 @@ export default function Vendors() {
   const [deleteVendor] = useDeleteVendorMutation();
   const [showForm, setShowForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-  const [form, setForm] = useState<CreateVendorRequest>({
-    vendorName: "",
-    contactPerson: "",
-    phoneNumber: "",
-    email: "",
-    address: "",
-  });
+  const [form, setForm] = useState<CreateVendorRequest>(defaultForm);
 
-  const resetForm = () => {
-    setForm({ vendorName: "", contactPerson: "", phoneNumber: "", email: "", address: "" });
-    setEditingVendor(null);
-    setShowForm(false);
-  };
+  const resetForm = () => { setForm(defaultForm); setEditingVendor(null); setShowForm(false); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingVendor) {
-        await updateVendor({ id: editingVendor.vendorId, body: form }).unwrap();
-        toast.success("Vendor updated successfully!");
-      } else {
-        await createVendor(form).unwrap();
-        toast.success("Vendor created successfully!");
-      }
-      resetForm();
-      refetch();
-    } catch {
-      toast.error("Failed to save vendor.");
-    }
+      if (editingVendor) { await updateVendor({ id: editingVendor.vendorId, body: form }).unwrap(); toast.success("Vendor updated successfully!"); }
+      else { await createVendor(form).unwrap(); toast.success("Vendor created successfully!"); }
+      resetForm(); refetch();
+    } catch { toast.error("Failed to save vendor."); }
   };
 
   const handleEdit = (vendor: Vendor) => {
     setEditingVendor(vendor);
-    setForm({
-      vendorName: vendor.vendorName,
-      contactPerson: vendor.contactPerson || "",
-      phoneNumber: vendor.phoneNumber || "",
-      email: vendor.email || "",
-      address: vendor.address || "",
-    });
+    setForm({ vendorName: vendor.vendorName, contactPerson: vendor.contactPerson || "", phoneNumber: vendor.phoneNumber || "", email: vendor.email || "", address: vendor.address || "" });
     setShowForm(true);
   };
 
   const handleDelete = async (vendorId: number) => {
-    if (!confirm("Are you sure you want to delete this vendor?")) return;
-    try {
-      await deleteVendor(vendorId).unwrap();
-      toast.success("Vendor deleted successfully!");
-      refetch();
-    } catch {
-      toast.error("Failed to delete vendor.");
-    }
+    try { await deleteVendor(vendorId).unwrap(); toast.success("Vendor deleted successfully!"); refetch(); }
+    catch { toast.error("Failed to delete vendor."); }
   };
 
-  const headers = ["ID", "Vendor Name", "Contact Person", "Phone", "Email", "Address", "Actions"];
+  type VendorRow = Vendor;
 
-  const tableData = vendors.map((v) => [
-    v.vendorId,
-    v.vendorName,
-    v.contactPerson || "-",
-    v.phoneNumber || "-",
-    v.email || "-",
-    v.address || "-",
-    <div key={`actions-${v.vendorId}`} className="flex gap-2">
-      <button
-        type="button"
-        className="button button--secondary text-xs"
-        onClick={() => handleEdit(v)}
-      >
-        Edit
-      </button>
-      <button
-        type="button"
-        className="button button--danger text-xs"
-        onClick={() => handleDelete(v.vendorId)}
-      >
-        Delete
-      </button>
-    </div>,
-  ]);
+  const columns: Column<VendorRow>[] = [
+    { key: "id", header: "ID", cell: (row) => `#${row.vendorId}` },
+    { key: "name", header: "Vendor Name", cell: (row) => row.vendorName },
+    { key: "contact", header: "Contact Person", cell: (row) => row.contactPerson || "-" },
+    { key: "phone", header: "Phone", cell: (row) => row.phoneNumber || "-" },
+    { key: "email", header: "Email", cell: (row) => row.email || "-" },
+    { key: "address", header: "Address", cell: (row) => row.address || "-" },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (row) => (
+        <div className="flex items-center gap-2">
+          <ActionButton size="sm" tone="secondary" icon={Edit3} onClick={() => handleEdit(row)}>Edit</ActionButton>
+          <ActionButton size="sm" tone="danger" icon={Trash2} onClick={() => handleDelete(row.vendorId)}>Delete</ActionButton>
+        </div>
+      ),
+    },
+  ];
 
-  if (isLoading) {
-    return <p className="loading-screen">Loading vendors...</p>;
-  }
+  if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
 
   return (
-    <div>
-      <PageTitle title="Vendors" />
+    <PageShell>
       <PageHeader
+        eyebrow="Management"
         title="Vendors"
-        subtitle={`${vendors.length} vendor${vendors.length !== 1 ? "s" : ""}`}
+        description={`${vendors.length} vendor${vendors.length !== 1 ? "s" : ""}`}
+        actions={
+          <ActionButton icon={Plus} onClick={() => { resetForm(); setShowForm(!showForm); }}>
+            {showForm ? "Cancel" : "Add Vendor"}
+          </ActionButton>
+        }
       />
-      <div className="mb-4">
-        <button
-          type="button"
-          className="button"
-          onClick={() => { resetForm(); setShowForm(!showForm); }}
-        >
-          {showForm ? "Cancel" : "Add Vendor"}
-        </button>
-      </div>
 
       {showForm && (
-        <div className="card mb-4">
-          <div className="card__header">
-            <h3>{editingVendor ? "Edit Vendor" : "Add New Vendor"}</h3>
-          </div>
-          <form onSubmit={handleSubmit} className="form-grid form-grid--two-columns">
-            <div>
-              <label className="field__label">Vendor Name *</label>
-              <input
-                className="input"
-                type="text"
-                required
-                value={form.vendorName}
-                onChange={(e) => setForm({ ...form, vendorName: e.target.value })}
-              />
+        <Card
+          header={<h3 className="text-base font-semibold text-on-surface">{editingVendor ? "Edit Vendor" : "Add New Vendor"}</h3>}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Vendor Name" required htmlFor="vendor-name">
+                <input id="vendor-name" className="input" type="text" required value={form.vendorName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, vendorName: e.target.value }))} />
+              </Field>
+              <Field label="Contact Person" htmlFor="vendor-contact">
+                <input id="vendor-contact" className="input" type="text" value={form.contactPerson}
+                  onChange={(e) => setForm((prev) => ({ ...prev, contactPerson: e.target.value }))} />
+              </Field>
+              <Field label="Phone Number" htmlFor="vendor-phone">
+                <input id="vendor-phone" className="input" type="text" value={form.phoneNumber}
+                  onChange={(e) => setForm((prev) => ({ ...prev, phoneNumber: e.target.value }))} />
+              </Field>
+              <Field label="Email" htmlFor="vendor-email">
+                <input id="vendor-email" className="input" type="email" value={form.email}
+                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Address" htmlFor="vendor-address">
+                  <textarea id="vendor-address" className="input" rows={3} value={form.address}
+                    onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))} />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label className="field__label">Contact Person</label>
-              <input
-                className="input"
-                type="text"
-                value={form.contactPerson}
-                onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="field__label">Phone Number</label>
-              <input
-                className="input"
-                type="text"
-                value={form.phoneNumber}
-                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="field__label">Email</label>
-              <input
-                className="input"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-            <div className="form-grid__full-width">
-              <label className="field__label">Address</label>
-              <textarea
-                className="input input--textarea"
-                rows={3}
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-              />
-            </div>
-            <div className="form-grid__full-width">
-              <button type="submit" className="button">
-                {editingVendor ? "Update Vendor" : "Create Vendor"}
-              </button>
-            </div>
+            <ActionButton type="submit">{editingVendor ? "Update Vendor" : "Create Vendor"}</ActionButton>
           </form>
-        </div>
+        </Card>
       )}
 
-      {vendors.length === 0 ? (
-        <p className="empty-state">No vendors found. Add one to get started.</p>
-      ) : (
-        <Table isSN headers={headers} data={tableData} />
-      )}
-    </div>
+      <DataTable columns={columns} data={vendors} keyExtractor={(r) => r.vendorId} emptyMessage="No vendors found." />
+    </PageShell>
   );
 }

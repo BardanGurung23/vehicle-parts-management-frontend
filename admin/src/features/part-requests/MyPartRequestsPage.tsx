@@ -1,72 +1,77 @@
-import { useGetMyPartRequestsQuery } from "../../redux/services/partRequests";
 import { Link } from "react-router-dom";
+import { Plus, ClipboardList } from "lucide-react";
+import { useGetMyPartRequestsQuery } from "../../redux/services/partRequests";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { Badge } from "../../shared/components/Badge";
+import { ActionButton } from "../../shared/components/ActionButton";
+import { EmptyState } from "../../shared/components/EmptyState";
+import { SkeletonCard } from "../../shared/components/Skeleton";
 
-const statusColors: Record<string, string> = {
-  Pending: "bg-yellow-100 text-yellow-800",
-  Ordered: "bg-blue-100 text-blue-800",
-  Available: "bg-green-100 text-green-800",
+const badgeVariant = (status: string) => {
+  switch (status) {
+    case "Pending": return "warning";
+    case "Ordered": return "info";
+    case "Available": return "success";
+    default: return "neutral";
+  }
 };
 
 export function MyPartRequestsPage() {
   const { data: requests = [], isLoading, error } = useGetMyPartRequestsQuery();
 
-  if (isLoading) return <p className="p-4">Loading your part requests...</p>;
-  if (error) return <p className="p-4 text-red-600">Failed to load requests.</p>;
+  if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
+  if (error) return <PageShell><div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">Failed to load requests.</div></PageShell>;
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">My Part Requests</h1>
-        <Link to="/app/request-part" className="button button--primary">
-          Request New Part
-        </Link>
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Requests"
+        title="My Part Requests"
+        description="Track the status of your part requests."
+        actions={
+          <Link to="/app/request-part">
+            <ActionButton icon={Plus}>Request New Part</ActionButton>
+          </Link>
+        }
+      />
 
       {requests.length === 0 ? (
-        <p className="text-gray-500">
-          You haven't requested any parts yet.{" "}
-          <Link to="/app/request-part" className="text-blue-600 underline">
-            Request a part
-          </Link>
-        </p>
+        <EmptyState
+          icon={ClipboardList}
+          title="No requests yet"
+          description="You haven't requested any parts yet."
+          action={
+            <Link to="/app/request-part" className="text-sm text-primary font-medium hover:text-accent-700 underline">
+              Request a part
+            </Link>
+          }
+        />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {requests.map((req) => (
-            <div key={req.requestId} className="border rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-semibold">{req.requestedPartName}</h3>
-                  {req.vehicleNumber && (
-                    <p className="text-sm text-gray-600">
-                      Vehicle: {req.vehicleNumber}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500">
-                    Requested: {new Date(req.requestedAt).toLocaleDateString()}
-                  </p>
+            <Card key={req.requestId}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-semibold text-on-surface">{req.requestedPartName}</h3>
+                    <Badge variant={badgeVariant(req.status)}>{req.status}</Badge>
+                  </div>
+                  {req.vehicleNumber && <p className="text-xs text-on-surface-variant">Vehicle: {req.vehicleNumber}</p>}
+                  <p className="text-xs text-on-surface-variant">Requested: {new Date(req.requestedAt).toLocaleDateString()}</p>
                 </div>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded ${
-                    statusColors[req.status] || "bg-gray-100"
-                  }`}
-                >
-                  {req.status}
-                </span>
               </div>
-
               {req.requestDetails && (
-                <p className="text-sm text-gray-600 mb-2">{req.requestDetails}</p>
+                <p className="text-xs text-on-surface-variant mt-2">{req.requestDetails}</p>
               )}
-
               {req.resolvedAt && (
-                <p className="text-sm text-green-600">
-                  Resolved: {new Date(req.resolvedAt).toLocaleDateString()}
-                </p>
+                <p className="text-xs text-success-600 mt-2">Resolved: {new Date(req.resolvedAt).toLocaleDateString()}</p>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

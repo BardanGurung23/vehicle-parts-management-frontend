@@ -1,11 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { Search, X, UserPlus, ArrowRight } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { Field } from "../../shared/components/Field";
+import { EmptyState } from "../../shared/components/EmptyState";
 
 type SearchFormState = {
   customerId: string;
@@ -24,38 +28,22 @@ function buildCustomerSearchPayload(values: SearchFormState): {
   const name = values.name.trim();
 
   if (!customerIdValue && !phoneNumber && !vehicleNumber && !name) {
-    return {
-      payload: null,
-      error: "Provide at least one search field to look up a customer.",
-    };
+    return { payload: null, error: "Provide at least one search field to look up a customer." };
   }
 
   const payload: CustomerSearchInput = {};
 
   if (customerIdValue) {
     const parsedCustomerId = Number(customerIdValue);
-
     if (!Number.isInteger(parsedCustomerId) || parsedCustomerId <= 0) {
-      return {
-        payload: null,
-        error: "Customer ID must be a positive whole number.",
-      };
+      return { payload: null, error: "Customer ID must be a positive whole number." };
     }
-
     payload.customerId = parsedCustomerId;
   }
 
-  if (phoneNumber) {
-    payload.phoneNumber = phoneNumber;
-  }
-
-  if (vehicleNumber) {
-    payload.vehicleNumber = vehicleNumber;
-  }
-
-  if (name) {
-    payload.name = name;
-  }
+  if (phoneNumber) payload.phoneNumber = phoneNumber;
+  if (vehicleNumber) payload.vehicleNumber = vehicleNumber;
+  if (name) payload.name = name;
 
   return { payload, error: null };
 }
@@ -75,13 +63,9 @@ export function CustomerSearchPage() {
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     const { payload, error } = buildCustomerSearchPayload(searchValues);
-
     if (!payload) {
       setPageError(error);
       setCustomerResults([]);
@@ -105,143 +89,105 @@ export function CustomerSearchPage() {
   };
 
   const resetSearch = () => {
-    setSearchValues({
-      customerId: "",
-      phoneNumber: "",
-      vehicleNumber: "",
-      name: "",
-    });
+    setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
     setCustomerResults([]);
     setPageError(null);
     setHasSearchRun(false);
   };
 
   return (
-    <section className="page-stack">
-      {pageError ? <AlertBox tone="error" message={pageError} /> : null}
-
-      <header className="card dashboard-hero">
-        <div className="dashboard-hero__copy">
-          <p className="eyebrow">Feature 10</p>
-          <h2>Search customers</h2>
-          <p className="card__copy">
-            Search by customer ID, phone number, vehicle number, or full name and jump straight into the active detail view.
-          </p>
-        </div>
-
-        <div className="dashboard-hero__actions">
-          <Link className="button" to="/app/customers/register">
-            Register customer
+    <PageShell>
+      <PageHeader
+        eyebrow="Feature 10"
+        title="Search Customers"
+        description="Search by customer ID, phone number, vehicle number, or full name."
+        actions={
+          <Link to="/app/customers/register">
+            <ActionButton icon={UserPlus}>Register customer</ActionButton>
           </Link>
-        </div>
-      </header>
+        }
+      />
 
-      <article className="card dashboard-panel dashboard-panel--wide">
-        <div className="card__header">
-          <h3>Lookup filters</h3>
-          <p className="card__copy">Provide any combination of fields. One matching field is enough to run a search.</p>
-        </div>
+      {pageError ? <AlertBox tone="error" message={pageError} dismissible /> : null}
 
-        <form className="dashboard-search-form form-grid--two-columns" onSubmit={handleSearch}>
-          <Field label="Customer ID">
-            <input
-              className="input"
-              type="text"
-              inputMode="numeric"
-              placeholder="1"
-              value={searchValues.customerId}
-              onChange={(event) => setSearchValues((current) => ({ ...current, customerId: event.target.value }))}
-            />
-          </Field>
-
-          <Field label="Phone number">
-            <input
-              className="input"
-              type="text"
-              placeholder="+9779800000000"
-              value={searchValues.phoneNumber}
-              onChange={(event) => setSearchValues((current) => ({ ...current, phoneNumber: event.target.value }))}
-            />
-          </Field>
-
-          <Field label="Vehicle number">
-            <input
-              className="input"
-              type="text"
-              placeholder="BA 1 PA 1234"
-              value={searchValues.vehicleNumber}
-              onChange={(event) => setSearchValues((current) => ({ ...current, vehicleNumber: event.target.value }))}
-            />
-          </Field>
-
-          <Field label="Customer name">
-            <input
-              className="input"
-              type="text"
-              placeholder="Aarav Shrestha"
-              value={searchValues.name}
-              onChange={(event) => setSearchValues((current) => ({ ...current, name: event.target.value }))}
-            />
-          </Field>
-
-          <div className="dashboard-search-actions form-grid__full-width">
-            <ActionButton type="submit" disabled={isSearching}>
+      <Card
+        header={
+          <div>
+            <h3 className="text-base font-semibold text-on-surface">Lookup filters</h3>
+            <p className="text-sm text-on-surface-variant">Provide any combination of fields.</p>
+          </div>
+        }
+      >
+        <form onSubmit={handleSearch} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label htmlFor="search-id" className="block text-xs font-medium text-on-surface-variant mb-1">Customer ID</label>
+              <input id="search-id" className="input" type="text" inputMode="numeric" placeholder="1"
+                value={searchValues.customerId}
+                onChange={(e) => setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))} />
+            </div>
+            <div>
+              <label htmlFor="search-phone" className="block text-xs font-medium text-on-surface-variant mb-1">Phone number</label>
+              <input id="search-phone" className="input" type="text" placeholder="+9779800000000"
+                value={searchValues.phoneNumber}
+                onChange={(e) => setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))} />
+            </div>
+            <div>
+              <label htmlFor="search-vehicle" className="block text-xs font-medium text-on-surface-variant mb-1">Vehicle number</label>
+              <input id="search-vehicle" className="input" type="text" placeholder="BA 1 PA 1234"
+                value={searchValues.vehicleNumber}
+                onChange={(e) => setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))} />
+            </div>
+            <div>
+              <label htmlFor="search-name" className="block text-xs font-medium text-on-surface-variant mb-1">Customer name</label>
+              <input id="search-name" className="input" type="text" placeholder="Aarav Shrestha"
+                value={searchValues.name}
+                onChange={(e) => setSearchValues((prev) => ({ ...prev, name: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ActionButton type="submit" icon={Search} disabled={isSearching}>
               {isSearching ? "Searching..." : "Search customers"}
             </ActionButton>
-
-            <ActionButton type="button" tone="secondary" onClick={resetSearch}>
-              Reset
-            </ActionButton>
+            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Reset</ActionButton>
           </div>
         </form>
-      </article>
+      </Card>
 
-      <article className="card dashboard-panel dashboard-panel--wide">
-        <div className="card__header">
-          <h3>Results</h3>
-          <p className="card__copy">
-            {hasSearchRun
-              ? `${customerResults.length} customer result${customerResults.length === 1 ? "" : "s"} returned.`
-              : "Run a search to review matching customer records."}
-          </p>
-        </div>
-
+      <Card
+        header={
+          <div>
+            <h3 className="text-base font-semibold text-on-surface">Results</h3>
+            <p className="text-sm text-on-surface-variant">
+              {hasSearchRun
+                ? `${customerResults.length} customer result${customerResults.length === 1 ? "" : "s"} returned.`
+                : "Run a search to review matching customer records."}
+            </p>
+          </div>
+        }
+      >
         {hasSearchRun && customerResults.length === 0 ? (
-          <p className="empty-state">No customer matched the filters you entered.</p>
+          <EmptyState icon={Search} title="No results" description="No customer matched the filters you entered." />
         ) : customerResults.length > 0 ? (
-          <div className="dashboard-results">
+          <div className="space-y-3">
             {customerResults.map((customer) => (
-              <article key={customer.customerId} className="dashboard-result-card">
-                <div className="dashboard-result-card__top">
-                  <div>
-                    <h4>{customer.fullName}</h4>
-                    <p>{customer.email ?? "No email recorded"}</p>
+              <div key={customer.customerId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                  <p className="text-xs text-on-surface-variant">{customer.email ?? "No email recorded"}</p>
+                  <div className="flex items-center gap-4 mt-1 text-xs text-on-surface-variant">
+                    <span>{customer.phoneNumber}</span>
+                    <span>{customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}</span>
                   </div>
-
-                  <span className="status-pill">Customer #{customer.customerId}</span>
                 </div>
-
-                <dl className="detail-list">
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>{customer.phoneNumber}</dd>
-                  </div>
-                  <div>
-                    <dt>Vehicles</dt>
-                    <dd>{customer.vehicleCount}</dd>
-                  </div>
-                </dl>
-
-                <div className="dashboard-hero__actions">
-                  <Link className="button" to={`/app/customers/${customer.customerId}`}>
-                    View details
-                  </Link>
-                </div>
-              </article>
+                <Link to={`/app/customers/${customer.customerId}`} className="shrink-0">
+                  <ActionButton size="sm" icon={ArrowRight}>View details</ActionButton>
+                </Link>
+              </div>
             ))}
           </div>
         ) : null}
-      </article>
-    </section>
+      </Card>
+    </PageShell>
   );
 }

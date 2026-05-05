@@ -2,13 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { RefreshCw } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { RoleOption, StaffUser } from "../../app/types";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
-import { LoadingScreen } from "../../shared/components/LoadingScreen";
+import { Badge } from "../../shared/components/Badge";
+import { SkeletonCard } from "../../shared/components/Skeleton";
 import { toast } from "react-toastify";
 
 const staffSchema = z.object({
@@ -41,27 +46,18 @@ export function StaffManagementPage() {
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
 
   const loadPageData = useCallback(async (showPageLoader = false) => {
-    if (!token) {
-      return;
-    }
-
-    if (showPageLoader) {
-      setIsLoading(true);
-    } else {
-      setIsRefreshing(true);
-    }
+    if (!token) return;
+    if (showPageLoader) setIsLoading(true);
+    else setIsRefreshing(true);
 
     try {
       const [rolesResponse, usersResponse] = await Promise.all([
         api.getAssignableRoles(token),
         api.getStaffUsers(token),
       ]);
-
       setRoles(rolesResponse);
       setStaffUsers(usersResponse);
-      setRoleDrafts(
-        Object.fromEntries(usersResponse.map((user) => [user.userId, user.roleId])),
-      );
+      setRoleDrafts(Object.fromEntries(usersResponse.map((u) => [u.userId, u.roleId])));
       setPageError(null);
     } catch (error) {
       setPageError(error instanceof ApiError ? error.message : "Could not load staff management data.");
@@ -71,23 +67,17 @@ export function StaffManagementPage() {
     }
   }, [token]);
 
-  useEffect(() => {
-    void loadPageData(true);
-  }, [loadPageData]);
+  useEffect(() => { void loadPageData(true); }, [loadPageData]);
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     try {
       setPageError(null);
       setPageSuccess(null);
-
       await api.createStaffUser(token, values);
-      const successMessageText = "Staff account created successfully.";
-      setPageSuccess(successMessageText);
-      toast.success(successMessageText);
+      const msg = "Staff account created successfully.";
+      setPageSuccess(msg);
+      toast.success(msg);
       reset();
       await loadPageData();
     } catch (error) {
@@ -97,40 +87,21 @@ export function StaffManagementPage() {
     }
   });
 
-  const roleOptions = useMemo(
-    () => roles.map((role) => ({ value: role.roleId, label: role.name })),
-    [roles],
-  );
-
-  const staffCountLabel = `${staffUsers.length} staff account${staffUsers.length === 1 ? "" : "s"}`;
-
-  const formatCreatedAt = (createdAt: string) =>
-    new Date(createdAt).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const roleOptions = useMemo(() => roles.map((r) => ({ value: r.roleId, label: r.name })), [roles]);
+  const formatCreatedAt = (d: string) =>
+    new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
   const saveRole = async (userId: number) => {
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     try {
       setSavingUserId(userId);
       setPageError(null);
       setPageSuccess(null);
-
-      const updatedUser = await api.updateStaffRole(token, userId, {
-        roleId: roleDrafts[userId],
-      });
-
-      setStaffUsers((current) =>
-        current.map((user) => (user.userId === userId ? updatedUser : user)),
-      );
-      const successMessageText = `Updated role for ${updatedUser.fullName}.`;
-      setPageSuccess(successMessageText);
-      toast.success(successMessageText);
+      const updatedUser = await api.updateStaffRole(token, userId, { roleId: roleDrafts[userId] });
+      setStaffUsers((prev) => prev.map((u) => (u.userId === userId ? updatedUser : u)));
+      const msg = `Updated role for ${updatedUser.fullName}.`;
+      setPageSuccess(msg);
+      toast.success(msg);
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Could not update the role.";
       setPageError(message);
@@ -141,147 +112,135 @@ export function StaffManagementPage() {
   };
 
   if (isLoading) {
-    return <LoadingScreen message="Loading staff management..." />;
+    return (
+      <PageShell>
+        <SkeletonCard />
+      </PageShell>
+    );
   }
 
   return (
-    <section className="page-stack">
-      {pageError ? <AlertBox tone="error" message={pageError} /> : null}
-      {pageSuccess ? <AlertBox tone="success" message={pageSuccess} /> : null}
+    <PageShell>
+      <PageHeader
+        eyebrow="Admin Only"
+        title="Staff Management"
+        description="Create staff accounts and update role assignments."
+      />
 
-      <div className="staff-layout">
-        <article className="card staff-form-card">
-          <div className="card__header">
-            <p className="eyebrow">Admin Only</p>
-            <h2>Register staff</h2>
-            <p className="card__copy">
-              Create staff accounts with one of the seeded SQL roles. Role creation stays out of scope here.
-            </p>
-          </div>
+      {pageError ? <AlertBox tone="error" message={pageError} dismissible /> : null}
+      {pageSuccess ? <AlertBox tone="success" message={pageSuccess} dismissible /> : null}
 
-          <form className="form-grid" onSubmit={onSubmit}>
-            <Field label="Full name" error={errors.fullName?.message}>
-              <input className="input" type="text" placeholder="Taylor Walker" {...register("fullName")} />
+      <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6 items-start">
+        <Card
+          header={
+            <div>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider">Admin Only</p>
+              <h2 className="text-base font-semibold text-on-surface mt-1">Register staff</h2>
+              <p className="text-sm text-on-surface-variant">Create staff accounts with one of the seeded SQL roles.</p>
+            </div>
+          }
+        >
+          <form onSubmit={onSubmit} className="space-y-4">
+            <Field label="Full name" error={errors.fullName?.message} required htmlFor="staff-name">
+              <input id="staff-name" className="input" type="text" placeholder="Taylor Walker" {...register("fullName")} />
             </Field>
-
-            <Field label="Email" error={errors.email?.message}>
-              <input className="input" type="email" placeholder="staff@example.com" {...register("email")} />
+            <Field label="Email" error={errors.email?.message} required htmlFor="staff-email">
+              <input id="staff-email" className="input" type="email" placeholder="staff@example.com" {...register("email")} />
             </Field>
-
-            <Field label="Phone number" error={errors.phoneNumber?.message}>
-              <input className="input" type="tel" placeholder="+9779800000001" {...register("phoneNumber")} />
+            <Field label="Phone number" error={errors.phoneNumber?.message} required htmlFor="staff-phone">
+              <input id="staff-phone" className="input" type="tel" placeholder="+9779800000001" {...register("phoneNumber")} />
             </Field>
-
-            <Field label="Password" error={errors.password?.message}>
-              <input className="input" type="password" placeholder="Minimum 8 characters" {...register("password")} />
+            <Field label="Password" error={errors.password?.message} required htmlFor="staff-password">
+              <input id="staff-password" className="input" type="password" placeholder="Minimum 8 characters" {...register("password")} />
             </Field>
-
-            <Field label="Role" error={errors.roleId?.message}>
-              <select className="input" defaultValue="" {...register("roleId")}>
-                <option value="" disabled>
-                  Choose a role
-                </option>
-                {roleOptions.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
+            <Field label="Role" error={errors.roleId?.message} required htmlFor="staff-role">
+              <select id="staff-role" className="input" defaultValue="" {...register("roleId")}>
+                <option value="" disabled>Choose a role</option>
+                {roleOptions.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
             </Field>
-
-            <ActionButton type="submit" disabled={isSubmitting || isRefreshing}>
+            <ActionButton type="submit" disabled={isSubmitting || isRefreshing} className="w-full">
               {isSubmitting ? "Creating staff account..." : "Create staff account"}
             </ActionButton>
           </form>
-        </article>
+        </Card>
 
-        <section className="card staff-list-card">
-          <div className="staff-list-card__header">
-            <div className="card__header">
-              <p className="eyebrow">Current Staff</p>
-              <h2>Manage role assignment</h2>
-              <p className="card__copy">{staffCountLabel} available for review and updates.</p>
+        <Card
+          header={
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider">Current Staff</p>
+                <h2 className="text-base font-semibold text-on-surface mt-1">Manage role assignment</h2>
+                <p className="text-sm text-on-surface-variant">{staffUsers.length} staff account{staffUsers.length === 1 ? "" : "s"} available.</p>
+              </div>
+              <ActionButton tone="secondary" size="sm" icon={RefreshCw} disabled={isRefreshing} onClick={() => void loadPageData()}>
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </ActionButton>
             </div>
-
-            <ActionButton type="button" tone="secondary" disabled={isRefreshing} onClick={() => void loadPageData()}>
-              {isRefreshing ? "Refreshing..." : "Refresh list"}
-            </ActionButton>
-          </div>
-
+          }
+        >
           {staffUsers.length === 0 ? (
-            <p className="empty-state">No staff accounts are available yet.</p>
+            <p className="text-sm text-on-surface-variant text-center py-8">No staff accounts are available yet.</p>
           ) : (
-            <div className="staff-user-list">
-              {staffUsers.map((user) => {
-                const draftRoleId = roleDrafts[user.userId] ?? user.roleId;
-                const isDirty = draftRoleId !== user.roleId;
-
+            <div className="space-y-3">
+              {staffUsers.map((u) => {
+                const draftRoleId = roleDrafts[u.userId] ?? u.roleId;
+                const isDirty = draftRoleId !== u.roleId;
                 return (
-                  <article key={user.userId} className="staff-user-card">
-                    <div className="staff-user-card__top">
-                      <div className="staff-user-card__identity">
-                        <h3>{user.fullName}</h3>
-                        <p>{user.email}</p>
+                  <div key={u.userId} className="rounded-lg ring-1 ring-white/[0.06] bg-surface-container-lowest p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-on-surface">{u.fullName}</h3>
+                        <p className="text-xs text-on-surface-variant">{u.email}</p>
                       </div>
-
-                      <span className={user.isActive ? "status-pill" : "status-pill status-pill--muted"}>
-                        {user.isActive ? "Active" : "Inactive"}
-                      </span>
+                      <Badge variant={u.isActive ? "success" : "neutral"}>{u.isActive ? "Active" : "Inactive"}</Badge>
                     </div>
-
-                    <dl className="staff-user-card__meta">
+                    <div className="grid grid-cols-3 gap-3 text-xs">
                       <div>
-                        <dt>Phone</dt>
-                        <dd>{user.phoneNumber}</dd>
+                        <span className="text-on-surface-variant">Phone</span>
+                        <p className="text-on-surface font-medium">{u.phoneNumber}</p>
                       </div>
                       <div>
-                        <dt>Current role</dt>
-                        <dd>{user.role}</dd>
+                        <span className="text-on-surface-variant">Role</span>
+                        <p className="text-on-surface font-medium">{u.role}</p>
                       </div>
                       <div>
-                        <dt>Created</dt>
-                        <dd>{formatCreatedAt(user.createdAt)}</dd>
+                        <span className="text-on-surface-variant">Created</span>
+                        <p className="text-on-surface font-medium">{formatCreatedAt(u.createdAt)}</p>
                       </div>
-                    </dl>
-
-                    <div className="staff-user-card__actions">
-                      <Field label="Role">
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <label htmlFor={`role-${u.userId}`} className="block text-xs font-medium text-on-surface-variant mb-1">Role</label>
                         <select
-                          className="input"
+                          id={`role-${u.userId}`}
+                          className="input h-9 text-sm"
                           value={draftRoleId}
-                          onChange={(event) => {
-                            const nextRoleId = Number(event.target.value);
-                            setRoleDrafts((current) => ({
-                              ...current,
-                              [user.userId]: nextRoleId,
-                            }));
-                          }}
+                          onChange={(e) => setRoleDrafts((prev) => ({ ...prev, [u.userId]: Number(e.target.value) }))}
                         >
-                          {roleOptions.map((role) => (
-                            <option key={role.value} value={role.value}>
-                              {role.label}
-                            </option>
+                          {roleOptions.map((r) => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
                           ))}
                         </select>
-                      </Field>
-
+                      </div>
                       <ActionButton
-                        type="button"
                         tone="secondary"
-                        className="staff-user-card__save"
-                        disabled={!isDirty || savingUserId === user.userId || isRefreshing}
-                        onClick={() => void saveRole(user.userId)}
+                        size="sm"
+                        disabled={!isDirty || savingUserId === u.userId || isRefreshing}
+                        onClick={() => void saveRole(u.userId)}
                       >
-                        {savingUserId === user.userId ? "Saving..." : "Save role"}
+                        {savingUserId === u.userId ? "Saving..." : "Save role"}
                       </ActionButton>
                     </div>
-                  </article>
+                  </div>
                 );
               })}
             </div>
           )}
-        </section>
+        </Card>
       </div>
-    </section>
+    </PageShell>
   );
 }

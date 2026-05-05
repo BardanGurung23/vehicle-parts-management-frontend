@@ -1,88 +1,53 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCreatePartRequestMutation } from "../../redux/services/partRequests";
+import { PageShell } from "../../shared/components/PageShell";
+import { PageHeader } from "../../shared/components/PageHeader";
+import { Card } from "../../shared/components/Card";
+import { Field } from "../../shared/components/Field";
+import { ActionButton } from "../../shared/components/ActionButton";
 import { toast } from "react-toastify";
 
 export function RequestPartPage() {
   const navigate = useNavigate();
   const [createPartRequest, { isLoading }] = useCreatePartRequestMutation();
-
   const [requestedPartName, setRequestedPartName] = useState("");
   const [requestDetails, setRequestDetails] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!requestedPartName.trim()) {
-      toast.error("Please enter the part name.");
-      return;
-    }
-
+    if (!requestedPartName.trim()) { toast.error("Please enter the part name."); return; }
     try {
-      await createPartRequest({
-        requestedPartName: requestedPartName.trim(),
-        requestDetails: requestDetails.trim() || undefined,
-      }).unwrap();
-
+      await createPartRequest({ requestedPartName: requestedPartName.trim(), requestDetails: requestDetails.trim() || undefined }).unwrap();
       toast.success("Part request submitted successfully!");
       navigate("/app/my-part-requests");
-    } catch {
-      toast.error("Failed to submit part request. Please try again.");
-    }
+    } catch { toast.error("Failed to submit part request."); }
   };
 
   return (
-    <div className="p-4 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-4">Request Unavailable Part</h1>
-      <p className="text-gray-600 mb-6">
-        Can't find the part you need? Let us know and we'll try to source it for you.
-      </p>
+    <PageShell maxWidth="sm">
+      <PageHeader eyebrow="Request" title="Request Unavailable Part" description="Can't find the part you need? Let us know and we'll try to source it." />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Part Name *
-          </label>
-          <input
-            type="text"
-            required
-            className="w-full border rounded p-2"
-            placeholder="e.g., Brake pads for Honda Civic"
-            value={requestedPartName}
-            onChange={(e) => setRequestedPartName(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Details (Optional)
-          </label>
-          <textarea
-            className="w-full border rounded p-2"
-            rows={4}
-            placeholder="Any additional details about the part you need..."
-            value={requestDetails}
-            onChange={(e) => setRequestDetails(e.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="button button--primary"
-            disabled={isLoading}
-          >
-            {isLoading ? "Submitting..." : "Submit Request"}
-          </button>
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={() => navigate(-1)}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Part Name" required htmlFor="req-part-name">
+            <input id="req-part-name" className="input" type="text" required
+              placeholder="e.g., Brake pads for Honda Civic"
+              value={requestedPartName} onChange={(e) => setRequestedPartName(e.target.value)} />
+          </Field>
+          <Field label="Details (Optional)" htmlFor="req-details">
+            <textarea id="req-details" className="input" rows={4}
+              placeholder="Any additional details about the part you need..."
+              value={requestDetails} onChange={(e) => setRequestDetails(e.target.value)} />
+          </Field>
+          <div className="flex items-center gap-3">
+            <ActionButton type="submit" disabled={isLoading}>
+              {isLoading ? "Submitting..." : "Submit Request"}
+            </ActionButton>
+            <ActionButton type="button" tone="secondary" onClick={() => navigate(-1)}>Cancel</ActionButton>
+          </div>
+        </form>
+      </Card>
+    </PageShell>
   );
 }
