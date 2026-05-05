@@ -52,6 +52,8 @@ export const api = createApi({
     "parts",
     "appointments",
     "vendors",
+    "purchase-invoices",
+    "financial-reports",
   ],
   endpoints: () => ({}),
 });
