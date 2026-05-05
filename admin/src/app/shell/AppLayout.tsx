@@ -12,6 +12,8 @@ export function AppLayout() {
   const isPartsPage = location.pathname.startsWith("/app/parts");
   const isAppointmentsPage = location.pathname.startsWith("/app/appointments");
   const isVendorsPage = location.pathname.startsWith("/app/vendors");
+  const isPurchaseInvoicesPage = location.pathname.startsWith("/app/purchase-invoices");
+  const isFinancialReportsPage = location.pathname.startsWith("/app/reports/financial");
   const isBookAppointmentPage = location.pathname.startsWith("/app/book-appointment");
   const isMyAppointmentsPage = location.pathname.startsWith("/app/my-appointments");
   const isMySalesPage = location.pathname.startsWith("/app/my-sales");
@@ -34,6 +36,10 @@ export function AppLayout() {
         ? "Appointments management"
         : isVendorsPage
           ? "Vendors"
+        : isPurchaseInvoicesPage
+          ? "Purchase Invoices"
+          : isFinancialReportsPage
+            ? "Financial Reports"
         : isBookAppointmentPage
           ? "Book Appointment"
           : isMyAppointmentsPage
@@ -67,6 +73,10 @@ export function AppLayout() {
         ? "Review scheduled appointments and update their service status."
         : isVendorsPage
           ? "Manage supplier records and keep vendor contact details current."
+        : isPurchaseInvoicesPage
+          ? "Record vendor stock receipts and increase inventory from purchase invoices."
+          : isFinancialReportsPage
+            ? "Review revenue, discounts, purchase spend, and gross profit across reporting windows."
       : isBookAppointmentPage
         ? "Schedule a service for your vehicle."
         : isMyAppointmentsPage
@@ -288,6 +298,32 @@ export function AppLayout() {
               }
             >
               Vendors
+            </NavLink>
+          )}
+
+          {isAdmin && (
+            <NavLink
+              to="/app/purchase-invoices"
+              className={({ isActive }) =>
+                isActive
+                  ? "shell__nav-link shell__nav-link--active"
+                  : "shell__nav-link"
+              }
+            >
+              Purchase Invoices
+            </NavLink>
+          )}
+
+          {isAdmin && (
+            <NavLink
+              to="/app/reports/financial"
+              className={({ isActive }) =>
+                isActive
+                  ? "shell__nav-link shell__nav-link--active"
+                  : "shell__nav-link"
+              }
+            >
+              Financial Reports
             </NavLink>
           )}
 

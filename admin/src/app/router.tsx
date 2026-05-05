@@ -16,7 +16,9 @@ import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
 import { MyAppointmentsPage } from "../features/appointments/MyAppointmentsPage";
+import { PurchaseInvoicesPage } from "../features/purchase-invoices/PurchaseInvoicesPage";
 import { MyReviewsPage } from "../features/reviews/MyReviewsPage";
+import { FinancialReportsPage } from "../features/reports/FinancialReportsPage";
 import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
 import Vendors from "../pages/Vendors";
 import { MySalesPage } from "../features/sales/MySalesPage";
@@ -212,6 +214,14 @@ export const router = createBrowserRouter([
               {
                 path: "vendors",
                 element: <Vendors />,
+              },
+              {
+                path: "purchase-invoices",
+                element: <PurchaseInvoicesPage />,
+              },
+              {
+                path: "reports/financial",
+                element: <FinancialReportsPage />,
               },
               {
                 path: "register-customer",

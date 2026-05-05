@@ -222,3 +222,62 @@ export interface CreateVendorRequest {
   email?: string;
   address?: string;
 }
+
+export interface PurchaseInvoiceItem {
+  purchaseInvoiceItemId: number;
+  partId: number;
+  partName: string;
+  partNumber: string;
+  quantity: number;
+  unitCost: number;
+  lineTotal: number;
+}
+
+export interface PurchaseInvoice {
+  purchaseInvoiceId: number;
+  vendorId: number;
+  vendorName: string;
+  createdByUserId: number;
+  createdByName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  totalAmount: number;
+  status: string;
+  items: PurchaseInvoiceItem[];
+}
+
+export interface CreatePurchaseInvoiceItemRequest {
+  partId: number;
+  quantity: number;
+  unitCost: number;
+}
+
+export interface CreatePurchaseInvoiceRequest {
+  vendorId: number;
+  status?: string;
+  items: CreatePurchaseInvoiceItemRequest[];
+}
+
+export interface FinancialReportEntry {
+  label: string;
+  revenue: number;
+  discounts: number;
+  purchaseCosts: number;
+  grossProfit: number;
+  saleCount: number;
+  purchaseInvoiceCount: number;
+}
+
+export interface FinancialReport {
+  reportType: string;
+  periodLabel: string;
+  rangeStart: string;
+  rangeEndExclusive: string;
+  revenue: number;
+  discounts: number;
+  purchaseCosts: number;
+  grossProfit: number;
+  saleCount: number;
+  purchaseInvoiceCount: number;
+  entries: FinancialReportEntry[];
+}
