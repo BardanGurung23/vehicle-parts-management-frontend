@@ -10,20 +10,20 @@ interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
 const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, error, className, ...rest }, ref) => {
     return (
-      <div className={`bg-white text-black ${className || ""}`}>
-        <div className="flex items-center gap-[0.5rem] bg-white">
+      <div className={`text-on-surface ${className || ""}`}>
+        <div className="flex items-center gap-[0.5rem]">
           <input
             ref={ref}
             type="checkbox"
-            className={`h-4 w-4 border border-gray-300 rounded-sm text-[#0190dd] focus:ring-[#0190dd] ${
-              error ? "border-red-500" : ""
+            className={`h-4 w-4 border border-outline-variant rounded-sm accent-primary focus:ring-primary ${
+              error ? "border-error" : ""
             }`}
             {...rest}
           />
-          {label && <label className="text-black">{label}</label>}
+          {label && <label className="text-on-surface">{label}</label>}
         </div>
         {error && (
-          <span className="text-red-500 text-sm">
+          <span className="text-error text-sm">
             {typeof error === "string" ? error : error.message}
           </span>
         )}
@@ -32,6 +32,6 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   },
 );
 
-Checkbox.displayName = "Checkbox"; // Needed for forwardRef components
+Checkbox.displayName = "Checkbox";
 
 export default Checkbox;

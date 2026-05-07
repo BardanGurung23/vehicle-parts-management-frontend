@@ -6,20 +6,26 @@
 
 .input-label {
   font-weight: 600;
-  font-size: 0.875rem; /* Equivalent to Tailwind's text-sm */
-  color: #374561;
+  font-size: 0.875rem;
+  color: var(--md-sys-color-on-surface-variant);
   text-align: start;
 }
 
 .input-wrapper {
   display: flex;
   align-items: center;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 0.5rem;
-  background-color: #fff;
-  height: 38px;
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 6px;
+  padding: 0.5rem;
+  background-color: var(--md-sys-color-surface-container-low);
+  height: 38px;
+  transition: border-color 150ms var(--motion-easing-standard),
+              background 150ms var(--motion-easing-standard);
+}
+
+.input-wrapper:hover {
+  background-color: var(--md-sys-color-surface-container);
+  border-color: var(--md-sys-color-outline);
 }
 
 .input-checkbox-wrapper {
@@ -40,23 +46,23 @@
   border: none;
   outline: none;
   font-size: 1rem;
-  background-color: white;
-  /* color: black; */
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface);
 }
 
 .input-error-field {
-  border-color: #ff4d4f;
+  border-color: var(--md-sys-color-error);
 }
 
 .input-error {
-  font-size: 0.75rem; /* Equivalent to Tailwind's text-[0.75rem] */
-  color: #ff4d4f;
+  font-size: 0.75rem;
+  color: var(--md-sys-color-error);
 }
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: black !important;
+  -webkit-box-shadow: 0 0 0 30px var(--md-sys-color-surface-container-low) inset !important;
+  -webkit-text-fill-color: var(--md-sys-color-on-surface) !important;
 }

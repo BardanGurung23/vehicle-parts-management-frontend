@@ -2,33 +2,30 @@ import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 
 export default function Pagination({ media, handlePageChange }) {
   return (
-    <div className="mt-auto w-[90rem] flex justify-between font-[400] text-[14px] text-[#2F2B3D] py-[1rem] px-[0.5rem]">
+    <div className="mt-auto w-[90rem] flex justify-between font-[400] text-[14px] text-on-surface-variant py-[1rem] px-[0.5rem]">
       <div>Show: {media.data.limit ?? 0} Entries</div>
-      <div className="font-[500] text-[#333333] text-[0.75rem] flex gap-[0.25rem]">
-        {/* Left Arrow */}
+      <div className="font-[500] text-on-surface text-[0.75rem] flex gap-[0.25rem]">
         <button
-          className="rounded-full bg-white border flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
-          onClick={() => handlePageChange(media.data.page - 1)} // Decrement page
+          className="rounded-full bg-surface-container-low border border-outline-variant flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer hover:bg-surface-container transition-colors"
+          onClick={() => handlePageChange(media.data.page - 1)}
         >
           <MdKeyboardArrowLeft />
         </button>
 
-        {/* Pagination Numbers */}
         {Array.from({ length: media.data.totalPages }).map((_, index) => {
           const pageNumber = index + 1;
           const isCurrentPage = media.data.page === pageNumber;
           const isNextPage = media.data.page + 1 === pageNumber;
 
-          // Render only the current and next pages
           if (isCurrentPage || isNextPage) {
             return (
               <button
                 key={index}
-                onClick={() => handlePageChange(pageNumber)} // Change page
-                className={`rounded-full flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer ${
+                onClick={() => handlePageChange(pageNumber)}
+                className={`rounded-full flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer transition-colors ${
                   isCurrentPage
-                    ? "bg-primaryColor text-white"
-                    : "bg-white border"
+                    ? "bg-primary text-primary-on"
+                    : "bg-surface-container-low border border-outline-variant hover:bg-surface-container"
                 }`}
               >
                 {pageNumber}
@@ -36,26 +33,23 @@ export default function Pagination({ media, handlePageChange }) {
             );
           }
 
-          // Add ellipsis after the current and next pages
           if (pageNumber === media.data.page + 2) {
             return (
               <div
                 key="ellipsis"
-                className="text-[#999999] flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
+                className="text-on-surface-variant opacity-50 flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
               >
                 ...
               </div>
             );
           }
 
-          return null; // Skip other items
+          return null;
         })}
 
-        {/* Right Arrow */}
         <button
-          className="rounded-full bg-white border flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
+          className="rounded-full bg-surface-container-low border border-outline-variant flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer hover:bg-surface-container transition-colors"
           onClick={() => handlePageChange(media.data.page + 1)}
-          // Increment page
         >
           <MdKeyboardArrowRight />
         </button>

@@ -12,7 +12,7 @@ interface SpinnerProps {
 
 const Spinner: FC<SpinnerProps> = ({
   size = 24,
-  color = "#3B82F6",
+  color = "var(--md-sys-color-primary)",
   className = "",
   withText = false,
 }) => {

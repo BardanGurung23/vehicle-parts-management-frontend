@@ -1,11 +1,12 @@
 .popup-container {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-medium);
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--md-sys-elevation-level3);
   overflow: hidden;
-  animation: fadeIn 0.3s;
+  animation: fadeIn 0.3s var(--motion-easing-standard);
+  border: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .popup-header {
@@ -13,12 +14,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .popup-header h3 {
   margin: 0;
   font-size: 1.2rem;
+  color: var(--md-sys-color-on-surface);
 }
 
 .popup-close {
@@ -26,6 +28,12 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: color var(--motion-duration-short2) var(--motion-easing-standard);
+}
+
+.popup-close:hover {
+  color: var(--md-sys-color-on-surface);
 }
 
 .popup-content {

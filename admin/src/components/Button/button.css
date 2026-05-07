@@ -21,8 +21,8 @@
 
 .loading-spinner {
   margin-right: 0.5rem;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #fff;
+  border: 2px solid var(--md-sys-color-surface-container-highest);
+  border-top: 2px solid var(--md-sys-color-on-primary);
   border-radius: 50%;
   width: 1rem;
   height: 1rem;

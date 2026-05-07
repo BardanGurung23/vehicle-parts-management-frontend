@@ -78,6 +78,8 @@ export default {
           "on-surface": "var(--md-sys-color-inverse-on-surface)",
         },
         scrim: "var(--md-sys-color-scrim)",
+        primaryColor: "var(--md-sys-color-primary)",
+        secondaryColor: "var(--md-sys-color-secondary)",
       },
       borderRadius: {
         none: "var(--md-sys-shape-corner-none)",

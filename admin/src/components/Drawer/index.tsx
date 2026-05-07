@@ -44,7 +44,7 @@ export default function Drawer({
     <div
       className={`fixed top-0 ${
         position === "right" ? "right-0" : "left-0"
-      } h-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+      } h-full bg-surface-container shadow-lg transition-transform duration-300 ease-in-out ${
         isOpen
           ? "transform translate-x-0"
           : position === "right"
@@ -55,7 +55,7 @@ export default function Drawer({
       {/* Close button inside the drawer */}
       <button
         onClick={toggleDrawer}
-        className="absolute top-4 right-4 text-xl text-gray-500"
+        className="absolute top-4 right-4 text-xl text-on-surface-variant hover:text-on-surface transition-colors"
       >
         <RxCross2 size={22} />
       </button>

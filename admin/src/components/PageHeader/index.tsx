@@ -53,14 +53,14 @@ export default function PageHeader({
           <MdGridView
             size={22}
             className={` cursor-pointer ${
-              viewType === "grid" ? "text-black" : "text-[#A4ADBB]"
+              viewType === "grid" ? "text-on-surface" : "text-on-surface-variant opacity-50"
             }`}
             onClick={() => toggleViewType?.("grid")}
           />
           <IoMdList
             size={22}
             className={` cursor-pointer ${
-              viewType === "list" ? "text-black" : "text-[#A4ADBB]"
+              viewType === "list" ? "text-on-surface" : "text-on-surface-variant opacity-50"
             }`}
             onClick={() => toggleViewType?.("list")}
           />
@@ -82,10 +82,10 @@ export default function PageHeader({
           </Button>
         )}
         <Button
-          className="bg-[#E5E6EC] text-white rounded-[0.25rem]"
+          className="bg-surface-container-high hover:bg-surface-container-highest rounded-[0.25rem] transition-colors duration-200"
           handleClick={handleClick}
         >
-          <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] text-[#A4ADBB]">
+          <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] text-on-surface-variant">
             <div className={isRotating ? "rotate-animation" : ""}>
               <IoReload size={18} />
             </div>
@@ -94,10 +94,10 @@ export default function PageHeader({
         </Button>
         {hasDeleteButton && (
           <Button
-            className="bg-red-500 text-white rounded-[0.25rem]"
+            className="bg-error text-error-on rounded-[0.25rem] hover:opacity-90 transition-opacity"
             handleClick={handleDeleteButton}
           >
-            <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] text-white">
+            <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem]">
               <div>
                 <FaTrash size={20} />
               </div>
@@ -111,7 +111,7 @@ export default function PageHeader({
       {/* Sub Text Section */}
       {hasSubText && (
         <div>
-          <p className="font-[400] text-[0.9375rem] text-[#676c76]">
+          <p className="font-[400] text-[0.9375rem] text-on-surface-variant">
             {subText}
           </p>
         </div>

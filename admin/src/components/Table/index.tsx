@@ -5,8 +5,8 @@ import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import styles from "./index.module.css";
 
 interface TableProps {
-  headers: string[] | any; // Table header titles
-  data: any[][]; // Array of table data
+  headers: string[] | any;
+  data: any[][];
   pagination: PaginationType;
   isSN?: boolean;
   handlePagination: (pagination: PaginationType) => void;
@@ -22,19 +22,18 @@ const Table: React.FC<TableProps> = ({
   const translate = useTranslation();
   return (
     <div className="overflow-x-auto">
-      {/* Table */}
-      <table className="w-max min-w-full border-collapse bg-surface text-foreground border border-line">
-        <thead className="bg-surface border-b border-line">
+      <table className="w-max min-w-full border-collapse bg-surface-container-lowest text-on-surface border border-outline-variant">
+        <thead className="bg-surface-container border-b border-outline-variant">
           <tr>
             {isSN && (
-              <th className="px-3 py-1.5 text-left text-muted uppercase font-bold text-[10px] tracking-widest whitespace-nowrap">
+              <th className="px-3 py-1.5 text-left text-on-surface-variant uppercase font-bold text-[10px] tracking-widest whitespace-nowrap">
                 S.N.
               </th>
             )}
             {headers.map((header, index) => (
               <th
                 key={index}
-                className="px-3 py-1.5 text-left text-muted uppercase font-bold text-[10px] tracking-widest whitespace-nowrap"
+                className="px-3 py-1.5 text-left text-on-surface-variant uppercase font-bold text-[10px] tracking-widest whitespace-nowrap"
               >
                 {translate(header)}
               </th>
@@ -44,7 +43,7 @@ const Table: React.FC<TableProps> = ({
         <tbody className={`${styles.tableBody}`}>
           {data.length > 0 ? (
             data.map((row, index) => (
-              <tr key={index} className="border-b border-line hover:bg-accent-faint transition-colors h-[36px]">
+              <tr key={index} className="border-b border-outline-variant hover:bg-surface-container transition-colors h-[36px]">
                 {isSN && <td className="px-3 py-1 font-medium text-[12px]">{index + 1}</td>}
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex} className="px-3 py-1 text-[12px] align-top">
@@ -57,7 +56,7 @@ const Table: React.FC<TableProps> = ({
             <tr>
               <td
                 colSpan={isSN ? headers.length + 1 : headers.length}
-                className="border px-4 py-2 text-center"
+                className="border border-outline-variant px-4 py-2 text-center text-on-surface-variant"
               >
                 {translate("No data available")}
               </td>
@@ -65,16 +64,15 @@ const Table: React.FC<TableProps> = ({
           )}
         </tbody>
       </table>
-      {/* Pagination */}
       {pagination && (
         <div className="mt-2 flex justify-between items-center text-[11px]">
           <div className="flex items-center gap-2">
-            <span className="text-muted font-semibold uppercase tracking-wider">Show:</span>
+            <span className="text-on-surface-variant font-semibold uppercase tracking-wider">Show:</span>
             <select
               name="pagination"
               id="pagination"
               value={pagination.limit}
-              className="bg-surface border border-line rounded px-1 py-0.5 h-6 text-[11px] focus:outline-none focus:border-accent"
+              className="bg-surface-container-low border border-outline-variant rounded px-1 py-0.5 h-6 text-[11px] text-on-surface focus:outline-none focus:border-primary"
               onChange={(e) =>
                 handlePagination &&
                 handlePagination({
@@ -84,18 +82,18 @@ const Table: React.FC<TableProps> = ({
               }
             >
               {[10, 25, 50, 100].map((each) => (
-                <option key={each} value={each}>
+                <option key={each} value={each} className="bg-surface-container text-on-surface">
                   {each}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
               <button
-                className={`p-1 border border-line rounded hover:bg-accent-faint transition-colors ${
-                  pagination.page === 1 ? "text-line cursor-not-allowed" : "text-muted"
+                className={`p-1 border border-outline-variant rounded hover:bg-surface-container transition-colors ${
+                  pagination.page === 1 ? "text-on-surface-variant opacity-40 cursor-not-allowed" : "text-on-surface-variant"
                 }`}
                 disabled={pagination.page === 1}
                 onClick={() =>
@@ -105,10 +103,10 @@ const Table: React.FC<TableProps> = ({
                 <FaAngleLeft size={14} />
               </button>
               <button
-                className={`p-1 border border-line rounded hover:bg-accent-faint transition-colors ${
+                className={`p-1 border border-outline-variant rounded hover:bg-surface-container transition-colors ${
                   pagination.page === pagination.totalPages
-                    ? "text-line cursor-not-allowed"
-                    : "text-muted"
+                    ? "text-on-surface-variant opacity-40 cursor-not-allowed"
+                    : "text-on-surface-variant"
                 }`}
                 disabled={pagination.page === pagination.totalPages}
                 onClick={() =>
@@ -118,8 +116,8 @@ const Table: React.FC<TableProps> = ({
                 <FaAngleRight size={14} />
               </button>
             </div>
-            
-            <div className="flex gap-4 text-muted font-medium uppercase tracking-tighter">
+
+            <div className="flex gap-4 text-on-surface-variant font-medium uppercase tracking-tighter">
               <span>Page {pagination.page} / {pagination.totalPages}</span>
               <span>Total: {pagination.total}</span>
             </div>
