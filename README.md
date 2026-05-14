@@ -26,7 +26,7 @@ Still incomplete or needing cleanup:
 
 - Legacy code still exists in `frontend/admin/src/App.tsx`, `frontend/admin/src/layout`, `frontend/admin/src/pages`, and parts of `frontend/admin/src/redux` even though the router-based shell is the live runtime.
 - Some remaining active pages still need migration away from the older Redux service layer.
-- Live browser verification is still not documented yet for `/app/purchase-invoices`, `/app/reports/financial`, `/app/reports/customers`, and the updated dashboard alert/customer-history flows.
+- Live browser verification is still not documented yet for `/app/purchase-invoices` and `/app/reports/financial`.
 - Live SMTP-backed email verification is still pending on the backend side.
 
 ## Active Runtime Structure
@@ -156,10 +156,11 @@ Latest documented verification from `doc/progress.md`:
 
 - `npm --prefix frontend/admin run build` succeeds.
 - Latest browser smoke and retest passes covered admin login, dashboard rendering, customer detail navigation, parts workspace access, appointment booking, customer vehicle add-and-refresh behavior, purchase-history totals, vendors page copy, appointments page copy, and appointments action-column visibility.
-- `pnpm --dir frontend/admin test:run` succeeds.
+- `pnpm --dir frontend/admin test:run` succeeds with the committed Vitest suite.
 
 ## Highest-Priority Frontend Follow-Up
 
 - Add broader regression coverage for the remaining active admin and customer flows.
 - Continue migrating the remaining active flows using Redux services into the newer feature-oriented API layer.
+- Document live browser verification for the newly active purchase-invoice, financial-report, customer-report, alert, and customer-history flows.
 - Clean up or retire inactive legacy frontend code to reduce maintenance drift.
