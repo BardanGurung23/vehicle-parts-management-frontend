@@ -3,12 +3,13 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
-import type { CustomerDetail } from "../../app/types";
+import type { Appointment, CustomerDetail, Sale } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
 import { Badge } from "../../shared/components/Badge";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { EmptyState } from "../../shared/components/EmptyState";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -37,6 +38,8 @@ export function CustomerDetailPage() {
   const { customerId } = useParams();
   const { token } = useAuth();
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,8 +52,19 @@ export function CustomerDetailPage() {
 
     let isActive = true;
     setIsLoading(true);
-    void api.getCustomerById(token, parsedCustomerId)
-      .then((response) => { if (isActive) { setCustomer(response); setPageError(null); } })
+    void Promise.all([
+      api.getCustomerById(token, parsedCustomerId),
+      api.getCustomerAppointments(token, parsedCustomerId),
+      api.getCustomerSales(token, parsedCustomerId),
+    ])
+      .then(([customerResponse, appointmentsResponse, salesResponse]) => {
+        if (isActive) {
+          setCustomer(customerResponse);
+          setAppointments(appointmentsResponse);
+          setSales(salesResponse);
+          setPageError(null);
+        }
+      })
       .catch((error: unknown) => { if (isActive) { setCustomer(null); setPageError(extractErrorMessage(error, "Could not load the customer profile.")); } })
       .finally(() => { if (isActive) setIsLoading(false); });
     return () => { isActive = false; };
@@ -133,6 +147,73 @@ export function CustomerDetailPage() {
                 <p className="text-sm text-on-surface-variant">No vehicles attached to this customer yet.</p>
               )}
             </Card>
+
+            <Card
+              header={
+                <div>
+                  <h3 className="text-base font-semibold text-on-surface">Purchase history</h3>
+                  <p className="text-sm text-on-surface-variant">Sales invoices and payment status for this customer.</p>
+                </div>
+              }
+            >
+              {sales.length > 0 ? (
+                <div className="space-y-3">
+                  {sales.map((sale) => (
+                    <div key={sale.saleId} className="rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50 p-3 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-on-surface">{sale.invoiceNumber}</p>
+                          <p className="text-xs text-on-surface-variant">{formatDate(sale.saleDate)}{sale.vehicleNumber ? ` · ${sale.vehicleNumber}` : ""}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={sale.paymentStatus === "Paid" ? "success" : sale.dueDate ? "warning" : "neutral"}>{sale.paymentStatus}</Badge>
+                          <span className="text-sm font-semibold text-on-surface">${sale.totalAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-on-surface-variant">
+                        <span>Items: {sale.items.length}</span>
+                        <span>Discount: ${sale.discountAmount.toFixed(2)}</span>
+                        <span>Subtotal: ${sale.subtotal.toFixed(2)}</span>
+                        {sale.dueDate ? <span>Due: {formatDate(sale.dueDate)}</span> : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No purchase history yet" description="Sales created for this customer will appear here." />
+              )}
+            </Card>
+
+            <Card
+              header={
+                <div>
+                  <h3 className="text-base font-semibold text-on-surface">Service history</h3>
+                  <p className="text-sm text-on-surface-variant">Appointments and service progress in one place.</p>
+                </div>
+              }
+            >
+              {appointments.length > 0 ? (
+                <div className="space-y-3">
+                  {appointments.map((appointment) => (
+                    <div key={appointment.appointmentId} className="rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50 p-3 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-on-surface">{appointment.serviceType}</p>
+                          <p className="text-xs text-on-surface-variant">{formatDate(appointment.appointmentDate)} · {appointment.vehicleNumber}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={appointment.status === "Completed" ? "success" : appointment.status === "Cancelled" ? "danger" : "warning"}>{appointment.status}</Badge>
+                          {appointment.hasReview ? <Badge variant="neutral">Reviewed</Badge> : null}
+                        </div>
+                      </div>
+                      <p className="text-xs text-on-surface-variant">{appointment.notes?.trim() || "No notes recorded."}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No service history yet" description="Appointments created for this customer will appear here." />
+              )}
+            </Card>
           </div>
 
           <Card
@@ -153,6 +234,14 @@ export function CustomerDetailPage() {
                 <dd className="font-semibold text-on-surface">
                   {customer.userId ? "Portal account" : "Staff-created profile"}
                 </dd>
+              </div>
+              <div>
+                <dt className="text-on-surface-variant">Appointments</dt>
+                <dd className="font-semibold text-on-surface">{appointments.length}</dd>
+              </div>
+              <div>
+                <dt className="text-on-surface-variant">Purchases</dt>
+                <dd className="font-semibold text-on-surface">{sales.length}</dd>
               </div>
             </dl>
           </Card>

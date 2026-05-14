@@ -2,12 +2,9 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  useCreatePartMutation,
-  useUpdatePartMutation,
-  useGetPartCategoriesQuery,
-  Part,
-} from "@/redux/services/parts";
+import { api, ApiError } from "../../app/api";
+import { useAuth } from "../../app/auth";
+import type { Part, PartCategory } from "../../app/types";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { toast } from "react-toastify";
@@ -42,6 +39,8 @@ const defaultValues: FormType = {
 type Props = {
   editPart: Part | null;
   onClose: () => void;
+  categories: PartCategory[];
+  onSaved: (part: Part) => void;
 };
 
 function asMessage(value: unknown): string | null {
@@ -58,19 +57,17 @@ function getMutationErrorMessage(error: unknown, fallback: string): string {
   return asMessage(payload.detail) ?? asMessage(payload.message) ?? asMessage(payload.title) ?? fallback;
 }
 
-export default function PartForm({ editPart, onClose }: Readonly<Props>) {
+export default function PartForm({ editPart, onClose, categories, onSaved }: Readonly<Props>) {
+  const { token } = useAuth();
   const isEdit = editPart !== null;
-  const { data: categories = [] } = useGetPartCategoriesQuery();
-  const [createPart, { isLoading: creating }] = useCreatePartMutation();
-  const [updatePart, { isLoading: updating }] = useUpdatePartMutation();
-  const isSaving = creating || updating;
-
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormType>({ resolver: zodResolver(schema) });
+
+  const isSaving = isSubmitting;
 
   useEffect(() => {
     if (isEdit) {
@@ -90,23 +87,26 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
   }, [editPart, isEdit, reset]);
 
   const onSubmit = async (data: FormType) => {
+    if (!token) {
+      toast.error("Your session expired. Sign in again.");
+      return;
+    }
+
     try {
       if (isEdit) {
-        await updatePart({
-          partId: editPart.partId,
-          body: {
-            partName: data.partName,
-            description: data.description,
-            unitPrice: data.unitPrice,
-            costPrice: data.costPrice,
-            stockQuantity: data.stockQuantity,
-            reorderLevel: data.reorderLevel,
-            partCategoryId: data.partCategoryId ?? null,
-          },
-        }).unwrap();
+        const updated = await api.updatePart(token, editPart.partId, {
+          partName: data.partName,
+          description: data.description,
+          unitPrice: data.unitPrice,
+          costPrice: data.costPrice,
+          stockQuantity: data.stockQuantity,
+          reorderLevel: data.reorderLevel,
+          partCategoryId: data.partCategoryId ?? null,
+        });
+        onSaved(updated);
         toast.success("Part updated successfully");
       } else {
-        await createPart({
+        const created = await api.createPart(token, {
           partNumber: data.partNumber,
           partName: data.partName,
           description: data.description,
@@ -115,12 +115,14 @@ export default function PartForm({ editPart, onClose }: Readonly<Props>) {
           stockQuantity: data.stockQuantity,
           reorderLevel: data.reorderLevel,
           partCategoryId: data.partCategoryId ?? null,
-        }).unwrap();
+        });
+        onSaved(created);
         toast.success("Part created successfully");
       }
       onClose();
     } catch (error: unknown) {
-      toast.error(getMutationErrorMessage(error, "Operation failed"));
+      const message = error instanceof ApiError ? error.message : getMutationErrorMessage(error, "Operation failed");
+      toast.error(message);
     }
   };
 

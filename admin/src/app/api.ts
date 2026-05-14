@@ -2,23 +2,31 @@ import type {
   AddVehicleInput,
   AuthResponse,
   CreateAppointmentRequest,
+  CreatePartInput,
+  CreateSaleInput,
   CreateCustomerInput,
   CreateReviewRequest,
+  CustomerReports,
   CustomerDetail,
   CustomerSearchInput,
   CustomerSearchResult,
   DashboardSummary,
   CreateStaffUserInput,
   LoginInput,
+  Part,
+  PartCategory,
   RegisterCustomerInput,
   RegisterCustomerResponse,
   RoleOption,
   ServiceReview,
   StaffUser,
   UpdateCustomerProfileInput,
+  UpdatePartInput,
   UpdateStaffRoleInput,
   UserProfile,
   Vehicle,
+  Appointment,
+  Sale,
 } from "./types";
 
 const configuredBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5154").replace(/\/+$/, "");
@@ -152,6 +160,27 @@ export const api = {
 
   getDashboardSummary: (token: string) => request<DashboardSummary>("/dashboard/summary", {}, token),
 
+  getParts: (token: string) => request<Part[]>("/parts", {}, token),
+
+  getPartCategories: (token: string) => request<PartCategory[]>("/parts/categories", {}, token),
+
+  createPart: (token: string, payload: CreatePartInput) =>
+    request<Part>("/parts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  updatePart: (token: string, partId: number, payload: UpdatePartInput) =>
+    request<Part>(`/parts/${partId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }, token),
+
+  deletePart: (token: string, partId: number) =>
+    request<void>(`/parts/${partId}`, {
+      method: "DELETE",
+    }, token),
+
   registerCustomer: (payload: RegisterCustomerInput) =>
     request<RegisterCustomerResponse>("/customers/register", {
       method: "POST",
@@ -197,6 +226,12 @@ export const api = {
 
   getCustomerById: (token: string, customerId: number) =>
     request<CustomerDetail>(`/customers/${customerId}`, {}, token),
+
+  getCustomerAppointments: (token: string, customerId: number) =>
+    request<Appointment[]>(`/customers/${customerId}/appointments`, {}, token),
+
+  getCustomerSales: (token: string, customerId: number) =>
+    request<Sale[]>(`/customers/${customerId}/sales`, {}, token),
 
   searchCustomers: (token: string, payload: CustomerSearchInput) => {
     const searchParams = new URLSearchParams();
@@ -244,10 +279,19 @@ export const api = {
     request<Vehicle[]>("/customers/me/vehicles", {}, token),
 
   getMyAppointments: (token: string) =>
-    request<import("./types").Appointment[]>("/appointments/me", {}, token),
+    request<Appointment[]>("/appointments/me", {}, token),
+
+  getMySales: (token: string) =>
+    request<Sale[]>("/sales/me", {}, token),
+
+  createSale: (token: string, payload: CreateSaleInput) =>
+    request<Sale>("/sales", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
 
   createAppointment: (token: string, payload: CreateAppointmentRequest) =>
-    request<import("./types").Appointment>("/appointments", {
+    request<Appointment>("/appointments", {
       method: "POST",
       body: JSON.stringify(payload),
     }, token),
@@ -263,6 +307,30 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }, token),
+
+  getCustomerReports: (
+    token: string,
+    params: { startDate?: string; endDate?: string; highSpenderThreshold?: number },
+  ) => {
+    const searchParams = new URLSearchParams();
+
+    if (params.startDate) {
+      searchParams.set("startDate", params.startDate);
+    }
+
+    if (params.endDate) {
+      searchParams.set("endDate", params.endDate);
+    }
+
+    if (typeof params.highSpenderThreshold === "number" && Number.isFinite(params.highSpenderThreshold)) {
+      searchParams.set("highSpenderThreshold", String(params.highSpenderThreshold));
+    }
+
+    const queryString = searchParams.toString();
+    const path = queryString ? `/reports/customers?${queryString}` : "/reports/customers";
+
+    return request<CustomerReports>(path, {}, token);
+  },
 
   getMyReviews: (token: string) =>
     request<ServiceReview[]>("/reviews/me", {}, token),

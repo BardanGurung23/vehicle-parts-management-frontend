@@ -23,6 +23,11 @@ export default function config(mode: string) {
       assetsDir: "assets",
       outDir: "dist",
     },
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: "./src/test/setup.ts",
+    },
     plugins: [react()],
     server: {
       open: false,

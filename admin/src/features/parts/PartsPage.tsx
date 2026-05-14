@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useGetPartsQuery, useDeletePartMutation, Part } from "@/redux/services/parts";
+import { useEffect, useState } from "react";
+import { api, ApiError } from "../../app/api";
 import { Plus, Trash2, Edit3 } from "lucide-react";
 import { useAuth } from "../../app/auth";
+import type { Part, PartCategory } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -30,11 +31,52 @@ function getMutationErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function PartsPage() {
-  const { isAdmin } = useAuth();
-  const { data: parts = [], isLoading } = useGetPartsQuery();
-  const [deletePart, { isLoading: deleting }] = useDeletePartMutation();
+  const { isAdmin, token } = useAuth();
+  const [parts, setParts] = useState<Part[]>([]);
+  const [categories, setCategories] = useState<PartCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [editPart, setEditPart] = useState<Part | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+
+    void Promise.all([api.getParts(token), api.getPartCategories(token)])
+      .then(([loadedParts, loadedCategories]) => {
+        if (!isActive) {
+          return;
+        }
+
+        setParts(loadedParts);
+        setCategories(loadedCategories);
+        setPageError(null);
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setParts([]);
+        setCategories([]);
+        setPageError(error instanceof ApiError ? error.message : "Could not load parts.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   const totalUnitsOnHand = parts.reduce((total, part) => total + part.stockQuantity, 0);
   const lowStockCount = parts.filter((part) => part.stockQuantity <= part.reorderLevel).length;
@@ -45,15 +87,37 @@ export default function PartsPage() {
 
   const handleDelete = async (partId: number) => {
     if (!isAdmin) return;
+    if (!token) {
+      toast.error("Your session expired. Sign in again.");
+      return;
+    }
+
     try {
-      await deletePart(partId).unwrap();
+      setDeleting(true);
+      await api.deletePart(token, partId);
+      setParts((current) => current.filter((part) => part.partId !== partId));
       if (editPart?.partId === partId) setEditPart(null);
       toast.success("Part deleted");
     } catch (error: unknown) {
       toast.error(getMutationErrorMessage(error, "Failed to delete part"));
     } finally {
+      setDeleting(false);
       setConfirmDeleteId(null);
     }
+  };
+
+  const handleSavedPart = (savedPart: Part) => {
+    setParts((current) => {
+      const existingIndex = current.findIndex((part) => part.partId === savedPart.partId);
+
+      if (existingIndex === -1) {
+        return [savedPart, ...current].sort((left, right) => left.partName.localeCompare(right.partName));
+      }
+
+      const next = [...current];
+      next[existingIndex] = savedPart;
+      return next.sort((left, right) => left.partName.localeCompare(right.partName));
+    });
   };
 
   if (isLoading) {
@@ -76,6 +140,8 @@ export default function PartsPage() {
           </ActionButton>
         ) : undefined}
       />
+
+      {pageError ? <div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">{pageError}</div> : null}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Total SKUs" value={formatNumber(parts.length)} note="Distinct parts tracked." />
@@ -105,7 +171,7 @@ export default function PartsPage() {
           }
         >
           {isAdmin ? (
-            <PartForm editPart={editPart} onClose={handleCreateMode} />
+            <PartForm editPart={editPart} onClose={handleCreateMode} categories={categories} onSaved={handleSavedPart} />
           ) : (
             <div className="space-y-3 text-sm text-on-surface-variant">
               <div className="flex gap-3">

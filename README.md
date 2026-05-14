@@ -6,7 +6,7 @@ This folder-level `frontend/` package is not the app runtime. The shipped UI is 
 
 ## Current Status
 
-This README reflects the latest roadmap update in `doc/progress.md` from `2026-04-30`.
+This README reflects the latest roadmap update in `doc/progress.md` from `2026-05-14`.
 
 Implemented in the active frontend:
 
@@ -15,16 +15,19 @@ Implemented in the active frontend:
 - Customer self-registration using `/api/customers/register`, including optional initial vehicle capture during signup.
 - Role-aware dashboard backed by `/api/dashboard/summary`.
 - Staff customer registration, customer search, and dedicated customer detail pages.
-- Admin staff management, vendors, appointments, and part-request management pages.
+- Staff customer detail now includes consolidated purchase and service history.
+- Admin staff management, vendors, appointments, part-request management, purchase invoices, and financial reports pages.
+- Staff/admin customer reports at `/app/reports/customers`.
 - Customer profile editing, vehicle add/edit/remove management, appointment booking, part requests, reviews, shop, and purchase-history flows.
-- Active parts workspace at `/app/parts`, with admin write access and staff read-only access.
+- Active parts workspace at `/app/parts`, with admin write access, staff read-only access, and direct API-client data access.
+- Frontend test suite using Vitest and Testing Library.
 
 Still incomplete or needing cleanup:
 
-- No committed frontend unit or integration test suite.
-- The active parts page still depends on the older Redux service layer.
 - Legacy code still exists in `frontend/admin/src/App.tsx`, `frontend/admin/src/layout`, `frontend/admin/src/pages`, and parts of `frontend/admin/src/redux` even though the router-based shell is the live runtime.
-- Major product gaps remain for financial reports, purchase-invoice management, invoice email delivery, and automated low-stock or overdue-credit notifications.
+- Some remaining active pages still need migration away from the older Redux service layer.
+- Live browser verification is still not documented yet for `/app/purchase-invoices`, `/app/reports/financial`, `/app/reports/customers`, and the updated dashboard alert/customer-history flows.
+- Live SMTP-backed email verification is still pending on the backend side.
 
 ## Active Runtime Structure
 
@@ -72,12 +75,15 @@ Employee routes:
 - `/app/customers/search`
 - `/app/customers/:customerId`
 - `/app/parts`
+- `/app/reports/customers`
 
 Admin-only routes:
 
 - `/app/staff`
 - `/app/appointments`
 - `/app/vendors`
+- `/app/purchase-invoices`
+- `/app/reports/financial`
 - `/app/register-customer`
 - `/app/customers`
 - `/app/part-requests`
@@ -114,6 +120,12 @@ Lint the frontend:
 npm --prefix frontend/admin run lint
 ```
 
+Run frontend tests:
+
+```bash
+pnpm --dir frontend/admin test:run
+```
+
 ## Default Local URLs
 
 | Service | Default URL |
@@ -144,10 +156,10 @@ Latest documented verification from `doc/progress.md`:
 
 - `npm --prefix frontend/admin run build` succeeds.
 - Latest browser smoke and retest passes covered admin login, dashboard rendering, customer detail navigation, parts workspace access, appointment booking, customer vehicle add-and-refresh behavior, purchase-history totals, vendors page copy, appointments page copy, and appointments action-column visibility.
-- No frontend test command exists because no frontend test suite is committed.
+- `pnpm --dir frontend/admin test:run` succeeds.
 
 ## Highest-Priority Frontend Follow-Up
 
-- Add regression coverage for the recent customer self-service and scheduling fixes.
-- Decide whether the remaining active flows using Redux services should move into the newer feature-oriented API layer.
+- Add broader regression coverage for the remaining active admin and customer flows.
+- Continue migrating the remaining active flows using Redux services into the newer feature-oriented API layer.
 - Clean up or retire inactive legacy frontend code to reduce maintenance drift.

@@ -18,6 +18,7 @@ import { BookAppointmentPage } from "../features/appointments/BookAppointmentPag
 import { MyAppointmentsPage } from "../features/appointments/MyAppointmentsPage";
 import { PurchaseInvoicesPage } from "../features/purchase-invoices/PurchaseInvoicesPage";
 import { MyReviewsPage } from "../features/reviews/MyReviewsPage";
+import { CustomerReportsPage } from "../features/reports/CustomerReportsPage";
 import { FinancialReportsPage } from "../features/reports/FinancialReportsPage";
 import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
 import Vendors from "../pages/Vendors";
@@ -197,6 +198,10 @@ export const router = createBrowserRouter([
               {
                 path: "parts",
                 element: <PartsPage />,
+              },
+              {
+                path: "reports/customers",
+                element: <CustomerReportsPage />,
               },
             ],
           },

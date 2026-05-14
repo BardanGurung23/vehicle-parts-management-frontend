@@ -126,9 +126,56 @@ export interface DashboardStaffSummary {
   recentStaff: StaffUser[];
 }
 
+export interface LowStockAlert {
+  partId: number;
+  partNumber: string;
+  partName: string;
+  categoryName?: string | null;
+  stockQuantity: number;
+  threshold: number;
+}
+
+export interface OverdueCreditAlert {
+  saleId: number;
+  invoiceNumber: string;
+  customerId: number;
+  customerName: string;
+  customerEmail?: string | null;
+  outstandingAmount: number;
+  paymentStatus: string;
+  dueDate?: string | null;
+  daysOverdue: number;
+}
+
+export interface PredictiveAlert {
+  predictiveAlertId: number;
+  customerId: number;
+  customerName: string;
+  vehicleId: number;
+  vehicleNumber: string;
+  partId?: number | null;
+  partName?: string | null;
+  alertMessage: string;
+  riskLevel: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AlertSummary {
+  activeAlertCount: number;
+  lowStockAlertCount: number;
+  overdueCreditAlertCount: number;
+  predictiveAlertCount: number;
+  generatedAt: string;
+  lowStockAlerts: LowStockAlert[];
+  overdueCreditAlerts: OverdueCreditAlert[];
+  predictiveAlerts: PredictiveAlert[];
+}
+
 export interface DashboardSummary {
   inventory?: DashboardInventorySummary | null;
   staff?: DashboardStaffSummary | null;
+  alerts?: AlertSummary | null;
   currentCustomer?: CustomerDetail | null;
 }
 
@@ -167,6 +214,47 @@ export interface Vehicle {
   model: string;
 }
 
+export interface Part {
+  partId: number;
+  partNumber: string;
+  partName: string;
+  description?: string | null;
+  unitPrice: number;
+  costPrice: number;
+  stockQuantity: number;
+  reorderLevel: number;
+  partCategoryId?: number | null;
+  categoryName?: string | null;
+  createdAt: string;
+}
+
+export interface PartCategory {
+  partCategoryId: number;
+  categoryName: string;
+  description?: string | null;
+}
+
+export interface CreatePartInput {
+  partNumber: string;
+  partName: string;
+  description?: string;
+  unitPrice: number;
+  costPrice: number;
+  stockQuantity: number;
+  reorderLevel: number;
+  partCategoryId?: number | null;
+}
+
+export interface UpdatePartInput {
+  partName: string;
+  description?: string;
+  unitPrice: number;
+  costPrice: number;
+  stockQuantity: number;
+  reorderLevel: number;
+  partCategoryId?: number | null;
+}
+
 export interface Appointment {
   appointmentId: number;
   customerId: number;
@@ -203,6 +291,20 @@ export interface CreateReviewRequest {
   appointmentId: number;
   rating: number;
   comment?: string;
+}
+
+export interface CreateSaleItemInput {
+  partId: number;
+  quantity: number;
+}
+
+export interface CreateSaleInput {
+  customerId?: number;
+  vehicleId?: number;
+  paymentStatus?: string;
+  dueDate?: string;
+  items: CreateSaleItemInput[];
+  notes?: string;
 }
 
 export interface Vendor {
@@ -280,4 +382,41 @@ export interface FinancialReport {
   saleCount: number;
   purchaseInvoiceCount: number;
   entries: FinancialReportEntry[];
+}
+
+export interface SaleItem {
+  partId: number;
+  partName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal?: number;
+}
+
+export interface CustomerReportEntry {
+  customerId: number;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  totalSpent: number;
+  saleCount: number;
+  appointmentCount: number;
+  pendingInvoiceCount: number;
+  overdueInvoiceCount: number;
+  outstandingAmount: number;
+  lastActivityAt?: string | null;
+}
+
+export interface CustomerReports {
+  reportType: string;
+  periodLabel: string;
+  rangeStart: string;
+  rangeEndExclusive: string;
+  highSpenderThreshold: number;
+  regularCustomerCount: number;
+  highSpenderCount: number;
+  pendingCreditCustomerCount: number;
+  overdueCreditCustomerCount: number;
+  regularCustomers: CustomerReportEntry[];
+  highSpenders: CustomerReportEntry[];
+  pendingCredits: CustomerReportEntry[];
 }

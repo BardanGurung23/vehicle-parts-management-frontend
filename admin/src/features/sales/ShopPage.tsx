@@ -1,10 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ShoppingCart, Trash2, Search, X, User } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
-import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
-import { useGetPartsQuery } from "../../redux/services/parts";
-import { useCreateSaleMutation } from "../../redux/services/sales";
+import type { CustomerSearchInput, CustomerSearchResult, Part } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -31,19 +29,63 @@ function buildCustomerSearchPayload(values: SearchFormState): { payload: Custome
 
 export function ShopPage() {
   const { user, token } = useAuth();
-  const { data: parts = [], isLoading: partsLoading } = useGetPartsQuery();
-  const [createSale, { isLoading: isCreating }] = useCreateSaleMutation();
   const isEmployee = user?.role === "Admin" || user?.role === "Staff";
+  const [parts, setParts] = useState<Part[]>([]);
+  const [partsLoading, setPartsLoading] = useState(true);
+  const [partsError, setPartsError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [notes, setNotes] = useState("");
-  const inStockParts = parts.filter((p) => p.stockQuantity > 0);
+  const [paymentStatus, setPaymentStatus] = useState("Paid");
+  const [dueDate, setDueDate] = useState("");
   const [searchValues, setSearchValues] = useState<SearchFormState>({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
   const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearchRun, setHasSearchRun] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setParts([]);
+      setPartsError(null);
+      setPartsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setPartsLoading(true);
+
+    void api.getParts(token)
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+
+        setParts(response);
+        setPartsError(null);
+      })
+      .catch((loadError: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setParts([]);
+        setPartsError(loadError instanceof ApiError ? loadError.message : "Could not load inventory.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setPartsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
+
+  const inStockParts = useMemo(() => parts.filter((p) => p.stockQuantity > 0), [parts]);
 
   const addToCart = (partId: number, partName: string, unitPrice: number) => {
     setCart((prev) => { const e = prev.find((i) => i.partId === partId); return e ? prev.map((i) => i.partId === partId ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { partId, partName, unitPrice, quantity: 1 }]; });
@@ -74,11 +116,23 @@ export function ShopPage() {
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.error("Your cart is empty."); return; }
     if (isEmployee && !selectedCustomer) { toast.error("Select a customer before checkout."); return; }
+    if (!token) { toast.error("Your session expired. Sign in again."); return; }
+    if (isEmployee && paymentStatus !== "Paid" && !dueDate) { toast.error("Choose a due date for pending or credit sales."); return; }
     try {
-      await createSale({ customerId: isEmployee ? selectedCustomer?.customerId : undefined, items: cart.map((i) => ({ partId: i.partId, quantity: i.quantity })), notes: notes || undefined }).unwrap();
+      setIsCreating(true);
+      await api.createSale(token, {
+        customerId: isEmployee ? selectedCustomer?.customerId : undefined,
+        paymentStatus: isEmployee ? paymentStatus : undefined,
+        dueDate: isEmployee && paymentStatus !== "Paid" && dueDate ? new Date(`${dueDate}T00:00:00Z`).toISOString() : undefined,
+        items: cart.map((i) => ({ partId: i.partId, quantity: i.quantity })),
+        notes: notes || undefined,
+      });
       toast.success("Purchase completed successfully!");
       setCart([]); setNotes("");
+      setPaymentStatus("Paid");
+      setDueDate("");
     } catch { toast.error("Failed to complete purchase."); }
+    finally { setIsCreating(false); }
   };
 
   if (partsLoading) {
@@ -88,6 +142,8 @@ export function ShopPage() {
   return (
     <PageShell>
       <PageHeader title="Shop Parts" description="Browse and purchase vehicle parts." />
+
+      {partsError ? <AlertBox tone="error" message={partsError} dismissible /> : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
@@ -195,6 +251,24 @@ export function ShopPage() {
                   <span>Total:</span>
                   <span>${cartTotal.toFixed(2)}</span>
                 </div>
+                {isEmployee && (
+                  <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+                    <div>
+                      <label className="block text-xs font-medium text-on-surface-variant mb-1">Payment status</label>
+                      <select className="input text-xs" value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
+                        <option value="Paid">Paid</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Credit">Credit</option>
+                      </select>
+                    </div>
+                    {paymentStatus !== "Paid" && (
+                      <div>
+                        <label className="block text-xs font-medium text-on-surface-variant mb-1">Due date</label>
+                        <input className="input text-xs" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <textarea className="input h-16 text-xs" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (Optional)" />
                 <ActionButton className="w-full" disabled={isCreating} onClick={handleCheckout}>
                   {isCreating ? "Processing..." : "Checkout"}

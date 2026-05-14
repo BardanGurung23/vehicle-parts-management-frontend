@@ -4,6 +4,7 @@ import { useAuth } from "../../app/auth";
 import type { DashboardSummary } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { Card } from "../../shared/components/Card";
 import { KpiGrid } from "./components/KpiGrid";
 import { InventoryHealthPanel } from "./components/InventoryHealthPanel";
 import { CustomerLookupPanel } from "./components/CustomerLookupPanel";
@@ -77,6 +78,7 @@ export function DashboardPage() {
   }, [token]);
 
   const inventory = summary?.inventory ?? null;
+  const alerts = summary?.alerts ?? null;
   const customerProfile = summary?.currentCustomer ?? null;
 
   const trackedPartCount = inventory?.trackedPartCount ?? 0;
@@ -85,6 +87,8 @@ export function DashboardPage() {
   const totalUnitsOnHand = inventory?.totalUnitsOnHand ?? 0;
   const inventoryCost = inventory?.inventoryCost ?? 0;
   const lowStockWatchlist = inventory?.lowStockParts ?? [];
+  const overdueCreditWatchlist = alerts?.overdueCreditAlerts ?? [];
+  const predictiveWatchlist = alerts?.predictiveAlerts ?? [];
 
   const dashboardUnavailable = Boolean(summaryError) && !isSummaryLoading;
 
@@ -161,6 +165,57 @@ export function DashboardPage() {
               lowStockWatchlist={lowStockWatchlist}
             />
           )}
+
+              {isAdmin && alerts && !dashboardUnavailable && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <Card
+                    header={
+                      <div>
+                        <h3 className="text-sm font-semibold text-on-surface">Alert Summary</h3>
+                        <p className="text-xs text-on-surface-variant">Generated {new Date(alerts.generatedAt).toLocaleString()}</p>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Active alerts</span><span className="font-semibold text-on-surface">{formatNumber(alerts.activeAlertCount)}</span></div>
+                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Low stock</span><span className="font-semibold text-on-surface">{formatNumber(alerts.lowStockAlertCount)}</span></div>
+                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Overdue credits</span><span className="font-semibold text-on-surface">{formatNumber(alerts.overdueCreditAlertCount)}</span></div>
+                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Predictive alerts</span><span className="font-semibold text-on-surface">{formatNumber(alerts.predictiveAlertCount)}</span></div>
+                    </div>
+                  </Card>
+
+                  <Card
+                    header={
+                      <div>
+                        <h3 className="text-sm font-semibold text-on-surface">Attention Watchlist</h3>
+                        <p className="text-xs text-on-surface-variant">Low stock, unpaid credits, and recent predictive alerts.</p>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-3 text-xs">
+                      {alerts.lowStockAlerts.slice(0, 3).map((alert) => (
+                        <div key={`stock-${alert.partId}`} className="flex items-center justify-between gap-2">
+                          <span className="text-on-surface truncate">{alert.partName}</span>
+                          <span className="font-medium text-warning">{alert.stockQuantity}/{alert.threshold}</span>
+                        </div>
+                      ))}
+                      {overdueCreditWatchlist.slice(0, 2).map((alert) => (
+                        <div key={`credit-${alert.saleId}`} className="flex items-center justify-between gap-2">
+                          <span className="text-on-surface truncate">{alert.customerName}</span>
+                          <span className="font-medium text-error">{formatCurrency(alert.outstandingAmount)}</span>
+                        </div>
+                      ))}
+                      {predictiveWatchlist.slice(0, 2).map((alert) => (
+                        <div key={`predictive-${alert.predictiveAlertId}`} className="flex items-center justify-between gap-2">
+                          <span className="text-on-surface truncate">{alert.vehicleNumber}</span>
+                          <span className="font-medium text-on-surface-variant">{alert.riskLevel}</span>
+                        </div>
+                      ))}
+                      {alerts.activeAlertCount === 0 && <p className="text-on-surface-variant">No active alerts right now.</p>}
+                    </div>
+                  </Card>
+                </div>
+              )}
 
           {token && (
             <CustomerLookupPanel token={token} />
