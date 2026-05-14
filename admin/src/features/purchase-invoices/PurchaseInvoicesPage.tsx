@@ -1,9 +1,9 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2, Building2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
-import { useGetAllVendorsQuery } from "../../redux/services/vendors";
-import { useGetPartsQuery } from "../../redux/services/parts";
-import { useCreatePurchaseInvoiceMutation, useGetPurchaseInvoicesQuery } from "../../redux/services/purchaseInvoices";
+import { api, ApiError } from "../../app/api";
+import { useAuth } from "../../app/auth";
+import type { Part, PurchaseInvoice, Vendor } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -21,39 +21,71 @@ type DraftInvoiceItem = {
   unitCost: string;
 };
 
-type RtqErrorShape = { data?: unknown };
-
 const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 const numberFormatter = new Intl.NumberFormat("en-US");
 function formatCurrency(value: number) { return currencyFormatter.format(value); }
 function formatNumber(value: number) { return numberFormatter.format(value); }
-function asMessage(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
 function extractErrorMessage(error: unknown, fallback: string) {
-  if (!error || typeof error !== "object") return fallback;
-  const payload = error as RtqErrorShape;
-  const body = payload.data;
-  if (!body || typeof body !== "object") return fallback;
-  const details = body as { detail?: unknown; title?: unknown; message?: unknown };
-  return asMessage(details.detail) ?? asMessage(details.message) ?? asMessage(details.title) ?? fallback;
+  return error instanceof ApiError ? error.message : fallback;
 }
 function createDraftItem(id: number): DraftInvoiceItem {
   return { id, partId: "", quantity: "1", unitCost: "" };
 }
 
 export function PurchaseInvoicesPage() {
-  const { data: vendors = [], isLoading: vendorsLoading } = useGetAllVendorsQuery();
-  const { data: parts = [], isLoading: partsLoading } = useGetPartsQuery();
-  const { data: purchaseInvoices = [], isLoading: invoicesLoading } = useGetPurchaseInvoicesQuery();
-  const [createPurchaseInvoice, { isLoading: isCreating }] = useCreatePurchaseInvoiceMutation();
+  const { token } = useAuth();
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [parts, setParts] = useState<Part[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
   const [vendorId, setVendorId] = useState("");
   const [status, setStatus] = useState("Completed");
   const [pageError, setPageError] = useState<string | null>(null);
   const [nextItemId, setNextItemId] = useState(2);
   const [items, setItems] = useState<DraftInvoiceItem[]>([createDraftItem(1)]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsLoading(true);
+
+    void Promise.all([
+      api.getVendors(token),
+      api.getParts(token),
+      api.getPurchaseInvoices(token),
+    ])
+      .then(([vendorsResponse, partsResponse, invoicesResponse]) => {
+        if (!isActive) {
+          return;
+        }
+
+        setVendors(vendorsResponse);
+        setParts(partsResponse);
+        setPurchaseInvoices(invoicesResponse);
+        setPageError(null);
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setPageError(extractErrorMessage(error, "Could not load purchase invoices."));
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   const totalPurchaseSpend = useMemo(
     () => purchaseInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
@@ -87,17 +119,30 @@ export function PurchaseInvoicesPage() {
       setPageError(msg); toast.error(msg); return;
     }
     try {
+      if (!token) {
+        return;
+      }
+
+      setIsCreating(true);
       setPageError(null);
-      await createPurchaseInvoice({ vendorId: parsedVendorId, status: status.trim() || undefined, items: normalizedItems }).unwrap();
+      await api.createPurchaseInvoice(token, { vendorId: parsedVendorId, status: status.trim() || undefined, items: normalizedItems });
+      const [partsResponse, invoicesResponse] = await Promise.all([
+        api.getParts(token),
+        api.getPurchaseInvoices(token),
+      ]);
+      setParts(partsResponse);
+      setPurchaseInvoices(invoicesResponse);
       toast.success("Purchase invoice created and stock updated.");
       resetForm();
     } catch (error) {
       const msg = extractErrorMessage(error, "Could not create the purchase invoice.");
       setPageError(msg); toast.error(msg);
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  if (vendorsLoading || partsLoading || invoicesLoading) {
+  if (isLoading) {
     return <PageShell><SkeletonCard /></PageShell>;
   }
 

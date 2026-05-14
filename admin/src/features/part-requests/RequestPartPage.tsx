@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCreatePartRequestMutation } from "../../redux/services/partRequests";
+import { api, ApiError } from "../../app/api";
+import { useAuth } from "../../app/auth";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -10,7 +11,8 @@ import { toast } from "react-toastify";
 
 export function RequestPartPage() {
   const navigate = useNavigate();
-  const [createPartRequest, { isLoading }] = useCreatePartRequestMutation();
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [requestedPartName, setRequestedPartName] = useState("");
   const [requestDetails, setRequestDetails] = useState("");
 
@@ -18,10 +20,20 @@ export function RequestPartPage() {
     e.preventDefault();
     if (!requestedPartName.trim()) { toast.error("Please enter the part name."); return; }
     try {
-      await createPartRequest({ requestedPartName: requestedPartName.trim(), requestDetails: requestDetails.trim() || undefined }).unwrap();
+      if (!token) {
+        toast.error("Your session has expired. Please sign in again.");
+        return;
+      }
+
+      setIsLoading(true);
+      await api.createPartRequest(token, { requestedPartName: requestedPartName.trim(), requestDetails: requestDetails.trim() || undefined });
       toast.success("Part request submitted successfully!");
       navigate("/app/my-part-requests");
-    } catch { toast.error("Failed to submit part request."); }
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Failed to submit part request.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

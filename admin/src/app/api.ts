@@ -2,7 +2,9 @@ import type {
   AddVehicleInput,
   AuthResponse,
   CreateAppointmentRequest,
+  CreatePartRequestInput,
   CreatePartInput,
+  CreatePurchaseInvoiceRequest,
   CreateSaleInput,
   CreateCustomerInput,
   CreateReviewRequest,
@@ -11,10 +13,13 @@ import type {
   CustomerSearchInput,
   CustomerSearchResult,
   DashboardSummary,
+  FinancialReport,
   CreateStaffUserInput,
   LoginInput,
   Part,
+  PartRequest,
   PartCategory,
+  PurchaseInvoice,
   RegisterCustomerInput,
   RegisterCustomerResponse,
   RoleOption,
@@ -24,6 +29,7 @@ import type {
   UpdatePartInput,
   UpdateStaffRoleInput,
   UserProfile,
+  Vendor,
   Vehicle,
   Appointment,
   Sale,
@@ -307,6 +313,67 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }, token),
+
+  getDailyFinancialReport: (token: string, params: { date?: string }) => {
+    const searchParams = new URLSearchParams();
+
+    if (params.date) {
+      searchParams.set("date", params.date);
+    }
+
+    const queryString = searchParams.toString();
+    const path = queryString ? `/admin/reports/financial/daily?${queryString}` : "/admin/reports/financial/daily";
+
+    return request<FinancialReport>(path, {}, token);
+  },
+
+  getMonthlyFinancialReport: (token: string, params: { year?: number; month?: number }) => {
+    const searchParams = new URLSearchParams();
+
+    if (typeof params.year === "number" && Number.isFinite(params.year)) {
+      searchParams.set("year", String(params.year));
+    }
+
+    if (typeof params.month === "number" && Number.isFinite(params.month)) {
+      searchParams.set("month", String(params.month));
+    }
+
+    const queryString = searchParams.toString();
+    const path = queryString ? `/admin/reports/financial/monthly?${queryString}` : "/admin/reports/financial/monthly";
+
+    return request<FinancialReport>(path, {}, token);
+  },
+
+  getYearlyFinancialReport: (token: string, params: { year?: number }) => {
+    const searchParams = new URLSearchParams();
+
+    if (typeof params.year === "number" && Number.isFinite(params.year)) {
+      searchParams.set("year", String(params.year));
+    }
+
+    const queryString = searchParams.toString();
+    const path = queryString ? `/admin/reports/financial/yearly?${queryString}` : "/admin/reports/financial/yearly";
+
+    return request<FinancialReport>(path, {}, token);
+  },
+
+  getVendors: (token: string) => request<Vendor[]>("/admin/vendors", {}, token),
+
+  getPurchaseInvoices: (token: string) => request<PurchaseInvoice[]>("/admin/purchase-invoices", {}, token),
+
+  createPurchaseInvoice: (token: string, payload: CreatePurchaseInvoiceRequest) =>
+    request<PurchaseInvoice>("/admin/purchase-invoices", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  createPartRequest: (token: string, payload: CreatePartRequestInput) =>
+    request<PartRequest>("/part-requests", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  getMyPartRequests: (token: string) => request<PartRequest[]>("/part-requests/me", {}, token),
 
   getCustomerReports: (
     token: string,

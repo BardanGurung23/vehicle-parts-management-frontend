@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { skipToken } from "@reduxjs/toolkit/query";
-import { useGetDailyFinancialReportQuery, useGetMonthlyFinancialReportQuery, useGetYearlyFinancialReportQuery } from "../../redux/services/financialReports";
+import { useEffect, useMemo, useState } from "react";
+import { api, ApiError } from "../../app/api";
+import { useAuth } from "../../app/auth";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -13,23 +13,13 @@ import { BarChart3 } from "lucide-react";
 import type { FinancialReport } from "../../app/types";
 
 type ReportType = "daily" | "monthly" | "yearly";
-type RtqErrorShape = { data?: unknown };
 
 const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 const numberFormatter = new Intl.NumberFormat("en-US");
 function formatCurrency(value: number) { return currencyFormatter.format(value); }
 function formatNumber(value: number) { return numberFormatter.format(value); }
-function asMessage(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  return value.trim() || null;
-}
 function extractErrorMessage(error: unknown, fallback: string) {
-  if (!error || typeof error !== "object") return fallback;
-  const payload = error as RtqErrorShape;
-  const body = payload.data;
-  if (!body || typeof body !== "object") return fallback;
-  const details = body as { detail?: unknown; title?: unknown; message?: unknown };
-  return asMessage(details.detail) ?? asMessage(details.message) ?? asMessage(details.title) ?? fallback;
+  return error instanceof ApiError ? error.message : fallback;
 }
 function toIsoDate(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
@@ -44,23 +34,68 @@ function parseMonthValue(value: string) {
 }
 
 export function FinancialReportsPage() {
+  const { token } = useAuth();
   const now = useMemo(() => new Date(), []);
   const [reportType, setReportType] = useState<ReportType>("monthly");
   const [selectedDate, setSelectedDate] = useState(toIsoDate(now));
   const [selectedMonth, setSelectedMonth] = useState(toMonthValue(now));
   const [selectedYear, setSelectedYear] = useState(String(now.getUTCFullYear()));
-
-  const dailyQuery = useGetDailyFinancialReportQuery(reportType === "daily" ? { date: selectedDate || undefined } : skipToken);
   const { year: monthlyYear, month: monthlyMonth } = parseMonthValue(selectedMonth);
-  const monthlyQuery = useGetMonthlyFinancialReportQuery(reportType === "monthly" ? { year: monthlyYear, month: monthlyMonth } : skipToken);
   const parsedYear = Number(selectedYear);
-  const yearlyQuery = useGetYearlyFinancialReportQuery(reportType === "yearly" && Number.isInteger(parsedYear) ? { year: parsedYear } : skipToken);
+  const [report, setReport] = useState<FinancialReport | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeQuery = reportType === "daily" ? dailyQuery : reportType === "monthly" ? monthlyQuery : yearlyQuery;
-  const report: FinancialReport | undefined = activeQuery.data;
-  const errorMessage = activeQuery.error ? extractErrorMessage(activeQuery.error, "Could not load the financial report.") : null;
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
 
-  if (activeQuery.isLoading) return <PageShell><SkeletonCard /></PageShell>;
+    let isActive = true;
+    setIsLoading(true);
+
+    const loadReport = async () => {
+      if (reportType === "daily") {
+        return api.getDailyFinancialReport(token, { date: selectedDate || undefined });
+      }
+
+      if (reportType === "monthly") {
+        return api.getMonthlyFinancialReport(token, { year: monthlyYear, month: monthlyMonth });
+      }
+
+      return api.getYearlyFinancialReport(token, { year: Number.isInteger(parsedYear) ? parsedYear : undefined });
+    };
+
+    void loadReport()
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+
+        setReport(response);
+        setErrorMessage(null);
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setReport(null);
+        setErrorMessage(extractErrorMessage(error, "Could not load the financial report."));
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [monthlyMonth, monthlyYear, parsedYear, reportType, selectedDate, token]);
+
+  if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
 
   return (
     <PageShell>

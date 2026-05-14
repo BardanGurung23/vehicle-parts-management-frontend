@@ -24,9 +24,8 @@ Implemented in the active frontend:
 
 Still incomplete or needing cleanup:
 
-- Legacy code still exists in `frontend/admin/src/App.tsx`, `frontend/admin/src/layout`, `frontend/admin/src/pages`, and parts of `frontend/admin/src/redux` even though the router-based shell is the live runtime.
-- Some remaining active pages still need migration away from the older Redux service layer.
-- Live browser verification is still not documented yet for `/app/purchase-invoices` and `/app/reports/financial`.
+- Legacy code still exists under `frontend/admin/src/pages` and parts of `frontend/admin/src/redux` even though the router-based shell is the live runtime.
+- A few legacy admin pages still mounted through the router continue to use the older Redux service layer.
 - Live SMTP-backed email verification is still pending on the backend side.
 
 ## Active Runtime Structure
@@ -37,9 +36,10 @@ Primary runtime paths:
 - `frontend/admin/src/features`
 - `frontend/admin/src/shared`
 
-Important implementation note:
+Important implementation notes:
 
 - The active route tree is in `frontend/admin/src/app/router.tsx`.
+- Active `src/features` routes no longer depend on `src/redux/services`; the remaining Redux-backed runtime is limited to a few legacy admin pages mounted through the new router.
 - Some admin pages still render from older `src/pages` modules, but they are mounted through the new router.
 - Because `frontend/admin/tsconfig.app.json` includes the whole `src` tree, unused legacy files can still affect TypeScript builds.
 
@@ -123,7 +123,7 @@ npm --prefix frontend/admin run lint
 Run frontend tests:
 
 ```bash
-pnpm --dir frontend/admin test:run
+npm --prefix frontend/admin run test:run
 ```
 
 ## Default Local URLs
@@ -154,13 +154,13 @@ The seeded canonical demo accounts use the `demo.*@autonix.local` pattern, and t
 
 Latest documented verification from `doc/progress.md`:
 
+- `npm --prefix frontend/admin run lint` succeeds.
+- `npm --prefix frontend/admin run test:run` succeeds with 3/3 tests.
 - `npm --prefix frontend/admin run build` succeeds.
-- Latest browser smoke and retest passes covered admin login, dashboard rendering, customer detail navigation, parts workspace access, appointment booking, customer vehicle add-and-refresh behavior, purchase-history totals, vendors page copy, appointments page copy, and appointments action-column visibility.
-- `pnpm --dir frontend/admin test:run` succeeds with the committed Vitest suite.
+- Browser smoke checks passed for admin login, dashboard alerts, customer reports, financial reports, purchase invoices, and customer detail history.
 
 ## Highest-Priority Frontend Follow-Up
 
-- Add broader regression coverage for the remaining active admin and customer flows.
-- Continue migrating the remaining active flows using Redux services into the newer feature-oriented API layer.
-- Document live browser verification for the newly active purchase-invoice, financial-report, customer-report, alert, and customer-history flows.
-- Clean up or retire inactive legacy frontend code to reduce maintenance drift.
+- Continue retiring legacy admin pages and Redux services in small validated batches.
+- Add broader regression coverage for the remaining admin and customer flows that still depend on older page modules.
+- Complete live SMTP verification once real mail credentials are available outside the repo.

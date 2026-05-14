@@ -360,6 +360,25 @@ export interface CreatePurchaseInvoiceRequest {
   items: CreatePurchaseInvoiceItemRequest[];
 }
 
+export interface PartRequest {
+  requestId: number;
+  customerId: number;
+  customerName: string;
+  vehicleId?: number;
+  vehicleNumber?: string;
+  requestedPartName: string;
+  requestDetails?: string;
+  status: string;
+  requestedAt: string;
+  resolvedAt?: string;
+}
+
+export interface CreatePartRequestInput {
+  vehicleId?: number;
+  requestedPartName: string;
+  requestDetails?: string;
+}
+
 export interface FinancialReportEntry {
   label: string;
   revenue: number;

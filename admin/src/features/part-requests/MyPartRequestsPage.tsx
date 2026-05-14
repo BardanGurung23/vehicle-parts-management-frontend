@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, ClipboardList } from "lucide-react";
-import { useGetMyPartRequestsQuery } from "../../redux/services/partRequests";
+import { api, ApiError } from "../../app/api";
+import { useAuth } from "../../app/auth";
+import type { PartRequest } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -19,10 +22,50 @@ const badgeVariant = (status: string) => {
 };
 
 export function MyPartRequestsPage() {
-  const { data: requests = [], isLoading, error } = useGetMyPartRequestsQuery();
+  const { token } = useAuth();
+  const [requests, setRequests] = useState<PartRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsLoading(true);
+
+    void api.getMyPartRequests(token)
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+
+        setRequests(response);
+        setError(null);
+      })
+      .catch((loadError: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setRequests([]);
+        setError(loadError instanceof ApiError ? loadError.message : "Failed to load requests.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
-  if (error) return <PageShell><div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">Failed to load requests.</div></PageShell>;
+  if (error) return <PageShell><div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">{error}</div></PageShell>;
 
   return (
     <PageShell>
