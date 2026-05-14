@@ -12,17 +12,16 @@ type StatCardProps = {
 export function StatCard({ label, value, note, trend, trendValue, accent }: StatCardProps) {
   return (
     <div
-      className={`rounded-2xl p-5 transition-all duration-300 ease-emphasized ${
+      className={`rounded-xl p-5 transition-all duration-200 ease-emphasized ${
         accent
           ? "bg-primary-container text-primary-on-container shadow-level2"
           : "bg-surface-container-low text-on-surface shadow-level1 ring-1 ring-white/[0.04] hover:shadow-level2 hover:bg-surface-container"
       }`}
     >
-
-      <div className="relative space-y-2">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className={`block w-1.5 h-1.5 rounded-full ${accent ? "bg-primary" : "bg-primary/40"}`} />
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${
+          {accent && <span className="block w-1.5 h-1.5 rounded-full bg-primary-on-container/60" />}
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] leading-none ${
             accent ? "text-primary-on-container/60" : "text-on-surface-variant"
           }`}>
             {label}
@@ -46,7 +45,7 @@ export function StatCard({ label, value, note, trend, trendValue, accent }: Stat
         </div>
 
         {note && (
-          <p className={`text-[11px] font-medium ${
+          <p className={`text-[11px] font-medium leading-snug ${
             accent ? "text-primary-on-container/50" : "text-on-surface-variant/70"
           }`}>
             {note}
