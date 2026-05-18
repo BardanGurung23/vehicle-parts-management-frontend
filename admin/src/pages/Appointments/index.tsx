@@ -5,7 +5,7 @@ import { PageHeader } from "../../shared/components/PageHeader";
 import { Badge } from "../../shared/components/Badge";
 import { DataTable, type Column } from "../../shared/components/DataTable";
 import { SkeletonCard } from "../../shared/components/Skeleton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS = ["Pending", "Confirmed", "Completed", "Cancelled"];
 

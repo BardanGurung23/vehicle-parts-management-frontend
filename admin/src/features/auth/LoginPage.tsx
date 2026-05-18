@@ -9,12 +9,8 @@ import { useAuth } from "../../app/auth";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
-
-const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address.").trim(),
-  password: z.string().min(8, "Password must be at least 8 characters.").trim(),
-});
+import Toast from "../../components/Toast";
+import { loginSchema } from "./schema";
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
@@ -42,10 +38,12 @@ export function LoginPage() {
       const response = await api.login(values);
       setSession(response);
       navigate("/app", { replace: true });
+      Toast("User Logged in Successful", "success");
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Login failed.";
+      const message =
+        error instanceof ApiError ? error.message : "Login failed.";
       setErrorMessage(message);
-      toast.error(message);
+      Toast("Session Expired. Please Try Again", "error");
     }
   });
 
@@ -60,17 +58,21 @@ export function LoginPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Autonix</h1>
-              <p className="text-xs text-slate-400 font-medium">Access Console</p>
+              <p className="text-xs text-slate-400 font-medium">
+                Access Console
+              </p>
             </div>
           </div>
 
           <div className="mt-16 space-y-6">
             <h2 className="text-3xl font-bold text-white leading-tight">
-              Manage your auto shop<br />
+              Manage your auto shop
+              <br />
               <span className="text-accent-400">from one place</span>
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              Inventory management, staff coordination, customer relationships, and financial reporting — all in a single, unified console.
+              Inventory management, staff coordination, customer relationships,
+              and financial reporting — all in a single, unified console.
             </p>
           </div>
 
@@ -103,15 +105,24 @@ export function LoginPage() {
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-on-surface mb-1">Welcome back</h2>
+          <h2 className="text-xl font-bold text-on-surface mb-1">
+            Welcome back
+          </h2>
           <p className="text-sm text-on-surface-variant mb-8">
             Sign in to continue to the dashboard.
           </p>
 
-          {errorMessage ? <AlertBox tone="error" message={errorMessage} dismissible /> : null}
+          {errorMessage ? (
+            <AlertBox tone="error" message={errorMessage} dismissible />
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-5">
-            <Field label="Email" error={errors.email?.message} required htmlFor="login-email">
+            <Field
+              label="Email"
+              error={errors.email?.message}
+              required
+              htmlFor="login-email"
+            >
               <input
                 id="login-email"
                 className="input"
@@ -121,7 +132,12 @@ export function LoginPage() {
               />
             </Field>
 
-            <Field label="Password" error={errors.password?.message} required htmlFor="login-password">
+            <Field
+              label="Password"
+              error={errors.password?.message}
+              required
+              htmlFor="login-password"
+            >
               <input
                 id="login-password"
                 className="input"
@@ -131,14 +147,22 @@ export function LoginPage() {
               />
             </Field>
 
-            <ActionButton type="submit" disabled={isSubmitting} isLoading={isSubmitting} className="w-full">
+            <ActionButton
+              type="submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              className="w-full"
+            >
               Sign in
             </ActionButton>
           </form>
 
           <p className="mt-6 text-sm text-on-surface-variant text-center">
             New customer?{" "}
-            <Link to="/register" className="text-primary font-medium hover:text-accent-700">
+            <Link
+              to="/register"
+              className="text-primary font-medium hover:text-accent-700"
+            >
               Create an account
             </Link>
           </p>

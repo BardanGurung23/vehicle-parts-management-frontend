@@ -9,7 +9,7 @@ import { Card } from "../../shared/components/Card";
 import { Badge } from "../../shared/components/Badge";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface CartItem { partId: number; partName: string; unitPrice: number; quantity: number; }
 

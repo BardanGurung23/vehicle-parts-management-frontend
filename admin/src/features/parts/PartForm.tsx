@@ -7,7 +7,7 @@ import { useAuth } from "../../app/auth";
 import type { Part, PartCategory } from "../../app/types";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const schema = z.object({
   partNumber: z.string().min(1, "Part number is required"),

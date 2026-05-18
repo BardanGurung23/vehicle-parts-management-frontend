@@ -4,7 +4,7 @@ import { PageHeader } from "../../shared/components/PageHeader";
 import { DataTable, type Column } from "../../shared/components/DataTable";
 import { Badge } from "../../shared/components/Badge";
 import { SkeletonCard } from "../../shared/components/Skeleton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const statusOptions = ["Pending", "Ordered", "Available"];
 

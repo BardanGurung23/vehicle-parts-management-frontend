@@ -9,7 +9,7 @@ import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { CalendarCheck, Plus } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import type { Vehicle, CreateAppointmentRequest } from "../../app/types";
 
 function formatDateTimeLocal(date: Date) {

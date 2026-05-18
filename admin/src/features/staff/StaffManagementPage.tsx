@@ -14,7 +14,7 @@ import { AlertBox } from "../../shared/components/AlertBox";
 import { Field } from "../../shared/components/Field";
 import { Badge } from "../../shared/components/Badge";
 import { SkeletonCard } from "../../shared/components/Skeleton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const staffSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters.").trim(),

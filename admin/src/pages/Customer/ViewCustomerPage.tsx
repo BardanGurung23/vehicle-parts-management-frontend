@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetCustomerByIdQuery, useGetCustomerAppointmentsQuery, useGetCustomerSalesQuery } from "../../redux/services/customers";
-import { toast } from "react-toastify";
 
 export function ViewCustomerPage() {
   const { id } = useParams<{ id: string }>();

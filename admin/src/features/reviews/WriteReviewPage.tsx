@@ -9,7 +9,7 @@ import { Card } from "../../shared/components/Card";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import type { CreateReviewRequest } from "../../app/types";
 
 export function WriteReviewPage() {

@@ -7,7 +7,7 @@ import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 export function RequestPartPage() {
   const navigate = useNavigate();

@@ -8,34 +8,8 @@ import { api, ApiError } from "../../app/api";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
-import {
-  fullNameSchema,
-  optionalVehicleNumberSchema,
-  phoneNumberSchema,
-  requiredEmailSchema,
-  vehicleModelSchema,
-} from "../../shared/validation/member4Validation";
-
-const registerSchema = z
-  .object({
-    fullName: fullNameSchema,
-    email: requiredEmailSchema,
-    phoneNumber: phoneNumberSchema,
-    address: z.string().max(500, "Address is too long.").optional(),
-    vehicleNumber: optionalVehicleNumberSchema,
-    vehicleModel: vehicleModelSchema,
-    password: z.string().min(8, "Password must be at least 8 characters."),
-    confirmPassword: z.string().min(8, "Confirm your password."),
-  })
-  .refine((values) => values.vehicleNumber || !values.vehicleModel?.trim(), {
-    path: ["vehicleNumber"],
-    message: "Vehicle number is required when providing vehicle details.",
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match.",
-  });
+import { toast } from "sonner";
+import { registerSchema } from "./schema";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -77,7 +51,8 @@ export function RegisterCustomerPage() {
       toast.success(message);
       reset();
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Registration failed.";
+      const message =
+        error instanceof ApiError ? error.message : "Registration failed.";
       setErrorMessage(message);
       toast.error(message);
     }
@@ -94,17 +69,21 @@ export function RegisterCustomerPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Autonix</h1>
-              <p className="text-xs text-slate-400 font-medium">Access Console</p>
+              <p className="text-xs text-slate-400 font-medium">
+                Access Console
+              </p>
             </div>
           </div>
 
           <div className="mt-16 space-y-6">
             <h2 className="text-3xl font-bold text-white leading-tight">
-              Join Autonix<br />
+              Join Autonix
+              <br />
               <span className="text-accent-400">and stay in control</span>
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              Create a customer account to book appointments, track repairs, manage your vehicles, and more.
+              Create a customer account to book appointments, track repairs,
+              manage your vehicles, and more.
             </p>
           </div>
 
@@ -142,13 +121,21 @@ export function RegisterCustomerPage() {
               <UserPlus className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-on-surface">Create account</h2>
-              <p className="text-sm text-on-surface-variant">Fill in your details to get started.</p>
+              <h2 className="text-xl font-bold text-on-surface">
+                Create account
+              </h2>
+              <p className="text-sm text-on-surface-variant">
+                Fill in your details to get started.
+              </p>
             </div>
           </div>
 
-          {errorMessage ? <AlertBox tone="error" message={errorMessage} dismissible /> : null}
-          {successMessage ? <AlertBox tone="success" message={successMessage} dismissible /> : null}
+          {errorMessage ? (
+            <AlertBox tone="error" message={errorMessage} dismissible />
+          ) : null}
+          {successMessage ? (
+            <AlertBox tone="success" message={successMessage} dismissible />
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
@@ -157,19 +144,62 @@ export function RegisterCustomerPage() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <Field label="Full name" error={errors.fullName?.message} required htmlFor="reg-name">
-                    <input id="reg-name" className="input" type="text" placeholder="Alex Johnson" {...register("fullName")} />
+                  <Field
+                    label="Full name"
+                    error={errors.fullName?.message}
+                    required
+                    htmlFor="reg-name"
+                  >
+                    <input
+                      id="reg-name"
+                      className="input"
+                      type="text"
+                      placeholder="Alex Johnson"
+                      {...register("fullName")}
+                    />
                   </Field>
                 </div>
-                <Field label="Email" error={errors.email?.message} required htmlFor="reg-email">
-                  <input id="reg-email" className="input" type="email" placeholder="alex@example.com" {...register("email")} />
+                <Field
+                  label="Email"
+                  error={errors.email?.message}
+                  required
+                  htmlFor="reg-email"
+                >
+                  <input
+                    id="reg-email"
+                    className="input"
+                    type="email"
+                    placeholder="alex@example.com"
+                    {...register("email")}
+                  />
                 </Field>
-                <Field label="Phone number" error={errors.phoneNumber?.message} required htmlFor="reg-phone">
-                  <input id="reg-phone" className="input" type="tel" placeholder="+9779800000000" {...register("phoneNumber")} />
+                <Field
+                  label="Phone number"
+                  error={errors.phoneNumber?.message}
+                  required
+                  htmlFor="reg-phone"
+                >
+                  <input
+                    id="reg-phone"
+                    className="input"
+                    type="tel"
+                    placeholder="+9779800000000"
+                    {...register("phoneNumber")}
+                  />
                 </Field>
                 <div className="sm:col-span-2">
-                  <Field label="Address" error={errors.address?.message} htmlFor="reg-address">
-                    <textarea id="reg-address" className="input" rows={3} placeholder="Optional address" {...register("address")} />
+                  <Field
+                    label="Address"
+                    error={errors.address?.message}
+                    htmlFor="reg-address"
+                  >
+                    <textarea
+                      id="reg-address"
+                      className="input"
+                      rows={3}
+                      placeholder="Optional address"
+                      {...register("address")}
+                    />
                   </Field>
                 </div>
               </div>
@@ -180,11 +210,32 @@ export function RegisterCustomerPage() {
                 Vehicle Information
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Vehicle number" error={errors.vehicleNumber?.message} hint="Add a vehicle or skip for now." htmlFor="reg-vehicle">
-                  <input id="reg-vehicle" className="input" type="text" placeholder="BA 1 PA 1234" {...register("vehicleNumber")} />
+                <Field
+                  label="Vehicle number"
+                  error={errors.vehicleNumber?.message}
+                  hint="Add a vehicle or skip for now."
+                  htmlFor="reg-vehicle"
+                >
+                  <input
+                    id="reg-vehicle"
+                    className="input"
+                    type="text"
+                    placeholder="BA 1 PA 1234"
+                    {...register("vehicleNumber")}
+                  />
                 </Field>
-                <Field label="Vehicle model" error={errors.vehicleModel?.message} htmlFor="reg-model">
-                  <input id="reg-model" className="input" type="text" placeholder="Civic" {...register("vehicleModel")} />
+                <Field
+                  label="Vehicle model"
+                  error={errors.vehicleModel?.message}
+                  htmlFor="reg-model"
+                >
+                  <input
+                    id="reg-model"
+                    className="input"
+                    type="text"
+                    placeholder="Civic"
+                    {...register("vehicleModel")}
+                  />
                 </Field>
               </div>
             </div>
@@ -194,23 +245,53 @@ export function RegisterCustomerPage() {
                 Security
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Password" error={errors.password?.message} required htmlFor="reg-password">
-                  <input id="reg-password" className="input" type="password" placeholder="Minimum 8 characters" {...register("password")} />
+                <Field
+                  label="Password"
+                  error={errors.password?.message}
+                  required
+                  htmlFor="reg-password"
+                >
+                  <input
+                    id="reg-password"
+                    className="input"
+                    type="password"
+                    placeholder="Minimum 8 characters"
+                    {...register("password")}
+                  />
                 </Field>
-                <Field label="Confirm password" error={errors.confirmPassword?.message} required htmlFor="reg-confirm">
-                  <input id="reg-confirm" className="input" type="password" placeholder="Repeat password" {...register("confirmPassword")} />
+                <Field
+                  label="Confirm password"
+                  error={errors.confirmPassword?.message}
+                  required
+                  htmlFor="reg-confirm"
+                >
+                  <input
+                    id="reg-confirm"
+                    className="input"
+                    type="password"
+                    placeholder="Repeat password"
+                    {...register("confirmPassword")}
+                  />
                 </Field>
               </div>
             </div>
 
-            <ActionButton type="submit" disabled={isSubmitting} isLoading={isSubmitting} className="w-full">
+            <ActionButton
+              type="submit"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              className="w-full"
+            >
               Register customer
             </ActionButton>
           </form>
 
           <p className="mt-6 text-sm text-on-surface-variant text-center">
             Already have access?{" "}
-            <Link to="/" className="text-primary font-medium hover:text-accent-700">
+            <Link
+              to="/"
+              className="text-primary font-medium hover:text-accent-700"
+            >
               Go to login
             </Link>
           </p>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useAuth } from "./auth";
 import { AppLayout } from "./shell/AppLayout";
 import { LoginPage } from "../features/auth/LoginPage";

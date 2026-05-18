@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Car } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { CustomerDetail } from "../../app/types";

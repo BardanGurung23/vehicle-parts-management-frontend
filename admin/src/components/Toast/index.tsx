@@ -1,24 +1,19 @@
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
-type toastFunction = (message: string, variant: string) => void;
+type ToastVariant = "default" | "success" | "warning" | "error" | "info";
+type ToastFunction = (message: string, variant?: ToastVariant) => void;
 
-const Toast: toastFunction = (message, variant) => {
+const Toast: ToastFunction = (message, variant = "default") => {
   if (variant === "success") {
-    toast.success(message, {
-      position: "bottom-right",
-    });
+    toast.success(message);
   } else if (variant === "warning") {
-    toast.warn(message, {
-      position: "bottom-right",
-    });
+    toast.warning(message);
   } else if (variant === "error") {
-    toast.error(message, {
-      position: "bottom-right",
-    });
+    toast.error(message);
+  } else if (variant === "info") {
+    toast.info(message);
   } else {
-    toast(message, {
-      position: "bottom-right",
-    });
+    toast(message);
   }
 };
 

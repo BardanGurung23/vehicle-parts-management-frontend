@@ -11,7 +11,7 @@ import { Badge } from "../../shared/components/Badge";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 import PartForm from "./PartForm";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 const numberFormatter = new Intl.NumberFormat("en-US");

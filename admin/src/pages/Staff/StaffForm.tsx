@@ -10,7 +10,7 @@ import {
   useUpdateStaffRoleMutation,
   StaffUser,
 } from "@/redux/services/staff";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const createSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters"),

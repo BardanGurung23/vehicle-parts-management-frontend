@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { Part, PurchaseInvoice, Vendor } from "../../app/types";

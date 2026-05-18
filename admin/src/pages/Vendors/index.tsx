@@ -8,7 +8,7 @@ import { DataTable, type Column } from "../../shared/components/DataTable";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { SkeletonCard } from "../../shared/components/Skeleton";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import type { Vendor, CreateVendorRequest } from "../../app/types";
 
 const defaultForm: CreateVendorRequest = { vendorName: "", contactPerson: "", phoneNumber: "", email: "", address: "" };

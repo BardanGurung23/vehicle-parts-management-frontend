@@ -4,7 +4,7 @@ import { api, ApiError } from "../../app/api";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useAuth } from "../../app/auth";
 
 export function AddVehiclePage() {
