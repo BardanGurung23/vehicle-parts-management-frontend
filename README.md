@@ -26,7 +26,7 @@ Still incomplete or needing cleanup:
 
 - Legacy code still exists under `frontend/admin/src/pages` and parts of `frontend/admin/src/redux` even though the router-based shell is the live runtime.
 - A few legacy admin pages still mounted through the router continue to use the older Redux service layer.
-- Live SMTP-backed email verification is still pending on the backend side.
+- Local Mailpit-backed email testing is available on the backend side, but live SMTP-backed verification is still pending.
 
 ## Active Runtime Structure
 
