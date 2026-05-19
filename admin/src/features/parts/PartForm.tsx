@@ -68,7 +68,7 @@ export default function PartForm({
     reset,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormType>({ resolver: zodResolver(schema) });
+  } = useForm<FormType>({ resolver: zodResolver(Partsschema) });
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<
