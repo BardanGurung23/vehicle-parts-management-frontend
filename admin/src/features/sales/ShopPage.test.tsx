@@ -55,10 +55,12 @@ describe("ShopPage", () => {
     getCustomers.mockResolvedValue([
       {
         customerId: 1,
+        userId: 101,
         fullName: "Demo Customer One",
         phoneNumber: "+9779803003001",
         email: "demo.customer1@autonix.local",
         vehicleCount: 1,
+        vehicles: [{ vehicleId: 3, vehicleNumber: "BA 2 PA 3001", model: "Civic" }],
       },
     ]);
     getDashboardSummary.mockResolvedValue({
@@ -131,5 +133,8 @@ describe("ShopPage", () => {
     await waitFor(() => {
       expect(screen.getByText("BA 2 PA 3001 · Premium Brake Pad Set")).toBeInTheDocument();
     });
+
+    expect(screen.getByText("Portal account")).toBeInTheDocument();
+    expect(screen.getByText("1 registered account prioritized for faster staff checkout.")).toBeInTheDocument();
   });
 });

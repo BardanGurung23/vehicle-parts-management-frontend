@@ -176,6 +176,7 @@ export interface DashboardSummary {
   inventory?: DashboardInventorySummary | null;
   staff?: DashboardStaffSummary | null;
   alerts?: AlertSummary | null;
+  recentRegisteredCustomers?: CustomerSearchResult[] | null;
   currentCustomer?: CustomerDetail | null;
 }
 

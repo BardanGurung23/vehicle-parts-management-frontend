@@ -6,15 +6,33 @@ import { Badge } from "../../shared/components/Badge";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 import { toast } from "react-toastify";
 
-const statusOptions = ["Pending", "Ordered", "Available"];
+const statusOptions = ["Pending", "Fulfilled", "Rejected"];
+
+type MutationError = {
+  data?: {
+    detail?: string;
+    message?: string;
+    title?: string;
+  };
+};
 
 const badgeVariant = (status: string) => {
   switch (status) {
     case "Pending": return "warning";
-    case "Ordered": return "info";
-    case "Available": return "success";
+    case "Fulfilled": return "success";
+    case "Rejected": return "danger";
     default: return "neutral";
   }
+};
+
+const extractUpdateErrorMessage = (error: unknown) => {
+  if (!error || typeof error !== "object") {
+    return "Failed to update status.";
+  }
+
+  const payload = error as MutationError;
+  const message = payload.data?.message ?? payload.data?.detail ?? payload.data?.title;
+  return typeof message === "string" && message.trim().length > 0 ? message : "Failed to update status.";
 };
 
 type PartRequestRow = {
@@ -34,7 +52,7 @@ export function PartRequestsPage() {
 
   const handleStatusChange = async (requestId: number, newStatus: string) => {
     try { await updateStatus({ requestId, status: newStatus }).unwrap(); toast.success("Status updated successfully!"); }
-    catch { toast.error("Failed to update status."); }
+    catch (updateError) { toast.error(extractUpdateErrorMessage(updateError)); }
   };
 
   const columns: Column<PartRequestRow>[] = [

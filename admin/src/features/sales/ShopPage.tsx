@@ -16,6 +16,22 @@ interface CartItem { partId: number; partName: string; unitPrice: number; quanti
 
 type SearchFormState = { customerId: string; phoneNumber: string; vehicleNumber: string; name: string; };
 
+function sortCustomerDirectory(customers: CustomerSearchResult[]) {
+  return [...customers].sort((left, right) => {
+    const accountDelta = Number(Boolean(right.userId)) - Number(Boolean(left.userId));
+    if (accountDelta !== 0) {
+      return accountDelta;
+    }
+
+    const nameDelta = left.fullName.localeCompare(right.fullName);
+    if (nameDelta !== 0) {
+      return nameDelta;
+    }
+
+    return left.customerId - right.customerId;
+  });
+}
+
 function buildCustomerSearchPayload(values: SearchFormState): { payload: CustomerSearchInput | null; error: string | null } {
   const cid = values.customerId.trim(); const ph = values.phoneNumber.trim();
   const vn = values.vehicleNumber.trim(); const nm = values.name.trim();
@@ -52,6 +68,10 @@ export function ShopPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearchRun, setHasSearchRun] = useState(false);
   const [customersLoading, setCustomersLoading] = useState(false);
+  const registeredCustomerCount = useMemo(
+    () => allCustomers.filter((customer) => Boolean(customer.userId)).length,
+    [allCustomers],
+  );
 
   useEffect(() => {
     if (!token) {
@@ -148,8 +168,10 @@ export function ShopPage() {
           return;
         }
 
-        setAllCustomers(results);
-        setCustomerResults(results);
+        const orderedResults = sortCustomerDirectory(results);
+
+        setAllCustomers(orderedResults);
+        setCustomerResults(orderedResults);
         setSearchError(null);
 
         setSelectedCustomer((currentSelection) => {
@@ -157,7 +179,7 @@ export function ShopPage() {
             return null;
           }
 
-          return results.find((customer) => customer.customerId === currentSelection.customerId) ?? null;
+          return orderedResults.find((customer) => customer.customerId === currentSelection.customerId) ?? null;
         });
       })
       .catch((loadError: unknown) => {
@@ -230,7 +252,7 @@ export function ShopPage() {
     try {
       setIsSearching(true); setSearchError(null);
       const results = await api.searchCustomers(token, payload);
-      setCustomerResults(results); setHasSearchRun(true);
+      setCustomerResults(sortCustomerDirectory(results)); setHasSearchRun(true);
       if (selectedCustomer && results.every((c) => c.customerId !== selectedCustomer.customerId)) setSelectedCustomer(null);
     } catch (error) { setSearchError(error instanceof ApiError ? error.message : "Could not search customers."); setCustomerResults([]); setHasSearchRun(true); }
     finally { setIsSearching(false); }
@@ -417,6 +439,7 @@ export function ShopPage() {
 
                 <div>
                   <label className="block text-xs font-medium text-on-surface-variant mb-1">Customer directory</label>
+                  <p className="mb-2 text-[11px] text-on-surface-variant">{registeredCustomerCount} registered account{registeredCustomerCount === 1 ? "" : "s"} prioritized for faster staff checkout.</p>
                   <select
                     className="input text-xs"
                     value={selectedCustomer?.customerId ?? ""}
@@ -436,7 +459,7 @@ export function ShopPage() {
                     <option value="">{customersLoading ? "Loading customers..." : "Select a customer"}</option>
                     {allCustomers.map((customer) => (
                       <option key={customer.customerId} value={customer.customerId}>
-                        {customer.fullName} #{customer.customerId}
+                        {customer.userId ? "Portal" : "Profile"} · {customer.fullName} #{customer.customerId}
                       </option>
                     ))}
                   </select>
@@ -445,8 +468,11 @@ export function ShopPage() {
                 {selectedCustomer && (
                   <div className="flex items-start justify-between gap-2 p-3 rounded-lg bg-surface-container-low ring-1 ring-white/[0.06]">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-on-surface">{selectedCustomer.fullName}</p>
-                      <p className="text-xs text-on-surface-variant">Customer #{selectedCustomer.customerId}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-on-surface">{selectedCustomer.fullName}</p>
+                        <Badge variant={selectedCustomer.userId ? "success" : "neutral"}>{selectedCustomer.userId ? "Portal account" : "Staff-created profile"}</Badge>
+                      </div>
+                      <p className="text-xs text-on-surface-variant">Customer #{selectedCustomer.customerId} · {selectedCustomer.phoneNumber}</p>
                     </div>
                     <ActionButton size="sm" tone="secondary" onClick={() => setSelectedCustomer(null)}>Clear</ActionButton>
                   </div>
@@ -477,10 +503,13 @@ export function ShopPage() {
                     {customerResults.map((c) => (
                       <div key={c.customerId} className="flex items-center justify-between gap-2 p-2 rounded ring-1 ring-white/[0.06]">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-on-surface">{c.fullName}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-xs font-medium text-on-surface">{c.fullName}</p>
+                            <Badge variant={c.userId ? "success" : "neutral"}>{c.userId ? "Portal" : "Profile"}</Badge>
+                          </div>
                           <p className="text-[10px] text-on-surface-variant">#{c.customerId} &middot; {c.vehicleCount} vehicle{c.vehicleCount === 1 ? "" : "s"}</p>
                         </div>
-                        <ActionButton size="sm" tone={selectedCustomer?.customerId === c.customerId ? "primary" : "secondary"} onClick={() => setSelectedCustomer(c)}>
+                        <ActionButton size="sm" tone={selectedCustomer?.customerId === c.customerId ? "filled" : "tonal"} onClick={() => setSelectedCustomer(c)}>
                           {selectedCustomer?.customerId === c.customerId ? "Selected" : "Select"}
                         </ActionButton>
                       </div>

@@ -6,10 +6,13 @@ import { useAuth } from "../../app/auth";
 import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
+import { Badge } from "../../shared/components/Badge";
 import { Card } from "../../shared/components/Card";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { EmptyState } from "../../shared/components/EmptyState";
+
+type AccountFilter = "all" | "registered" | "staff-created";
 
 type SearchFormState = {
   customerId: string;
@@ -61,6 +64,21 @@ export function CustomerSearchPage() {
   const [hasSearchRun, setHasSearchRun] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingDirectory, setIsLoadingDirectory] = useState(true);
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
+
+  const registeredCount = customerResults.filter((customer) => Boolean(customer.userId)).length;
+  const staffCreatedCount = customerResults.length - registeredCount;
+  const visibleCustomerResults = customerResults.filter((customer) => {
+    if (accountFilter === "registered") {
+      return Boolean(customer.userId);
+    }
+
+    if (accountFilter === "staff-created") {
+      return !customer.userId;
+    }
+
+    return true;
+  });
 
   useEffect(() => {
     let isActive = true;
@@ -132,6 +150,7 @@ export function CustomerSearchPage() {
     setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
     setPageError(null);
     setHasSearchRun(false);
+    setAccountFilter("all");
 
     if (!token) {
       setCustomerResults([]);
@@ -215,9 +234,14 @@ export function CustomerSearchPage() {
               {isLoadingDirectory
                 ? "Loading customer directory..."
                 : hasSearchRun
-                ? `${customerResults.length} customer result${customerResults.length === 1 ? "" : "s"} returned.`
-                : `${customerResults.length} customer${customerResults.length === 1 ? "" : "s"} in the directory.`}
+                ? `${visibleCustomerResults.length} customer result${visibleCustomerResults.length === 1 ? "" : "s"} shown.`
+                : `${visibleCustomerResults.length} customer${visibleCustomerResults.length === 1 ? "" : "s"} shown in the directory.`}
             </p>
+            {!isLoadingDirectory && customerResults.length > 0 && accountFilter !== "all" ? (
+              <p className="mt-1 text-xs text-on-surface-variant">
+                Showing {visibleCustomerResults.length} of {customerResults.length} records after applying the {accountFilter === "registered" ? "registered accounts" : "staff-created profiles"} filter.
+              </p>
+            ) : null}
           </div>
         }
       >
@@ -227,10 +251,34 @@ export function CustomerSearchPage() {
           <EmptyState icon={Search} title="No results" description="No customer matched the filters you entered." />
         ) : customerResults.length > 0 ? (
           <div className="space-y-3">
-            {customerResults.map((customer) => (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Shown</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{visibleCustomerResults.length}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Registered accounts</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{registeredCount}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Staff-created profiles</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{staffCreatedCount}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <ActionButton size="sm" tone={accountFilter === "all" ? "filled" : "tonal"} onClick={() => setAccountFilter("all")}>All accounts</ActionButton>
+              <ActionButton size="sm" tone={accountFilter === "registered" ? "filled" : "tonal"} onClick={() => setAccountFilter("registered")}>Registered accounts</ActionButton>
+              <ActionButton size="sm" tone={accountFilter === "staff-created" ? "filled" : "tonal"} onClick={() => setAccountFilter("staff-created")}>Staff-created profiles</ActionButton>
+            </div>
+
+            {visibleCustomerResults.length > 0 ? visibleCustomerResults.map((customer) => (
               <div key={customer.customerId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                    <Badge variant={customer.userId ? "success" : "neutral"}>{customer.userId ? "Portal account" : "Staff-created profile"}</Badge>
+                  </div>
                   <p className="text-xs text-on-surface-variant">{customer.email ?? "No email recorded"}</p>
                   <div className="flex items-center gap-4 mt-1 text-xs text-on-surface-variant">
                     <span>{customer.phoneNumber}</span>
@@ -246,7 +294,9 @@ export function CustomerSearchPage() {
                   <ActionButton size="sm" icon={ArrowRight}>View details</ActionButton>
                 </Link>
               </div>
-            ))}
+            )) : (
+              <EmptyState icon={Search} title="No matching accounts" description="No customer matches the selected account visibility filter." />
+            )}
           </div>
         ) : (
           <EmptyState icon={Search} title="No customers yet" description="Customer records will appear here once they are registered." />

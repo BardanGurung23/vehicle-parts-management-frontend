@@ -393,6 +393,9 @@ export const api = {
     return request<FinancialReport>(path, {}, token);
   },
 
+  getAllTimeFinancialReport: (token: string) =>
+    request<FinancialReport>("/admin/reports/financial/all-time", {}, token),
+
   getVendors: (token: string) => request<Vendor[]>("/admin/vendors", {}, token),
 
   getPurchaseInvoices: (token: string) => request<PurchaseInvoice[]>("/admin/purchase-invoices", {}, token),
