@@ -276,6 +276,7 @@ export interface CreatePartInput {
   partName: string;
   description?: string;
   imageUrl?: string;
+  imageFile?: File | null;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -287,6 +288,8 @@ export interface UpdatePartInput {
   partName: string;
   description?: string;
   imageUrl?: string;
+  imageFile?: File | null;
+  removeImage?: boolean;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;

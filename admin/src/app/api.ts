@@ -177,6 +177,51 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
+function appendOptionalPartField(formData: FormData, key: string, value: string | number | boolean | null | undefined) {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    formData.append(key, trimmed);
+    return;
+  }
+
+  formData.append(key, String(value));
+}
+
+function buildPartFormData(payload: CreatePartInput | UpdatePartInput, includePartNumber: boolean) {
+  const formData = new FormData();
+
+  if (includePartNumber && "partNumber" in payload) {
+    appendOptionalPartField(formData, "partNumber", payload.partNumber);
+  }
+
+  appendOptionalPartField(formData, "partName", payload.partName);
+  appendOptionalPartField(formData, "description", payload.description);
+  appendOptionalPartField(formData, "imageUrl", payload.imageUrl);
+  appendOptionalPartField(formData, "unitPrice", payload.unitPrice);
+  appendOptionalPartField(formData, "costPrice", payload.costPrice);
+  appendOptionalPartField(formData, "stockQuantity", payload.stockQuantity);
+  appendOptionalPartField(formData, "reorderLevel", payload.reorderLevel);
+  appendOptionalPartField(formData, "partCategoryId", payload.partCategoryId);
+
+  if ("removeImage" in payload) {
+    appendOptionalPartField(formData, "removeImage", payload.removeImage ?? false);
+  }
+
+  if (payload.imageFile instanceof File) {
+    formData.append("imageFile", payload.imageFile);
+  }
+
+  return formData;
+}
+
 export const api = {
   login: (payload: LoginInput) =>
     request<AuthResponse>("/auth/login", {
@@ -195,13 +240,13 @@ export const api = {
   createPart: (token: string, payload: CreatePartInput) =>
     request<Part>("/parts", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: buildPartFormData(payload, true),
     }, token),
 
   updatePart: (token: string, partId: number, payload: UpdatePartInput) =>
     request<Part>(`/parts/${partId}`, {
       method: "PUT",
-      body: JSON.stringify(payload),
+      body: buildPartFormData(payload, false),
     }, token),
 
   deletePart: (token: string, partId: number) =>
