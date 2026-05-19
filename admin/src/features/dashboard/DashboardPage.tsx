@@ -38,7 +38,7 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 type MetricCard = { label: string; value: string; note: string };
 
 export function DashboardPage() {
-  const { user, token, isAdmin } = useAuth();
+  const { user, token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -166,7 +166,7 @@ export function DashboardPage() {
             />
           )}
 
-              {isAdmin && alerts && !dashboardUnavailable && (
+              {alerts && !dashboardUnavailable && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Card
                     header={

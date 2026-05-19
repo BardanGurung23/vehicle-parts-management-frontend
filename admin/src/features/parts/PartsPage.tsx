@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, ApiError } from "../../app/api";
+import { api, ApiError, resolveBackendAssetUrl } from "../../app/api";
 import { Plus, Trash2, Edit3 } from "lucide-react";
 import { useAuth } from "../../app/auth";
 import type { Part, PartCategory } from "../../app/types";
@@ -23,6 +23,10 @@ function asMessage(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 function getMutationErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    return asMessage(error.message) ?? fallback;
+  }
+
   if (!error || typeof error !== "object") return fallback;
   const data = (error as { data?: unknown }).data;
   if (!data || typeof data !== "object") return fallback;
@@ -212,11 +216,22 @@ export default function PartsPage() {
               {parts.map((part) => {
                 const isLowStock = part.stockQuantity <= part.reorderLevel;
                 const isPendingDelete = confirmDeleteId === part.partId;
+                const partImageUrl = resolveBackendAssetUrl(part.imageUrl);
 
                 return (
                   <div key={part.partId} className="rounded-lg ring-1 ring-white/[0.06] bg-surface-container-lowest p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-1">
+                      <div className="min-w-0 flex items-start gap-3">
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-container-low ring-1 ring-white/[0.08]">
+                          {partImageUrl ? (
+                            <img src={partImageUrl} alt={part.partName} className="h-full w-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+                              {part.partNumber}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-sm font-semibold text-on-surface">{part.partName}</h3>
                           <Badge variant={isLowStock ? (part.stockQuantity === 0 ? "danger" : "warning") : "success"}>
@@ -227,6 +242,7 @@ export default function PartsPage() {
                           <span className="font-mono">{part.partNumber}</span>
                           <span aria-hidden="true">/</span>
                           <span>{part.categoryName ?? "Uncategorized"}</span>
+                        </div>
                         </div>
                       </div>
                       {isAdmin && (

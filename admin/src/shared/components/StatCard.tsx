@@ -14,7 +14,7 @@ export function StatCard({ label, value, note, trend, trendValue, accent }: Stat
     <div
       className={`rounded-xl p-5 transition-all duration-200 ease-emphasized ${
         accent
-          ? "bg-primary-container text-primary-on-container shadow-level2"
+          ? "bg-primary-container text-primary-on-container shadow-level1"
           : "bg-surface-container-low text-on-surface shadow-level1 ring-1 ring-white/[0.04] hover:shadow-level2 hover:bg-surface-container"
       }`}
     >

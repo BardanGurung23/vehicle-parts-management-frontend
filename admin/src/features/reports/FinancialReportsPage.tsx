@@ -153,7 +153,7 @@ export function FinancialReportsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
             <StatCard label="Revenue" value={formatCurrency(report.revenue)} />
             <StatCard label="Discounts" value={formatCurrency(report.discounts)} />
             <StatCard label="Purchase costs" value={formatCurrency(report.purchaseCosts)} />

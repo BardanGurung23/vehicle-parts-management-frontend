@@ -22,6 +22,7 @@ import { CustomerReportsPage } from "../features/reports/CustomerReportsPage";
 import { FinancialReportsPage } from "../features/reports/FinancialReportsPage";
 import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
 import Vendors from "../pages/Vendors";
+import { InvoiceDetailPage } from "../features/sales/InvoiceDetailPage";
 import { MySalesPage } from "../features/sales/MySalesPage";
 import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
@@ -130,6 +131,10 @@ export const router = createBrowserRouter([
           {
             path: "shop",
             element: <ShopPage />,
+          },
+          {
+            path: "sales/:saleId",
+            element: <InvoiceDetailPage />,
           },
           {
             element: <CustomerOnlyOutlet />,

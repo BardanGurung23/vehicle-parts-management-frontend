@@ -13,6 +13,7 @@ const schema = z.object({
   partNumber: z.string().min(1, "Part number is required"),
   partName: z.string().min(1, "Part name is required"),
   description: z.string().optional(),
+  imageUrl: z.string().trim().max(500, "Must be 500 characters or fewer").optional(),
   unitPrice: z.coerce.number().min(0, "Must be >= 0"),
   costPrice: z.coerce.number().min(0, "Must be >= 0"),
   stockQuantity: z.coerce.number().int().min(0, "Must be >= 0"),
@@ -29,6 +30,7 @@ const defaultValues: FormType = {
   partNumber: "",
   partName: "",
   description: "",
+  imageUrl: "",
   unitPrice: 0,
   costPrice: 0,
   stockQuantity: 0,
@@ -75,6 +77,7 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         partNumber: editPart.partNumber,
         partName: editPart.partName,
         description: editPart.description ?? "",
+        imageUrl: editPart.imageUrl ?? "",
         unitPrice: editPart.unitPrice,
         costPrice: editPart.costPrice,
         stockQuantity: editPart.stockQuantity,
@@ -97,6 +100,7 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         const updated = await api.updatePart(token, editPart.partId, {
           partName: data.partName,
           description: data.description,
+          imageUrl: data.imageUrl,
           unitPrice: data.unitPrice,
           costPrice: data.costPrice,
           stockQuantity: data.stockQuantity,
@@ -110,6 +114,7 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
           partNumber: data.partNumber,
           partName: data.partName,
           description: data.description,
+          imageUrl: data.imageUrl,
           unitPrice: data.unitPrice,
           costPrice: data.costPrice,
           stockQuantity: data.stockQuantity,
@@ -160,6 +165,11 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         <div className="col-span-2">
           <Field label="Description" error={errors.description?.message} htmlFor="description" hint="Optional context for staff.">
             <textarea id="description" className="input" rows={4} placeholder="Add supplier notes, fitment guidance..." {...register("description")} />
+          </Field>
+        </div>
+        <div className="col-span-2">
+          <Field label="Image URL" error={errors.imageUrl?.message} htmlFor="imageUrl" hint="Use a backend-served path such as /catalog/brake-pad.svg.">
+            <input id="imageUrl" className="input" placeholder="/catalog/brake-pad.svg" {...register("imageUrl")} />
           </Field>
         </div>
       </div>

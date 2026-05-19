@@ -174,7 +174,7 @@ export function AppLayout() {
       label: "Customers",
       items: [
         { label: "Register", to: "/app/customers/register", icon: UserPlus, show: canManageCustomers },
-        { label: "Search", to: "/app/customers/search", icon: Search, show: canManageCustomers },
+        { label: "Browse", to: "/app/customers/search", icon: Search, show: canManageCustomers },
       ],
     },
     {

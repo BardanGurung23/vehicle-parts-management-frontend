@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Search, X, UserPlus, ArrowRight } from "lucide-react";
 import { api, ApiError } from "../../app/api";
@@ -60,6 +60,46 @@ export function CustomerSearchPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [hasSearchRun, setHasSearchRun] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingDirectory, setIsLoadingDirectory] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!token) {
+      setIsLoadingDirectory(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    void api.getCustomers(token)
+      .then((results) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCustomerResults(results);
+        setPageError(null);
+        setHasSearchRun(false);
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        setCustomerResults([]);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingDirectory(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,17 +130,30 @@ export function CustomerSearchPage() {
 
   const resetSearch = () => {
     setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
-    setCustomerResults([]);
     setPageError(null);
     setHasSearchRun(false);
+
+    if (!token) {
+      setCustomerResults([]);
+      return;
+    }
+
+    void api.getCustomers(token)
+      .then((results) => {
+        setCustomerResults(results);
+      })
+      .catch((error: unknown) => {
+        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        setCustomerResults([]);
+      });
   };
 
   return (
     <PageShell>
       <PageHeader
         eyebrow="Feature 10"
-        title="Search Customers"
-        description="Search by customer ID, phone number, vehicle number, or full name."
+        title="Browse Customers"
+        description="Browse the customer directory, then narrow by customer ID, phone number, vehicle number, or full name."
         actions={
           <Link to="/app/customers/register">
             <ActionButton icon={UserPlus}>Register customer</ActionButton>
@@ -114,7 +167,7 @@ export function CustomerSearchPage() {
         header={
           <div>
             <h3 className="text-base font-semibold text-on-surface">Lookup filters</h3>
-            <p className="text-sm text-on-surface-variant">Provide any combination of fields.</p>
+            <p className="text-sm text-on-surface-variant">Use filters when you need to narrow the full customer directory.</p>
           </div>
         }
       >
@@ -149,7 +202,7 @@ export function CustomerSearchPage() {
             <ActionButton type="submit" icon={Search} disabled={isSearching}>
               {isSearching ? "Searching..." : "Search customers"}
             </ActionButton>
-            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Reset</ActionButton>
+            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Browse all</ActionButton>
           </div>
         </form>
       </Card>
@@ -159,14 +212,18 @@ export function CustomerSearchPage() {
           <div>
             <h3 className="text-base font-semibold text-on-surface">Results</h3>
             <p className="text-sm text-on-surface-variant">
-              {hasSearchRun
+              {isLoadingDirectory
+                ? "Loading customer directory..."
+                : hasSearchRun
                 ? `${customerResults.length} customer result${customerResults.length === 1 ? "" : "s"} returned.`
-                : "Run a search to review matching customer records."}
+                : `${customerResults.length} customer${customerResults.length === 1 ? "" : "s"} in the directory.`}
             </p>
           </div>
         }
       >
-        {hasSearchRun && customerResults.length === 0 ? (
+        {isLoadingDirectory ? (
+          <p className="text-sm text-on-surface-variant text-center py-8">Loading customer directory...</p>
+        ) : hasSearchRun && customerResults.length === 0 ? (
           <EmptyState icon={Search} title="No results" description="No customer matched the filters you entered." />
         ) : customerResults.length > 0 ? (
           <div className="space-y-3">
@@ -179,6 +236,11 @@ export function CustomerSearchPage() {
                     <span>{customer.phoneNumber}</span>
                     <span>{customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}</span>
                   </div>
+                  {customer.vehicles.length > 0 ? (
+                    <p className="mt-2 text-xs text-on-surface-variant truncate">
+                      {customer.vehicles.map((vehicle) => vehicle.vehicleNumber).join(" • ")}
+                    </p>
+                  ) : null}
                 </div>
                 <Link to={`/app/customers/${customer.customerId}`} className="shrink-0">
                   <ActionButton size="sm" icon={ArrowRight}>View details</ActionButton>
@@ -186,7 +248,9 @@ export function CustomerSearchPage() {
               </div>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <EmptyState icon={Search} title="No customers yet" description="Customer records will appear here once they are registered." />
+        )}
       </Card>
     </PageShell>
   );

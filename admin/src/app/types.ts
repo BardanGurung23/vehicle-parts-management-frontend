@@ -219,6 +219,7 @@ export interface Part {
   partNumber: string;
   partName: string;
   description?: string | null;
+  imageUrl?: string | null;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -238,6 +239,7 @@ export interface CreatePartInput {
   partNumber: string;
   partName: string;
   description?: string;
+  imageUrl?: string;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -248,6 +250,7 @@ export interface CreatePartInput {
 export interface UpdatePartInput {
   partName: string;
   description?: string;
+  imageUrl?: string;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -409,6 +412,29 @@ export interface SaleItem {
   quantity: number;
   unitPrice: number;
   lineTotal?: number;
+}
+
+export interface SendSaleInvoiceEmailResponse {
+  saleId: number;
+  invoiceNumber: string;
+  recipientEmail: string;
+  message: string;
+}
+
+export interface Sale {
+  saleId: number;
+  invoiceNumber: string;
+  customerName: string;
+  customerEmail?: string | null;
+  vehicleNumber?: string | null;
+  saleDate: string;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  paymentStatus: string;
+  dueDate?: string | null;
+  notes?: string | null;
+  items: SaleItem[];
 }
 
 export interface CustomerReportEntry {

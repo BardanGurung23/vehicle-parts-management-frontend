@@ -44,6 +44,7 @@ export function StaffManagementPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
+  const [deactivatingUserId, setDeactivatingUserId] = useState<number | null>(null);
 
   const loadPageData = useCallback(async (showPageLoader = false) => {
     if (!token) return;
@@ -108,6 +109,29 @@ export function StaffManagementPage() {
       toast.error(message);
     } finally {
       setSavingUserId(null);
+    }
+  };
+
+  const deactivateStaffUser = async (user: StaffUser) => {
+    if (!token || !user.isActive) {
+      return;
+    }
+
+    try {
+      setDeactivatingUserId(user.userId);
+      setPageError(null);
+      setPageSuccess(null);
+      const updatedUser = await api.deactivateStaffUser(token, user.userId);
+      setStaffUsers((prev) => prev.map((entry) => (entry.userId === user.userId ? updatedUser : entry)));
+      const msg = `${updatedUser.fullName} has been deactivated.`;
+      setPageSuccess(msg);
+      toast.success(msg);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Could not deactivate the staff account.";
+      setPageError(message);
+      toast.error(message);
+    } finally {
+      setDeactivatingUserId(null);
     }
   };
 
@@ -218,6 +242,7 @@ export function StaffManagementPage() {
                           id={`role-${u.userId}`}
                           className="input h-9 text-sm"
                           value={draftRoleId}
+                          disabled={!u.isActive}
                           onChange={(e) => setRoleDrafts((prev) => ({ ...prev, [u.userId]: Number(e.target.value) }))}
                         >
                           {roleOptions.map((r) => (
@@ -226,12 +251,20 @@ export function StaffManagementPage() {
                         </select>
                       </div>
                       <ActionButton
-                        tone="secondary"
+                        tone="tonal"
                         size="sm"
-                        disabled={!isDirty || savingUserId === u.userId || isRefreshing}
+                        disabled={!u.isActive || !isDirty || savingUserId === u.userId || isRefreshing || deactivatingUserId === u.userId}
                         onClick={() => void saveRole(u.userId)}
                       >
                         {savingUserId === u.userId ? "Saving..." : "Save role"}
+                      </ActionButton>
+                      <ActionButton
+                        tone="error"
+                        size="sm"
+                        disabled={!u.isActive || isRefreshing || savingUserId === u.userId || deactivatingUserId === u.userId}
+                        onClick={() => void deactivateStaffUser(u)}
+                      >
+                        {deactivatingUserId === u.userId ? "Deactivating..." : "Deactivate"}
                       </ActionButton>
                     </div>
                   </div>

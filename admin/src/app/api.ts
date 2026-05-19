@@ -24,6 +24,7 @@ import type {
   RegisterCustomerResponse,
   RoleOption,
   ServiceReview,
+  SendSaleInvoiceEmailResponse,
   StaffUser,
   UpdateCustomerProfileInput,
   UpdatePartInput,
@@ -37,9 +38,29 @@ import type {
 
 const configuredBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5154").replace(/\/+$/, "");
 
+export const backendBaseUrl = configuredBaseUrl.endsWith("/api")
+  ? configuredBaseUrl.slice(0, -4)
+  : configuredBaseUrl;
+
 const apiBaseUrl = configuredBaseUrl.endsWith("/api")
   ? configuredBaseUrl
   : `${configuredBaseUrl}/api`;
+
+export function resolveBackendAssetUrl(path: string | null | undefined): string | null {
+  const trimmedPath = typeof path === "string" ? path.trim() : "";
+
+  if (!trimmedPath) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmedPath)) {
+    return trimmedPath;
+  }
+
+  return trimmedPath.startsWith("/")
+    ? `${backendBaseUrl}${trimmedPath}`
+    : `${backendBaseUrl}/${trimmedPath}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -199,6 +220,8 @@ export const api = {
       body: JSON.stringify(payload),
     }, token),
 
+  getCustomers: (token: string) => request<CustomerSearchResult[]>("/customers", {}, token),
+
   getCurrentCustomer: (token: string) => request<CustomerDetail>("/customers/me", {}, token),
 
   updateCurrentCustomer: (token: string, payload: UpdateCustomerProfileInput) =>
@@ -281,6 +304,11 @@ export const api = {
       body: JSON.stringify(payload),
     }, token),
 
+  deactivateStaffUser: (token: string, userId: number) =>
+    request<StaffUser>(`/admin/staff/${userId}`, {
+      method: "DELETE",
+    }, token),
+
   getMyVehicles: (token: string) =>
     request<Vehicle[]>("/customers/me/vehicles", {}, token),
 
@@ -289,6 +317,14 @@ export const api = {
 
   getMySales: (token: string) =>
     request<Sale[]>("/sales/me", {}, token),
+
+  getSaleById: (token: string, saleId: number) =>
+    request<Sale>(`/sales/${saleId}`, {}, token),
+
+  sendSaleInvoiceEmail: (token: string, saleId: number) =>
+    request<SendSaleInvoiceEmailResponse>(`/sales/${saleId}/send-email`, {
+      method: "POST",
+    }, token),
 
   createSale: (token: string, payload: CreateSaleInput) =>
     request<Sale>("/sales", {

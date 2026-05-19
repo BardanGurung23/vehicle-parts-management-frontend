@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ShoppingCart, Trash2, Search, X, User } from "lucide-react";
-import { api, ApiError } from "../../app/api";
+import { useNavigate } from "react-router-dom";
+import { api, ApiError, resolveBackendAssetUrl } from "../../app/api";
 import { useAuth } from "../../app/auth";
-import type { CustomerSearchInput, CustomerSearchResult, Part } from "../../app/types";
+import type { CustomerSearchInput, CustomerSearchResult, DashboardSummary, Part } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -28,11 +29,15 @@ function buildCustomerSearchPayload(values: SearchFormState): { payload: Custome
 }
 
 export function ShopPage() {
+  const navigate = useNavigate();
   const { user, token } = useAuth();
   const isEmployee = user?.role === "Admin" || user?.role === "Staff";
   const [parts, setParts] = useState<Part[]>([]);
   const [partsLoading, setPartsLoading] = useState(true);
   const [partsError, setPartsError] = useState<string | null>(null);
+  const [insightsSummary, setInsightsSummary] = useState<DashboardSummary | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -40,11 +45,13 @@ export function ShopPage() {
   const [paymentStatus, setPaymentStatus] = useState("Paid");
   const [dueDate, setDueDate] = useState("");
   const [searchValues, setSearchValues] = useState<SearchFormState>({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
+  const [allCustomers, setAllCustomers] = useState<CustomerSearchResult[]>([]);
   const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearchRun, setHasSearchRun] = useState(false);
+  const [customersLoading, setCustomersLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -85,7 +92,128 @@ export function ShopPage() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!token) {
+      setInsightsSummary(null);
+      setInsightsError(null);
+      setInsightsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setInsightsLoading(true);
+
+    void api.getDashboardSummary(token)
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+
+        setInsightsSummary(response);
+        setInsightsError(null);
+      })
+      .catch((loadError: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setInsightsSummary(null);
+        setInsightsError(loadError instanceof ApiError ? loadError.message : "Could not load shop insights.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setInsightsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token || !isEmployee) {
+      setAllCustomers([]);
+      setCustomerResults([]);
+      setCustomersLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setCustomersLoading(true);
+
+    void api.getCustomers(token)
+      .then((results) => {
+        if (!isActive) {
+          return;
+        }
+
+        setAllCustomers(results);
+        setCustomerResults(results);
+        setSearchError(null);
+
+        setSelectedCustomer((currentSelection) => {
+          if (!currentSelection) {
+            return null;
+          }
+
+          return results.find((customer) => customer.customerId === currentSelection.customerId) ?? null;
+        });
+      })
+      .catch((loadError: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setAllCustomers([]);
+        setCustomerResults([]);
+        setSearchError(loadError instanceof ApiError ? loadError.message : "Could not load customers.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setCustomersLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [isEmployee, token]);
+
   const inStockParts = useMemo(() => parts.filter((p) => p.stockQuantity > 0), [parts]);
+  const topCategories = insightsSummary?.inventory?.topCategories?.slice(0, 3) ?? [];
+  const lowStockWatchlist = insightsSummary?.inventory?.lowStockParts?.slice(0, 3) ?? [];
+  const currentInsightCustomer = isEmployee ? selectedCustomer : insightsSummary?.currentCustomer ?? null;
+  const predictiveSignals = useMemo(() => {
+    const predictiveAlerts = insightsSummary?.alerts?.predictiveAlerts ?? [];
+
+    if (!currentInsightCustomer) {
+      return [];
+    }
+
+    return predictiveAlerts
+      .filter((alert) => alert.customerId === currentInsightCustomer.customerId)
+      .slice(0, 3);
+  }, [currentInsightCustomer, insightsSummary?.alerts?.predictiveAlerts]);
+  const cartSignals = useMemo(() => {
+    return cart
+      .map((item) => {
+        const matchingPart = parts.find((part) => part.partId === item.partId);
+
+        if (!matchingPart || matchingPart.stockQuantity > matchingPart.reorderLevel) {
+          return null;
+        }
+
+        return {
+          partId: item.partId,
+          partName: item.partName,
+          stockQuantity: matchingPart.stockQuantity,
+          reorderLevel: matchingPart.reorderLevel,
+        };
+      })
+      .filter((item): item is { partId: number; partName: string; stockQuantity: number; reorderLevel: number } => item !== null);
+  }, [cart, parts]);
+  const showInsights = topCategories.length > 0 || lowStockWatchlist.length > 0 || predictiveSignals.length > 0 || cartSignals.length > 0;
 
   const addToCart = (partId: number, partName: string, unitPrice: number) => {
     setCart((prev) => { const e = prev.find((i) => i.partId === partId); return e ? prev.map((i) => i.partId === partId ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { partId, partName, unitPrice, quantity: 1 }]; });
@@ -110,7 +238,7 @@ export function ShopPage() {
 
   const resetCustomerSearch = () => {
     setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
-    setCustomerResults([]); setSearchError(null); setSelectedCustomer(null); setHasSearchRun(false);
+    setCustomerResults(allCustomers); setSearchError(null); setSelectedCustomer(null); setHasSearchRun(false);
   };
 
   const handleCheckout = async () => {
@@ -120,7 +248,7 @@ export function ShopPage() {
     if (isEmployee && paymentStatus !== "Paid" && !dueDate) { toast.error("Choose a due date for pending or credit sales."); return; }
     try {
       setIsCreating(true);
-      await api.createSale(token, {
+      const sale = await api.createSale(token, {
         customerId: isEmployee ? selectedCustomer?.customerId : undefined,
         paymentStatus: isEmployee ? paymentStatus : undefined,
         dueDate: isEmployee && paymentStatus !== "Paid" && dueDate ? new Date(`${dueDate}T00:00:00Z`).toISOString() : undefined,
@@ -131,6 +259,7 @@ export function ShopPage() {
       setCart([]); setNotes("");
       setPaymentStatus("Paid");
       setDueDate("");
+      navigate(`/app/sales/${sale.saleId}`);
     } catch { toast.error("Failed to complete purchase."); }
     finally { setIsCreating(false); }
   };
@@ -147,20 +276,123 @@ export function ShopPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
+          <Card
+            header={
+              <div>
+                <h2 className="text-base font-semibold text-on-surface">AI Shop Insights</h2>
+                <p className="text-sm text-on-surface-variant">Live inventory and alert-driven guidance for this shop session.</p>
+              </div>
+            }
+          >
+            {insightsLoading ? (
+              <p className="text-sm text-on-surface-variant">Analyzing inventory, demand, and alert signals...</p>
+            ) : insightsError ? (
+              <p className="text-sm text-danger-600">{insightsError}</p>
+            ) : showInsights ? (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Top demand categories</p>
+                  {topCategories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {topCategories.map((category) => (
+                        <Badge key={category.label} variant="info">
+                          {category.label} · {category.count}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">Demand trends will appear once category signals are available.</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Cart pressure</p>
+                  {cartSignals.length > 0 ? (
+                    <div className="space-y-2">
+                      {cartSignals.map((signal) => (
+                        <div key={signal.partId} className="rounded-lg bg-warning-50 px-3 py-2 text-xs text-warning-800 ring-1 ring-warning-100">
+                          {signal.partName} is already at its reorder threshold: {signal.stockQuantity} left against a target of {signal.reorderLevel}.
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">Your current cart is not putting additional pressure on low-stock inventory.</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Stock to watch</p>
+                  {lowStockWatchlist.length > 0 ? (
+                    <div className="space-y-2">
+                      {lowStockWatchlist.map((part) => (
+                        <div key={part.partId} className="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2 ring-1 ring-white/[0.06]">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-on-surface">{part.partName}</p>
+                            <p className="text-[11px] text-on-surface-variant">{part.partNumber}{part.categoryName ? ` · ${part.categoryName}` : ""}</p>
+                          </div>
+                          <Badge variant="warning">{part.stockQuantity}/{part.reorderLevel}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">No urgent stock warnings are active right now.</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Customer signals</p>
+                  {currentInsightCustomer && predictiveSignals.length > 0 ? (
+                    <div className="space-y-2">
+                      {predictiveSignals.map((alert) => (
+                        <div key={alert.predictiveAlertId} className="rounded-lg bg-primary-container/40 px-3 py-2 text-xs text-on-surface ring-1 ring-white/[0.06]">
+                          <p className="font-medium">{alert.vehicleNumber}{alert.partName ? ` · ${alert.partName}` : ""}</p>
+                          <p className="text-on-surface-variant mt-1">{alert.alertMessage}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : currentInsightCustomer ? (
+                    <p className="text-xs text-on-surface-variant">No predictive part signals are active for {currentInsightCustomer.fullName} right now.</p>
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">Select a customer to unlock customer-specific maintenance and part-risk insights.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-on-surface-variant">The catalog is healthy right now, so there are no additional insight signals to surface.</p>
+            )}
+          </Card>
+
           {inStockParts.length === 0 ? (
             <Card><p className="text-sm text-on-surface-variant text-center py-8">No parts are currently in stock.</p></Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {inStockParts.map((part) => (
                 <Card key={part.partId}>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    <div className="overflow-hidden rounded-lg bg-surface-container-low ring-1 ring-white/[0.08]">
+                      {resolveBackendAssetUrl(part.imageUrl) ? (
+                        <img
+                          src={resolveBackendAssetUrl(part.imageUrl) ?? undefined}
+                          alt={part.partName}
+                          className="h-40 w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-40 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.24em] text-on-surface-variant">
+                          {part.partNumber}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="text-sm font-semibold text-on-surface">{part.partName}</h3>
-                        <p className="text-xs text-on-surface-variant">{part.partNumber}</p>
+                        <p className="text-xs text-on-surface-variant">{part.partNumber}{part.categoryName ? ` · ${part.categoryName}` : ""}</p>
                       </div>
                       <Badge variant={part.stockQuantity > 10 ? "success" : "warning"}>In stock: {part.stockQuantity}</Badge>
                     </div>
+                    {part.description ? (
+                      <p className="text-xs leading-5 text-on-surface-variant">{part.description}</p>
+                    ) : null}
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-lg font-bold text-on-surface">${part.unitPrice.toFixed(2)}</span>
                       <ActionButton size="sm" icon={ShoppingCart} onClick={() => addToCart(part.partId, part.partName, part.unitPrice)}>Add to Cart</ActionButton>
@@ -180,7 +412,34 @@ export function ShopPage() {
               <div className="mb-4 pb-4 border-b border-white/[0.06] space-y-3">
                 <div>
                   <h3 className="text-sm font-semibold text-on-surface flex items-center gap-2"><User className="w-4 h-4" /> Select Customer</h3>
-                  <p className="text-xs text-on-surface-variant">Staff purchases must be assigned to a customer.</p>
+                  <p className="text-xs text-on-surface-variant">Staff purchases must be assigned to a customer. Use the dropdown or narrow the directory below.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Customer directory</label>
+                  <select
+                    className="input text-xs"
+                    value={selectedCustomer?.customerId ?? ""}
+                    onChange={(event) => {
+                      const customerId = Number(event.target.value);
+
+                      if (!customerId) {
+                        setSelectedCustomer(null);
+                        return;
+                      }
+
+                      const customer = allCustomers.find((item) => item.customerId === customerId) ?? null;
+                      setSelectedCustomer(customer);
+                    }}
+                    disabled={customersLoading || allCustomers.length === 0}
+                  >
+                    <option value="">{customersLoading ? "Loading customers..." : "Select a customer"}</option>
+                    {allCustomers.map((customer) => (
+                      <option key={customer.customerId} value={customer.customerId}>
+                        {customer.fullName} #{customer.customerId}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {selectedCustomer && (
@@ -196,6 +455,7 @@ export function ShopPage() {
                 {searchError ? <AlertBox tone="error" message={searchError} dismissible /> : null}
 
                 <form onSubmit={handleCustomerSearch} className="space-y-2">
+                  <p className="text-[11px] text-on-surface-variant">Optional search filters</p>
                   <input className="input h-8 text-xs" type="text" inputMode="numeric" placeholder="Customer ID" value={searchValues.customerId}
                     onChange={(e) => setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))} />
                   <input className="input h-8 text-xs" type="text" placeholder="Phone number" value={searchValues.phoneNumber}
