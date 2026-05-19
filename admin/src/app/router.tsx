@@ -12,6 +12,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import PartsPage from "../features/parts/PartsPage";
 import { CustomerProfilePage } from "../features/profile/CustomerProfilePage";
 import { CustomerVehiclesPage } from "../features/profile/CustomerVehiclesPage";
+import { VehicleInsightsPage } from "../features/profile/VehicleInsightsPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
@@ -22,6 +23,7 @@ import { CustomerReportsPage } from "../features/reports/CustomerReportsPage";
 import { FinancialReportsPage } from "../features/reports/FinancialReportsPage";
 import { WriteReviewPage } from "../features/reviews/WriteReviewPage";
 import Vendors from "../pages/Vendors";
+import { InvoiceDetailPage } from "../features/sales/InvoiceDetailPage";
 import { MySalesPage } from "../features/sales/MySalesPage";
 import { ShopPage } from "../features/sales/ShopPage";
 import { RequestPartPage } from "../features/part-requests/RequestPartPage";
@@ -132,6 +134,10 @@ export const router = createBrowserRouter([
             element: <ShopPage />,
           },
           {
+            path: "sales/:saleId",
+            element: <InvoiceDetailPage />,
+          },
+          {
             element: <CustomerOnlyOutlet />,
             children: [
               {
@@ -177,6 +183,10 @@ export const router = createBrowserRouter([
               {
                 path: "profile/vehicles",
                 element: <CustomerVehiclesPage />,
+              },
+              {
+                path: "profile/vehicles/:vehicleId/insights",
+                element: <VehicleInsightsPage />,
               },
             ],
           },

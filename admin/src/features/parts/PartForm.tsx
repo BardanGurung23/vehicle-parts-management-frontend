@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api, ApiError } from "../../app/api";
+import { api, ApiError, resolveBackendAssetUrl } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { Part, PartCategory } from "../../app/types";
 import { Field } from "../../shared/components/Field";
@@ -13,6 +13,7 @@ const schema = z.object({
   partNumber: z.string().min(1, "Part number is required"),
   partName: z.string().min(1, "Part name is required"),
   description: z.string().optional(),
+  imageUrl: z.string().trim().max(500, "Must be 500 characters or fewer").optional(),
   unitPrice: z.coerce.number().min(0, "Must be >= 0"),
   costPrice: z.coerce.number().min(0, "Must be >= 0"),
   stockQuantity: z.coerce.number().int().min(0, "Must be >= 0"),
@@ -29,6 +30,7 @@ const defaultValues: FormType = {
   partNumber: "",
   partName: "",
   description: "",
+  imageUrl: "",
   unitPrice: 0,
   costPrice: 0,
   stockQuantity: 0,
@@ -64,10 +66,30 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormType>({ resolver: zodResolver(schema) });
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null);
 
   const isSaving = isSubmitting;
+  const imageUrlValue = watch("imageUrl") ?? "";
+  const normalizedImageUrlValue = imageUrlValue.trim();
+
+  useEffect(() => {
+    if (!selectedImageFile) {
+      setSelectedImagePreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedImageFile);
+    setSelectedImagePreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedImageFile]);
 
   useEffect(() => {
     if (isEdit) {
@@ -75,16 +97,39 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         partNumber: editPart.partNumber,
         partName: editPart.partName,
         description: editPart.description ?? "",
+        imageUrl: editPart.imageUrl ?? "",
         unitPrice: editPart.unitPrice,
         costPrice: editPart.costPrice,
         stockQuantity: editPart.stockQuantity,
         reorderLevel: editPart.reorderLevel,
         partCategoryId: editPart.partCategoryId ?? null,
       });
+      setSelectedImageFile(null);
+      setRemoveImage(false);
       return;
     }
     reset(defaultValues);
+    setSelectedImageFile(null);
+    setRemoveImage(false);
   }, [editPart, isEdit, reset]);
+
+  const imageUrlField = register("imageUrl", {
+    onChange: () => {
+      setRemoveImage(false);
+    },
+  });
+
+  const previewImageUrl = selectedImagePreviewUrl
+    ?? (normalizedImageUrlValue ? resolveBackendAssetUrl(normalizedImageUrlValue) : null)
+    ?? (isEdit && !removeImage ? resolveBackendAssetUrl(editPart.imageUrl) : null);
+
+  const imageSummary = selectedImageFile
+    ? `Selected upload: ${selectedImageFile.name}`
+    : normalizedImageUrlValue
+      ? `URL fallback: ${normalizedImageUrlValue}`
+      : isEdit && !removeImage && editPart.imageUrl
+        ? `Current image: ${editPart.imageUrl}`
+        : "No image selected.";
 
   const onSubmit = async (data: FormType) => {
     if (!token) {
@@ -97,6 +142,9 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         const updated = await api.updatePart(token, editPart.partId, {
           partName: data.partName,
           description: data.description,
+          imageUrl: data.imageUrl,
+          imageFile: selectedImageFile,
+          removeImage,
           unitPrice: data.unitPrice,
           costPrice: data.costPrice,
           stockQuantity: data.stockQuantity,
@@ -110,6 +158,8 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
           partNumber: data.partNumber,
           partName: data.partName,
           description: data.description,
+          imageUrl: data.imageUrl,
+          imageFile: selectedImageFile,
           unitPrice: data.unitPrice,
           costPrice: data.costPrice,
           stockQuantity: data.stockQuantity,
@@ -160,6 +210,52 @@ export default function PartForm({ editPart, onClose, categories, onSaved }: Rea
         <div className="col-span-2">
           <Field label="Description" error={errors.description?.message} htmlFor="description" hint="Optional context for staff.">
             <textarea id="description" className="input" rows={4} placeholder="Add supplier notes, fitment guidance..." {...register("description")} />
+          </Field>
+        </div>
+        <div className="col-span-2">
+          <Field label="Part image" error={errors.imageUrl?.message} htmlFor="imageFile" hint="Upload JPG, PNG, or WebP. Uploaded files override the URL fallback.">
+            <div className="space-y-3">
+              {previewImageUrl ? (
+                <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-surface-container-low">
+                  <img src={previewImageUrl} alt={isEdit ? editPart.partName : "Selected part image preview"} className="h-40 w-full object-cover" />
+                </div>
+              ) : null}
+              <input
+                id="imageFile"
+                className="input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setSelectedImageFile(file);
+                  if (file) {
+                    setRemoveImage(false);
+                  }
+                }}
+              />
+              <p className="text-xs text-on-surface-variant">{imageSummary}</p>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <Field label="Image URL fallback" error={errors.imageUrl?.message} htmlFor="imageUrl" hint="Optional backend-served or external image URL.">
+                  <input id="imageUrl" className="input" placeholder="/catalog/brake-pad.svg" {...imageUrlField} />
+                </Field>
+                {isEdit && (editPart.imageUrl || selectedImageFile || normalizedImageUrlValue) ? (
+                  <ActionButton
+                    type="button"
+                    tone="secondary"
+                    onClick={() => {
+                      setSelectedImageFile(null);
+                      setRemoveImage(true);
+                      reset({
+                        ...watch(),
+                        imageUrl: "",
+                      });
+                    }}
+                  >
+                    Remove image
+                  </ActionButton>
+                ) : null}
+              </div>
+            </div>
           </Field>
         </div>
       </div>

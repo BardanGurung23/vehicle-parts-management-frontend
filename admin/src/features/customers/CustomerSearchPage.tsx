@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Search, X, UserPlus, ArrowRight } from "lucide-react";
 import { api, ApiError } from "../../app/api";
@@ -6,10 +6,13 @@ import { useAuth } from "../../app/auth";
 import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
+import { Badge } from "../../shared/components/Badge";
 import { Card } from "../../shared/components/Card";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { EmptyState } from "../../shared/components/EmptyState";
+
+type AccountFilter = "all" | "registered" | "staff-created";
 
 type SearchFormState = {
   customerId: string;
@@ -60,6 +63,61 @@ export function CustomerSearchPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [hasSearchRun, setHasSearchRun] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingDirectory, setIsLoadingDirectory] = useState(true);
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
+
+  const registeredCount = customerResults.filter((customer) => Boolean(customer.userId)).length;
+  const staffCreatedCount = customerResults.length - registeredCount;
+  const visibleCustomerResults = customerResults.filter((customer) => {
+    if (accountFilter === "registered") {
+      return Boolean(customer.userId);
+    }
+
+    if (accountFilter === "staff-created") {
+      return !customer.userId;
+    }
+
+    return true;
+  });
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!token) {
+      setIsLoadingDirectory(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    void api.getCustomers(token)
+      .then((results) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCustomerResults(results);
+        setPageError(null);
+        setHasSearchRun(false);
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        setCustomerResults([]);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingDirectory(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,17 +148,31 @@ export function CustomerSearchPage() {
 
   const resetSearch = () => {
     setSearchValues({ customerId: "", phoneNumber: "", vehicleNumber: "", name: "" });
-    setCustomerResults([]);
     setPageError(null);
     setHasSearchRun(false);
+    setAccountFilter("all");
+
+    if (!token) {
+      setCustomerResults([]);
+      return;
+    }
+
+    void api.getCustomers(token)
+      .then((results) => {
+        setCustomerResults(results);
+      })
+      .catch((error: unknown) => {
+        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        setCustomerResults([]);
+      });
   };
 
   return (
     <PageShell>
       <PageHeader
         eyebrow="Feature 10"
-        title="Search Customers"
-        description="Search by customer ID, phone number, vehicle number, or full name."
+        title="Browse Customers"
+        description="Browse the customer directory, then narrow by customer ID, phone number, vehicle number, or full name."
         actions={
           <Link to="/app/customers/register">
             <ActionButton icon={UserPlus}>Register customer</ActionButton>
@@ -114,7 +186,7 @@ export function CustomerSearchPage() {
         header={
           <div>
             <h3 className="text-base font-semibold text-on-surface">Lookup filters</h3>
-            <p className="text-sm text-on-surface-variant">Provide any combination of fields.</p>
+            <p className="text-sm text-on-surface-variant">Use filters when you need to narrow the full customer directory.</p>
           </div>
         }
       >
@@ -149,7 +221,7 @@ export function CustomerSearchPage() {
             <ActionButton type="submit" icon={Search} disabled={isSearching}>
               {isSearching ? "Searching..." : "Search customers"}
             </ActionButton>
-            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Reset</ActionButton>
+            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Browse all</ActionButton>
           </div>
         </form>
       </Card>
@@ -159,34 +231,76 @@ export function CustomerSearchPage() {
           <div>
             <h3 className="text-base font-semibold text-on-surface">Results</h3>
             <p className="text-sm text-on-surface-variant">
-              {hasSearchRun
-                ? `${customerResults.length} customer result${customerResults.length === 1 ? "" : "s"} returned.`
-                : "Run a search to review matching customer records."}
+              {isLoadingDirectory
+                ? "Loading customer directory..."
+                : hasSearchRun
+                ? `${visibleCustomerResults.length} customer result${visibleCustomerResults.length === 1 ? "" : "s"} shown.`
+                : `${visibleCustomerResults.length} customer${visibleCustomerResults.length === 1 ? "" : "s"} shown in the directory.`}
             </p>
+            {!isLoadingDirectory && customerResults.length > 0 && accountFilter !== "all" ? (
+              <p className="mt-1 text-xs text-on-surface-variant">
+                Showing {visibleCustomerResults.length} of {customerResults.length} records after applying the {accountFilter === "registered" ? "registered accounts" : "staff-created profiles"} filter.
+              </p>
+            ) : null}
           </div>
         }
       >
-        {hasSearchRun && customerResults.length === 0 ? (
+        {isLoadingDirectory ? (
+          <p className="text-sm text-on-surface-variant text-center py-8">Loading customer directory...</p>
+        ) : hasSearchRun && customerResults.length === 0 ? (
           <EmptyState icon={Search} title="No results" description="No customer matched the filters you entered." />
         ) : customerResults.length > 0 ? (
           <div className="space-y-3">
-            {customerResults.map((customer) => (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Shown</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{visibleCustomerResults.length}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Registered accounts</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{registeredCount}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low p-4">
+                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Staff-created profiles</p>
+                <p className="mt-2 text-2xl font-semibold text-on-surface">{staffCreatedCount}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <ActionButton size="sm" tone={accountFilter === "all" ? "filled" : "tonal"} onClick={() => setAccountFilter("all")}>All accounts</ActionButton>
+              <ActionButton size="sm" tone={accountFilter === "registered" ? "filled" : "tonal"} onClick={() => setAccountFilter("registered")}>Registered accounts</ActionButton>
+              <ActionButton size="sm" tone={accountFilter === "staff-created" ? "filled" : "tonal"} onClick={() => setAccountFilter("staff-created")}>Staff-created profiles</ActionButton>
+            </div>
+
+            {visibleCustomerResults.length > 0 ? visibleCustomerResults.map((customer) => (
               <div key={customer.customerId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                    <Badge variant={customer.userId ? "success" : "neutral"}>{customer.userId ? "Portal account" : "Staff-created profile"}</Badge>
+                  </div>
                   <p className="text-xs text-on-surface-variant">{customer.email ?? "No email recorded"}</p>
                   <div className="flex items-center gap-4 mt-1 text-xs text-on-surface-variant">
                     <span>{customer.phoneNumber}</span>
                     <span>{customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}</span>
                   </div>
+                  {customer.vehicles.length > 0 ? (
+                    <p className="mt-2 text-xs text-on-surface-variant truncate">
+                      {customer.vehicles.map((vehicle) => vehicle.vehicleNumber).join(" • ")}
+                    </p>
+                  ) : null}
                 </div>
                 <Link to={`/app/customers/${customer.customerId}`} className="shrink-0">
                   <ActionButton size="sm" icon={ArrowRight}>View details</ActionButton>
                 </Link>
               </div>
-            ))}
+            )) : (
+              <EmptyState icon={Search} title="No matching accounts" description="No customer matches the selected account visibility filter." />
+            )}
           </div>
-        ) : null}
+        ) : (
+          <EmptyState icon={Search} title="No customers yet" description="Customer records will appear here once they are registered." />
+        )}
       </Card>
     </PageShell>
   );

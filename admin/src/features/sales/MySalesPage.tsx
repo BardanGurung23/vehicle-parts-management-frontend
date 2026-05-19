@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Receipt } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { Sale } from "../../app/types";
+import { ActionButton } from "../../shared/components/ActionButton";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { AlertBox } from "../../shared/components/AlertBox";
@@ -11,6 +13,7 @@ import { EmptyState } from "../../shared/components/EmptyState";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 
 export function MySalesPage() {
+  const navigate = useNavigate();
   const { token } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,6 +107,12 @@ export function MySalesPage() {
                 {sale.dueDate && <div className="flex justify-between"><dt className="text-on-surface-variant">Due date</dt><dd className="text-on-surface">{new Date(sale.dueDate).toLocaleDateString()}</dd></div>}
                 <div className="flex justify-between font-semibold text-sm text-on-surface"><dt>{sale.paymentStatus === "Paid" ? "Total paid" : "Invoice total"}</dt><dd>${sale.totalAmount.toFixed(2)}</dd></div>
               </dl>
+
+              <div className="mt-4 flex justify-end border-t border-white/[0.06] pt-3">
+                <ActionButton tone="tonal" size="sm" onClick={() => navigate(`/app/sales/${sale.saleId}`)}>
+                  View invoice
+                </ActionButton>
+              </div>
             </Card>
           ))}
         </div>

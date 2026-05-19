@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { DashboardSummary } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { Badge } from "../../shared/components/Badge";
 import { Card } from "../../shared/components/Card";
 import { KpiGrid } from "./components/KpiGrid";
 import { InventoryHealthPanel } from "./components/InventoryHealthPanel";
@@ -38,7 +40,7 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 type MetricCard = { label: string; value: string; note: string };
 
 export function DashboardPage() {
-  const { user, token, isAdmin } = useAuth();
+  const { user, token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -89,6 +91,7 @@ export function DashboardPage() {
   const lowStockWatchlist = inventory?.lowStockParts ?? [];
   const overdueCreditWatchlist = alerts?.overdueCreditAlerts ?? [];
   const predictiveWatchlist = alerts?.predictiveAlerts ?? [];
+  const recentRegisteredCustomers = summary?.recentRegisteredCustomers ?? [];
 
   const dashboardUnavailable = Boolean(summaryError) && !isSummaryLoading;
 
@@ -166,7 +169,51 @@ export function DashboardPage() {
             />
           )}
 
-              {isAdmin && alerts && !dashboardUnavailable && (
+          <Card
+            header={
+              <div>
+                <h3 className="text-sm font-semibold text-on-surface">Recent Registered Accounts</h3>
+                <p className="text-xs text-on-surface-variant">Portal-linked customers who recently registered and are ready for staff workflows.</p>
+              </div>
+            }
+          >
+            {isSummaryLoading ? (
+              <p className="text-sm text-on-surface-variant">Loading recent registered accounts...</p>
+            ) : dashboardUnavailable ? (
+              <p className="text-sm text-on-surface-variant">Recent registered accounts are unavailable right now.</p>
+            ) : recentRegisteredCustomers.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {recentRegisteredCustomers.map((customer) => (
+                  <Link
+                    key={customer.customerId}
+                    to={`/app/customers/${customer.customerId}`}
+                    className="flex items-start justify-between gap-3 rounded-2xl bg-surface-container-low px-4 py-3 ring-1 ring-white/[0.06] transition-colors hover:bg-surface-container"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                        <Badge variant="success">Portal account</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-on-surface-variant">
+                        #{customer.customerId} · {customer.phoneNumber}
+                        {customer.email ? ` · ${customer.email}` : ""}
+                      </p>
+                      {customer.vehicles.length > 0 ? (
+                        <p className="mt-2 text-xs text-on-surface-variant truncate">
+                          {customer.vehicles.map((vehicle) => vehicle.vehicleNumber).join(" • ")}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-primary">Open</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-on-surface-variant">No portal-linked customer accounts have been registered yet.</p>
+            )}
+          </Card>
+
+              {alerts && !dashboardUnavailable && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Card
                     header={

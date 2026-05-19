@@ -24,6 +24,7 @@ import type {
   RegisterCustomerResponse,
   RoleOption,
   ServiceReview,
+  SendSaleInvoiceEmailResponse,
   StaffUser,
   UpdateCustomerProfileInput,
   UpdatePartInput,
@@ -31,15 +32,36 @@ import type {
   UserProfile,
   Vendor,
   Vehicle,
+  VehicleInsights,
   Appointment,
   Sale,
 } from "./types";
 
 const configuredBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5154").replace(/\/+$/, "");
 
+export const backendBaseUrl = configuredBaseUrl.endsWith("/api")
+  ? configuredBaseUrl.slice(0, -4)
+  : configuredBaseUrl;
+
 const apiBaseUrl = configuredBaseUrl.endsWith("/api")
   ? configuredBaseUrl
   : `${configuredBaseUrl}/api`;
+
+export function resolveBackendAssetUrl(path: string | null | undefined): string | null {
+  const trimmedPath = typeof path === "string" ? path.trim() : "";
+
+  if (!trimmedPath) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmedPath)) {
+    return trimmedPath;
+  }
+
+  return trimmedPath.startsWith("/")
+    ? `${backendBaseUrl}${trimmedPath}`
+    : `${backendBaseUrl}/${trimmedPath}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -155,6 +177,51 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
+function appendOptionalPartField(formData: FormData, key: string, value: string | number | boolean | null | undefined) {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    formData.append(key, trimmed);
+    return;
+  }
+
+  formData.append(key, String(value));
+}
+
+function buildPartFormData(payload: CreatePartInput | UpdatePartInput, includePartNumber: boolean) {
+  const formData = new FormData();
+
+  if (includePartNumber && "partNumber" in payload) {
+    appendOptionalPartField(formData, "partNumber", payload.partNumber);
+  }
+
+  appendOptionalPartField(formData, "partName", payload.partName);
+  appendOptionalPartField(formData, "description", payload.description);
+  appendOptionalPartField(formData, "imageUrl", payload.imageUrl);
+  appendOptionalPartField(formData, "unitPrice", payload.unitPrice);
+  appendOptionalPartField(formData, "costPrice", payload.costPrice);
+  appendOptionalPartField(formData, "stockQuantity", payload.stockQuantity);
+  appendOptionalPartField(formData, "reorderLevel", payload.reorderLevel);
+  appendOptionalPartField(formData, "partCategoryId", payload.partCategoryId);
+
+  if ("removeImage" in payload) {
+    appendOptionalPartField(formData, "removeImage", payload.removeImage ?? false);
+  }
+
+  if (payload.imageFile instanceof File) {
+    formData.append("imageFile", payload.imageFile);
+  }
+
+  return formData;
+}
+
 export const api = {
   login: (payload: LoginInput) =>
     request<AuthResponse>("/auth/login", {
@@ -173,13 +240,13 @@ export const api = {
   createPart: (token: string, payload: CreatePartInput) =>
     request<Part>("/parts", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: buildPartFormData(payload, true),
     }, token),
 
   updatePart: (token: string, partId: number, payload: UpdatePartInput) =>
     request<Part>(`/parts/${partId}`, {
       method: "PUT",
-      body: JSON.stringify(payload),
+      body: buildPartFormData(payload, false),
     }, token),
 
   deletePart: (token: string, partId: number) =>
@@ -199,6 +266,8 @@ export const api = {
       body: JSON.stringify(payload),
     }, token),
 
+  getCustomers: (token: string) => request<CustomerSearchResult[]>("/customers", {}, token),
+
   getCurrentCustomer: (token: string) => request<CustomerDetail>("/customers/me", {}, token),
 
   updateCurrentCustomer: (token: string, payload: UpdateCustomerProfileInput) =>
@@ -213,6 +282,9 @@ export const api = {
       body: JSON.stringify({
         vehicleNumber: payload.vehicleNumber,
         model: payload.vehicleModel,
+        mileage: payload.mileage,
+        manufactureYear: payload.manufactureYear,
+        lastServiceDate: payload.lastServiceDate,
       }),
     }, token),
 
@@ -222,6 +294,9 @@ export const api = {
       body: JSON.stringify({
         vehicleNumber: payload.vehicleNumber,
         model: payload.vehicleModel,
+        mileage: payload.mileage,
+        manufactureYear: payload.manufactureYear,
+        lastServiceDate: payload.lastServiceDate,
       }),
     }, token),
 
@@ -281,14 +356,30 @@ export const api = {
       body: JSON.stringify(payload),
     }, token),
 
+  deactivateStaffUser: (token: string, userId: number) =>
+    request<StaffUser>(`/admin/staff/${userId}`, {
+      method: "DELETE",
+    }, token),
+
   getMyVehicles: (token: string) =>
     request<Vehicle[]>("/customers/me/vehicles", {}, token),
+
+  getVehicleInsights: (token: string, vehicleId: number) =>
+    request<VehicleInsights>(`/customers/me/vehicles/${vehicleId}/insights`, {}, token),
 
   getMyAppointments: (token: string) =>
     request<Appointment[]>("/appointments/me", {}, token),
 
   getMySales: (token: string) =>
     request<Sale[]>("/sales/me", {}, token),
+
+  getSaleById: (token: string, saleId: number) =>
+    request<Sale>(`/sales/${saleId}`, {}, token),
+
+  sendSaleInvoiceEmail: (token: string, saleId: number) =>
+    request<SendSaleInvoiceEmailResponse>(`/sales/${saleId}/send-email`, {
+      method: "POST",
+    }, token),
 
   createSale: (token: string, payload: CreateSaleInput) =>
     request<Sale>("/sales", {
@@ -356,6 +447,9 @@ export const api = {
 
     return request<FinancialReport>(path, {}, token);
   },
+
+  getAllTimeFinancialReport: (token: string) =>
+    request<FinancialReport>("/admin/reports/financial/all-time", {}, token),
 
   getVendors: (token: string) => request<Vendor[]>("/admin/vendors", {}, token),
 

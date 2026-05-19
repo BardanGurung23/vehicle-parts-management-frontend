@@ -323,7 +323,7 @@ export function AppLayout() {
           show: canManageCustomers,
         },
         {
-          label: "Search",
+          label: "Browse",
           to: "/app/customers/search",
           icon: Search,
           show: canManageCustomers,

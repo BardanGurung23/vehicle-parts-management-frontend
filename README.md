@@ -6,7 +6,7 @@ This folder-level `frontend/` package is not the app runtime. The shipped UI is 
 
 ## Current Status
 
-This README reflects the latest roadmap update in `doc/progress.md` from `2026-05-14`.
+This README reflects the latest roadmap update in `doc/progress.md` from `2026-05-16`.
 
 Implemented in the active frontend:
 
@@ -96,10 +96,10 @@ Install frontend dependencies:
 npm --prefix frontend/admin install
 ```
 
-Start the backend API:
+Run the guided backend startup first:
 
 ```bash
-dotnet run --project backend/Vpims.API --configuration Debug
+npm run start:backend
 ```
 
 Start the frontend dev server:
@@ -126,6 +126,12 @@ Run frontend tests:
 npm --prefix frontend/admin run test:run
 ```
 
+Start both backend and frontend together:
+
+```bash
+npm run start:all
+```
+
 ## Default Local URLs
 
 | Service | Default URL |
@@ -140,13 +146,15 @@ Notes:
 
 ## Backend Dependency And Demo Data
 
-Start the backend before opening the frontend.
+Start the guided backend path before opening the frontend.
 
-In Development, the API startup path is documented as:
+In Development, the backend preflight path is documented as:
 
-- auto-resetting mismatched local databases,
-- applying the committed EF Core baseline migration,
-- seeding the canonical demo dataset.
+- verifying PostgreSQL availability and access,
+- checking local schema and migration compatibility,
+- prompting before destructive resets,
+- blocking automatic drops when non-demo local data is detected,
+- applying the committed EF Core baseline migration and both demo seed paths.
 
 The seeded canonical demo accounts use the `demo.*@autonix.local` pattern, and the documented default password is `DemoPass123!`.
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Users } from "lucide-react";
+import { BarChart3, Eye, Users } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import type { CustomerReportEntry, CustomerReports } from "../../app/types";
@@ -12,6 +12,7 @@ import { AlertBox } from "../../shared/components/AlertBox";
 import { DataTable, type Column } from "../../shared/components/DataTable";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 import { EmptyState } from "../../shared/components/EmptyState";
+import { CustomerReportDetailDialog } from "./components/CustomerReportDetailDialog";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 function formatCurrency(value: number) { return currencyFormatter.format(value); }
@@ -40,6 +41,8 @@ export function CustomerReportsPage() {
   const [report, setReport] = useState<CustomerReports | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerReportEntry | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -123,6 +126,18 @@ export function CustomerReportsPage() {
       header: "Last activity",
       cell: (row) => <span>{formatDate(row.lastActivityAt)}</span>,
     },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (row) => (
+        <ActionButton size="sm" tone="tonal" icon={Eye} onClick={() => {
+          setSelectedCustomer(row);
+          setIsDetailOpen(true);
+        }}>
+          View details
+        </ActionButton>
+      ),
+    },
   ];
 
   if (isLoading) {
@@ -182,9 +197,9 @@ export function CustomerReportsPage() {
             }
           >
             <div className="flex flex-wrap gap-2 mb-4">
-              <ActionButton tone={section === "regular" ? "primary" : "secondary"} size="sm" onClick={() => setSection("regular")}>Regular Customers</ActionButton>
-              <ActionButton tone={section === "high-spenders" ? "primary" : "secondary"} size="sm" onClick={() => setSection("high-spenders")}>High Spenders</ActionButton>
-              <ActionButton tone={section === "pending-credits" ? "primary" : "secondary"} size="sm" onClick={() => setSection("pending-credits")}>Pending Credits</ActionButton>
+              <ActionButton tone={section === "regular" ? "filled" : "tonal"} size="sm" onClick={() => setSection("regular")}>Regular Customers</ActionButton>
+              <ActionButton tone={section === "high-spenders" ? "filled" : "tonal"} size="sm" onClick={() => setSection("high-spenders")}>High Spenders</ActionButton>
+              <ActionButton tone={section === "pending-credits" ? "filled" : "tonal"} size="sm" onClick={() => setSection("pending-credits")}>Pending Credits</ActionButton>
             </div>
 
             {activeRows.length > 0 ? (
@@ -193,6 +208,18 @@ export function CustomerReportsPage() {
               <EmptyState icon={section === "pending-credits" ? BarChart3 : Users} title="No matching customers" description="No customers matched this report section for the selected filters." />
             )}
           </Card>
+
+          <CustomerReportDetailDialog
+            token={token}
+            customer={selectedCustomer}
+            open={isDetailOpen}
+            onOpenChange={(open) => {
+              setIsDetailOpen(open);
+              if (!open) {
+                setSelectedCustomer(null);
+              }
+            }}
+          />
         </>
       ) : (
         <EmptyState icon={BarChart3} title="Customer reports unavailable" description="The report could not be loaded for the selected filters." />

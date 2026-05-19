@@ -50,6 +50,9 @@ export interface VehicleSummary {
   vehicleId: number;
   vehicleNumber: string;
   model?: string | null;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  lastServiceDate?: string | null;
 }
 
 export interface CustomerDetail {
@@ -73,6 +76,35 @@ export interface UpdateCustomerProfileInput {
 export interface AddVehicleInput {
   vehicleNumber: string;
   vehicleModel?: string;
+  mileage?: number;
+  manufactureYear?: number;
+  lastServiceDate?: string;
+}
+
+export interface VehicleInsightItem {
+  code: string;
+  category: string;
+  title: string;
+  description: string;
+  riskLevel: "Low" | "Medium" | "High" | string;
+  recommendedAction: string;
+  predictedTimeframe: string;
+}
+
+export interface VehicleInsights {
+  vehicleId: number;
+  vehicleNumber: string;
+  model?: string | null;
+  healthScore: number;
+  healthStatus: "Good" | "Moderate" | "Critical" | string;
+  usagePattern: string;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  vehicleAgeYears?: number | null;
+  estimatedAnnualMileage?: number | null;
+  lastServiceDate?: string | null;
+  generatedAt: string;
+  insights: VehicleInsightItem[];
 }
 
 export interface CustomerSearchInput {
@@ -176,6 +208,7 @@ export interface DashboardSummary {
   inventory?: DashboardInventorySummary | null;
   staff?: DashboardStaffSummary | null;
   alerts?: AlertSummary | null;
+  recentRegisteredCustomers?: CustomerSearchResult[] | null;
   currentCustomer?: CustomerDetail | null;
 }
 
@@ -212,6 +245,9 @@ export interface Vehicle {
   vehicleId: number;
   vehicleNumber: string;
   model: string;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  lastServiceDate?: string | null;
 }
 
 export interface Part {
@@ -219,6 +255,7 @@ export interface Part {
   partNumber: string;
   partName: string;
   description?: string | null;
+  imageUrl?: string | null;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -238,6 +275,8 @@ export interface CreatePartInput {
   partNumber: string;
   partName: string;
   description?: string;
+  imageUrl?: string;
+  imageFile?: File | null;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -248,6 +287,9 @@ export interface CreatePartInput {
 export interface UpdatePartInput {
   partName: string;
   description?: string;
+  imageUrl?: string;
+  imageFile?: File | null;
+  removeImage?: boolean;
   unitPrice: number;
   costPrice: number;
   stockQuantity: number;
@@ -409,6 +451,29 @@ export interface SaleItem {
   quantity: number;
   unitPrice: number;
   lineTotal?: number;
+}
+
+export interface SendSaleInvoiceEmailResponse {
+  saleId: number;
+  invoiceNumber: string;
+  recipientEmail: string;
+  message: string;
+}
+
+export interface Sale {
+  saleId: number;
+  invoiceNumber: string;
+  customerName: string;
+  customerEmail?: string | null;
+  vehicleNumber?: string | null;
+  saleDate: string;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  paymentStatus: string;
+  dueDate?: string | null;
+  notes?: string | null;
+  items: SaleItem[];
 }
 
 export interface CustomerReportEntry {
