@@ -50,6 +50,9 @@ export interface VehicleSummary {
   vehicleId: number;
   vehicleNumber: string;
   model?: string | null;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  lastServiceDate?: string | null;
 }
 
 export interface CustomerDetail {
@@ -73,6 +76,35 @@ export interface UpdateCustomerProfileInput {
 export interface AddVehicleInput {
   vehicleNumber: string;
   vehicleModel?: string;
+  mileage?: number;
+  manufactureYear?: number;
+  lastServiceDate?: string;
+}
+
+export interface VehicleInsightItem {
+  code: string;
+  category: string;
+  title: string;
+  description: string;
+  riskLevel: "Low" | "Medium" | "High" | string;
+  recommendedAction: string;
+  predictedTimeframe: string;
+}
+
+export interface VehicleInsights {
+  vehicleId: number;
+  vehicleNumber: string;
+  model?: string | null;
+  healthScore: number;
+  healthStatus: "Good" | "Moderate" | "Critical" | string;
+  usagePattern: string;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  vehicleAgeYears?: number | null;
+  estimatedAnnualMileage?: number | null;
+  lastServiceDate?: string | null;
+  generatedAt: string;
+  insights: VehicleInsightItem[];
 }
 
 export interface CustomerSearchInput {
@@ -213,6 +245,9 @@ export interface Vehicle {
   vehicleId: number;
   vehicleNumber: string;
   model: string;
+  mileage?: number | null;
+  manufactureYear?: number | null;
+  lastServiceDate?: string | null;
 }
 
 export interface Part {

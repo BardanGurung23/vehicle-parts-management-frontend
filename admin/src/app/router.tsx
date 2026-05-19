@@ -12,6 +12,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import PartsPage from "../features/parts/PartsPage";
 import { CustomerProfilePage } from "../features/profile/CustomerProfilePage";
 import { CustomerVehiclesPage } from "../features/profile/CustomerVehiclesPage";
+import { VehicleInsightsPage } from "../features/profile/VehicleInsightsPage";
 import { StaffManagementPage } from "../features/staff/StaffManagementPage";
 import Appointments from "../pages/Appointments";
 import { BookAppointmentPage } from "../features/appointments/BookAppointmentPage";
@@ -182,6 +183,10 @@ export const router = createBrowserRouter([
               {
                 path: "profile/vehicles",
                 element: <CustomerVehiclesPage />,
+              },
+              {
+                path: "profile/vehicles/:vehicleId/insights",
+                element: <VehicleInsightsPage />,
               },
             ],
           },

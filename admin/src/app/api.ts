@@ -32,6 +32,7 @@ import type {
   UserProfile,
   Vendor,
   Vehicle,
+  VehicleInsights,
   Appointment,
   Sale,
 } from "./types";
@@ -236,6 +237,9 @@ export const api = {
       body: JSON.stringify({
         vehicleNumber: payload.vehicleNumber,
         model: payload.vehicleModel,
+        mileage: payload.mileage,
+        manufactureYear: payload.manufactureYear,
+        lastServiceDate: payload.lastServiceDate,
       }),
     }, token),
 
@@ -245,6 +249,9 @@ export const api = {
       body: JSON.stringify({
         vehicleNumber: payload.vehicleNumber,
         model: payload.vehicleModel,
+        mileage: payload.mileage,
+        manufactureYear: payload.manufactureYear,
+        lastServiceDate: payload.lastServiceDate,
       }),
     }, token),
 
@@ -311,6 +318,9 @@ export const api = {
 
   getMyVehicles: (token: string) =>
     request<Vehicle[]>("/customers/me/vehicles", {}, token),
+
+  getVehicleInsights: (token: string, vehicleId: number) =>
+    request<VehicleInsights>(`/customers/me/vehicles/${vehicleId}/insights`, {}, token),
 
   getMyAppointments: (token: string) =>
     request<Appointment[]>("/appointments/me", {}, token),

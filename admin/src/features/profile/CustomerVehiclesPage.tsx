@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Edit3, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Activity, BrainCircuit, Car, Edit3, Trash2, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
@@ -22,9 +22,54 @@ import { requiredVehicleNumberSchema, vehicleModelSchema } from "../../shared/va
 const vehicleSchema = z.object({
   vehicleNumber: requiredVehicleNumberSchema,
   vehicleModel: vehicleModelSchema,
+  mileage: z.string().trim().refine((value) => {
+    if (value.length === 0) return true;
+    const mileage = Number(value);
+    return Number.isInteger(mileage) && mileage >= 0 && mileage <= 2_000_000;
+  }, "Mileage must be between 0 and 2,000,000 km."),
+  manufactureYear: z.string().trim().refine((value) => {
+    if (value.length === 0) return true;
+    const year = Number(value);
+    return Number.isInteger(year) && year >= 1950 && year <= new Date().getFullYear() + 1;
+  }, `Manufacture year must be between 1950 and ${new Date().getFullYear() + 1}.`),
+  lastServiceDate: z.string().trim().refine((value) => {
+    if (value.length === 0) return true;
+    const timestamp = new Date(`${value}T00:00:00.000Z`).getTime();
+    return Number.isFinite(timestamp) && timestamp <= Date.now() + 86_400_000;
+  }, "Last service date cannot be in the future."),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
+
+function toOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : undefined;
+}
+
+function toOptionalDateTime(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? new Date(`${trimmed}T00:00:00.000Z`).toISOString() : undefined;
+}
+
+function formatDateForInput(value?: string | null) {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
+function formatDisplayDate(value?: string | null) {
+  if (!value) return "Not recorded";
+  return new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(new Date(value));
+}
+
+function buildVehiclePayload(values: VehicleFormValues) {
+  return {
+    vehicleNumber: values.vehicleNumber,
+    vehicleModel: values.vehicleModel,
+    mileage: toOptionalNumber(values.mileage),
+    manufactureYear: toOptionalNumber(values.manufactureYear),
+    lastServiceDate: toOptionalDateTime(values.lastServiceDate),
+  };
+}
 
 export function CustomerVehiclesPage() {
   const { token } = useAuth();
@@ -33,13 +78,13 @@ export function CustomerVehiclesPage() {
     handleSubmit: handleAddSubmit,
     reset: resetAdd,
     formState: { errors: addErrors, isSubmitting: isAdding },
-  } = useForm<VehicleFormValues>({ resolver: zodResolver(vehicleSchema) });
+  } = useForm<VehicleFormValues>({ resolver: zodResolver(vehicleSchema), defaultValues: { vehicleNumber: "", vehicleModel: "", mileage: "", manufactureYear: "", lastServiceDate: "" } });
   const {
     register: registerEdit,
     handleSubmit: handleEditSubmit,
     reset: resetEdit,
     formState: { errors: editErrors, isSubmitting: isUpdating },
-  } = useForm<VehicleFormValues>({ resolver: zodResolver(vehicleSchema), defaultValues: { vehicleNumber: "", vehicleModel: "" } });
+  } = useForm<VehicleFormValues>({ resolver: zodResolver(vehicleSchema), defaultValues: { vehicleNumber: "", vehicleModel: "", mileage: "", manufactureYear: "", lastServiceDate: "" } });
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
@@ -66,7 +111,7 @@ export function CustomerVehiclesPage() {
     if (!token) return;
     try {
       setPageError(null); setPageSuccess(null);
-      await api.addCurrentCustomerVehicle(token, { vehicleNumber: values.vehicleNumber, vehicleModel: values.vehicleModel });
+      await api.addCurrentCustomerVehicle(token, buildVehiclePayload(values));
       await loadCustomer();
       resetAdd();
       const msg = "Vehicle added to your customer profile.";
@@ -79,16 +124,22 @@ export function CustomerVehiclesPage() {
   const startEditing = (vehicle: CustomerDetail["vehicles"][number]) => {
     setEditingVehicleId(vehicle.vehicleId);
     setPageError(null); setPageSuccess(null);
-    resetEdit({ vehicleNumber: vehicle.vehicleNumber, vehicleModel: vehicle.model ?? "" });
+    resetEdit({
+      vehicleNumber: vehicle.vehicleNumber,
+      vehicleModel: vehicle.model ?? "",
+      mileage: vehicle.mileage?.toString() ?? "",
+      manufactureYear: vehicle.manufactureYear?.toString() ?? "",
+      lastServiceDate: formatDateForInput(vehicle.lastServiceDate),
+    });
   };
 
-  const stopEditing = () => { setEditingVehicleId(null); resetEdit({ vehicleNumber: "", vehicleModel: "" }); };
+  const stopEditing = () => { setEditingVehicleId(null); resetEdit({ vehicleNumber: "", vehicleModel: "", mileage: "", manufactureYear: "", lastServiceDate: "" }); };
 
   const onUpdateVehicle = handleEditSubmit(async (values) => {
     if (!token || editingVehicleId === null) return;
     try {
       setPageError(null); setPageSuccess(null);
-      await api.updateCurrentCustomerVehicle(token, editingVehicleId, { vehicleNumber: values.vehicleNumber, vehicleModel: values.vehicleModel });
+      await api.updateCurrentCustomerVehicle(token, editingVehicleId, buildVehiclePayload(values));
       await loadCustomer();
       stopEditing();
       const msg = "Vehicle details updated.";
@@ -129,7 +180,7 @@ export function CustomerVehiclesPage() {
       <PageHeader
         eyebrow="Feature 12"
         title="Manage Vehicles"
-        description="Add and remove the vehicles linked to your account."
+        description="Keep vehicle details current so AI insights can predict service needs from mileage, age, and maintenance history."
         actions={
           <Link to="/app/profile">
             <span className="inline-flex items-center gap-1 text-sm text-primary hover:text-accent-700 font-medium">
@@ -157,6 +208,15 @@ export function CustomerVehiclesPage() {
             </Field>
             <Field label="Vehicle model" error={addErrors.vehicleModel?.message} htmlFor="add-model">
               <input id="add-model" className="input" type="text" placeholder="Civic" {...registerAdd("vehicleModel")} />
+            </Field>
+            <Field label="Mileage (km)" error={addErrors.mileage?.message} htmlFor="add-mileage">
+              <input id="add-mileage" className="input" type="number" min="0" max="2000000" placeholder="45000" {...registerAdd("mileage")} />
+            </Field>
+            <Field label="Manufacture year" error={addErrors.manufactureYear?.message} htmlFor="add-year">
+              <input id="add-year" className="input" type="number" min="1950" max={new Date().getFullYear() + 1} placeholder="2019" {...registerAdd("manufactureYear")} />
+            </Field>
+            <Field label="Last service date" error={addErrors.lastServiceDate?.message} htmlFor="add-service-date">
+              <input id="add-service-date" className="input" type="date" {...registerAdd("lastServiceDate")} />
             </Field>
             <ActionButton type="submit" icon={Plus} disabled={isAdding}>
               {isAdding ? "Adding vehicle..." : "Add vehicle"}
@@ -189,11 +249,22 @@ export function CustomerVehiclesPage() {
                       <Field label="Vehicle model" error={editErrors.vehicleModel?.message}>
                         <input className="input" type="text" {...registerEdit("vehicleModel")} />
                       </Field>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Field label="Mileage (km)" error={editErrors.mileage?.message}>
+                          <input className="input" type="number" min="0" max="2000000" {...registerEdit("mileage")} />
+                        </Field>
+                        <Field label="Manufacture year" error={editErrors.manufactureYear?.message}>
+                          <input className="input" type="number" min="1950" max={new Date().getFullYear() + 1} {...registerEdit("manufactureYear")} />
+                        </Field>
+                        <Field label="Last service" error={editErrors.lastServiceDate?.message}>
+                          <input className="input" type="date" {...registerEdit("lastServiceDate")} />
+                        </Field>
+                      </div>
                       <div className="flex items-center gap-3">
                         <ActionButton type="submit" disabled={isUpdating}>
                           {isUpdating ? "Saving..." : "Save changes"}
                         </ActionButton>
-                        <ActionButton type="button" tone="secondary" onClick={stopEditing}>Cancel</ActionButton>
+                        <ActionButton type="button" tone="tonal" onClick={stopEditing}>Cancel</ActionButton>
                       </div>
                     </form>
                   ) : (
@@ -205,9 +276,23 @@ export function CustomerVehiclesPage() {
                         </div>
                         <Badge>#{vehicle.vehicleId}</Badge>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-on-surface-variant">
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-surface-container-highest/60 px-3 py-2">
+                          <Activity className="w-3.5 h-3.5" /> {vehicle.mileage?.toLocaleString() ?? "Mileage not recorded"}{vehicle.mileage ? " km" : ""}
+                        </span>
+                        <span className="rounded-lg bg-surface-container-highest/60 px-3 py-2">
+                          Year: {vehicle.manufactureYear ?? "Not recorded"}
+                        </span>
+                        <span className="rounded-lg bg-surface-container-highest/60 px-3 py-2">
+                          Last service: {formatDisplayDate(vehicle.lastServiceDate)}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <ActionButton size="sm" icon={Edit3} onClick={() => startEditing(vehicle)}>Edit</ActionButton>
-                        <ActionButton size="sm" tone="danger" icon={Trash2} disabled={removingVehicleId === vehicle.vehicleId} onClick={() => void removeVehicle(vehicle.vehicleId)}>
+                        <Link to={`/app/profile/vehicles/${vehicle.vehicleId}/insights`}>
+                          <ActionButton size="sm" tone="tonal" icon={BrainCircuit}>AI Insights</ActionButton>
+                        </Link>
+                        <ActionButton size="sm" tone="error" icon={Trash2} disabled={removingVehicleId === vehicle.vehicleId} onClick={() => void removeVehicle(vehicle.vehicleId)}>
                           {removingVehicleId === vehicle.vehicleId ? "Removing..." : "Remove"}
                         </ActionButton>
                       </div>
