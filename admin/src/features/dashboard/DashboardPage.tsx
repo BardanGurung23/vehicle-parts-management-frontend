@@ -10,14 +10,44 @@ import { Card } from "../../shared/components/Card";
 import { KpiGrid } from "./components/KpiGrid";
 import { InventoryHealthPanel } from "./components/InventoryHealthPanel";
 import { CustomerLookupPanel } from "./components/CustomerLookupPanel";
+import { format, getHours } from "date-fns";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
-const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
 
-function formatNumber(value: number) { return numberFormatter.format(value); }
-function formatCurrency(value: number) { return currencyFormatter.format(value); }
+function formatNumber(value: number) {
+  return numberFormatter.format(value);
+}
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value);
+}
 
 type RtqErrorShape = { data?: unknown; error?: unknown };
+
+const getPartOfDay = (date: Date) => {
+  const hour = getHours(date);
+  if (hour >= 0 && hour < 6) return t("Night");
+  if (hour >= 6 && hour < 12) return t("Morning");
+  if (hour >= 12 && hour < 18) return t("Afternoon");
+  return "Evening";
+};
+
+function Header({ userName }: { userName: string }) {
+  const todayDate = format(new Date(), "PPP");
+  return (
+    <div className="text-left text-2xl font-bold flex flex-col">
+      Good {getPartOfDay(new Date())}, {userName}
+      <p className="text-base">
+        Here are your stats for today {""}
+        <span className="text-blue-500 font-semibold">{todayDate}</span>
+      </p>
+    </div>
+  );
+}
 
 function asMessage(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -31,8 +61,17 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   const payload = error as RtqErrorShape;
   const body = payload.data;
   if (body && typeof body === "object") {
-    const details = body as { detail?: unknown; title?: unknown; message?: unknown };
-    return asMessage(details.detail) ?? asMessage(details.message) ?? asMessage(details.title) ?? fallback;
+    const details = body as {
+      detail?: unknown;
+      title?: unknown;
+      message?: unknown;
+    };
+    return (
+      asMessage(details.detail) ??
+      asMessage(details.message) ??
+      asMessage(details.title) ??
+      fallback
+    );
   }
   return asMessage(payload.error) ?? fallback;
 }
@@ -70,13 +109,17 @@ export function DashboardPage() {
       .catch((error: unknown) => {
         if (!isActive) return;
         setSummary(null);
-        setSummaryError(extractErrorMessage(error, "Could not load the dashboard summary."));
+        setSummaryError(
+          extractErrorMessage(error, "Could not load the dashboard summary."),
+        );
       })
       .finally(() => {
         if (isActive) setIsSummaryLoading(false);
       });
 
-    return () => { isActive = false; };
+    return () => {
+      isActive = false;
+    };
   }, [token]);
 
   const inventory = summary?.inventory ?? null;
@@ -99,9 +142,17 @@ export function DashboardPage() {
     () =>
       (inventory?.stockStatus ?? []).map((segment) => {
         if (segment.label === "Healthy")
-          return { label: segment.label, count: segment.count, color: "#0f766e" };
+          return {
+            label: segment.label,
+            count: segment.count,
+            color: "#0f766e",
+          };
         if (segment.label === "Reorder soon")
-          return { label: segment.label, count: segment.count, color: "#d97706" };
+          return {
+            label: segment.label,
+            count: segment.count,
+            color: "#d97706",
+          };
         return { label: segment.label, count: segment.count, color: "#b91c1c" };
       }),
     [inventory],
@@ -110,38 +161,113 @@ export function DashboardPage() {
   const metricCards = useMemo<MetricCard[]>(() => {
     if (isCustomer) {
       return [
-        { label: "Vehicles", value: customerProfile ? formatNumber(customerProfile.vehicles.length) : "-", note: "Linked to your account" },
-        { label: "Status", value: user?.isActive ? "Active" : "Inactive", note: "Account state" },
+        {
+          label: "Vehicles",
+          value: customerProfile
+            ? formatNumber(customerProfile.vehicles.length)
+            : "-",
+          note: "Linked to your account",
+        },
+        {
+          label: "Status",
+          value: user?.isActive ? "Active" : "Inactive",
+          note: "Account state",
+        },
       ];
     }
     return [
-      { label: "Tracked SKUs", value: isSummaryLoading ? "..." : dashboardUnavailable ? "-" : formatNumber(trackedPartCount), note: "Parts in inventory" },
-      { label: "Low stock", value: isSummaryLoading ? "..." : dashboardUnavailable ? "-" : formatNumber(lowStockCount), note: "Below reorder level" },
-      { label: "Out of stock", value: isSummaryLoading ? "..." : dashboardUnavailable ? "-" : formatNumber(outOfStockCount), note: "Zero sellable stock" },
-      { label: "Inventory value", value: isSummaryLoading ? "..." : dashboardUnavailable ? "-" : formatCurrency(inventoryCost), note: "Cost on hand" },
-      { label: "Units on hand", value: isSummaryLoading ? "..." : dashboardUnavailable ? "-" : formatNumber(totalUnitsOnHand), note: "Total stock units" },
+      {
+        label: "Tracked SKUs",
+        value: isSummaryLoading
+          ? "..."
+          : dashboardUnavailable
+            ? "-"
+            : formatNumber(trackedPartCount),
+        note: "Parts in inventory",
+      },
+      {
+        label: "Low stock",
+        value: isSummaryLoading
+          ? "..."
+          : dashboardUnavailable
+            ? "-"
+            : formatNumber(lowStockCount),
+        note: "Below reorder level",
+      },
+      {
+        label: "Out of stock",
+        value: isSummaryLoading
+          ? "..."
+          : dashboardUnavailable
+            ? "-"
+            : formatNumber(outOfStockCount),
+        note: "Zero sellable stock",
+      },
+      {
+        label: "Inventory value",
+        value: isSummaryLoading
+          ? "..."
+          : dashboardUnavailable
+            ? "-"
+            : formatCurrency(inventoryCost),
+        note: "Cost on hand",
+      },
+      {
+        label: "Units on hand",
+        value: isSummaryLoading
+          ? "..."
+          : dashboardUnavailable
+            ? "-"
+            : formatNumber(totalUnitsOnHand),
+        note: "Total stock units",
+      },
     ];
-  }, [customerProfile, inventoryCost, isCustomer, dashboardUnavailable, isSummaryLoading, lowStockCount, outOfStockCount, totalUnitsOnHand, trackedPartCount, user?.isActive]);
+  }, [
+    customerProfile,
+    inventoryCost,
+    isCustomer,
+    dashboardUnavailable,
+    isSummaryLoading,
+    lowStockCount,
+    outOfStockCount,
+    totalUnitsOnHand,
+    trackedPartCount,
+    user?.isActive,
+  ]);
 
   return (
     <PageShell>
-      {summaryError ? <AlertBox tone="error" message={summaryError} dismissible /> : null}
+      {summaryError ? (
+        <AlertBox tone="error" message={summaryError} dismissible />
+      ) : null}
+
+      <Header userName={customerProfile?.fullName} />
 
       <KpiGrid cards={metricCards} />
 
       {isCustomer ? (
         customerProfile ? (
           <div className="rounded-xl bg-surface-container-lowest shadow-level1 p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-on-surface">Account Details</h3>
+            <h3 className="text-sm font-semibold text-on-surface">
+              Account Details
+            </h3>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "Email", value: customerProfile.email ?? user?.email ?? "-" },
+                {
+                  label: "Email",
+                  value: customerProfile.email ?? user?.email ?? "-",
+                },
                 { label: "Phone", value: customerProfile.phoneNumber },
                 { label: "Address", value: customerProfile.address ?? "-" },
-                { label: "Vehicles", value: formatNumber(customerProfile.vehicles.length) },
+                {
+                  label: "Vehicles",
+                  value: formatNumber(customerProfile.vehicles.length),
+                },
               ].map((item) => (
                 <div key={item.label} className="flex gap-2 text-xs">
-                  <dt className="w-16 text-on-surface-variant shrink-0">{item.label}</dt>
+                  <dt className="w-16 text-on-surface-variant shrink-0">
+                    {item.label}
+                  </dt>
                   <dd className="text-on-surface">{item.value}</dd>
                 </div>
               ))}
@@ -149,8 +275,12 @@ export function DashboardPage() {
             {customerProfile.vehicles.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {customerProfile.vehicles.map((v) => (
-                  <span key={v.vehicleId} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
-                    {v.vehicleNumber}{v.model ? ` (${v.model})` : ""}
+                  <span
+                    key={v.vehicleId}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant"
+                  >
+                    {v.vehicleNumber}
+                    {v.model ? ` (${v.model})` : ""}
                   </span>
                 ))}
               </div>
@@ -172,15 +302,24 @@ export function DashboardPage() {
           <Card
             header={
               <div>
-                <h3 className="text-sm font-semibold text-on-surface">Recent Registered Accounts</h3>
-                <p className="text-xs text-on-surface-variant">Portal-linked customers who recently registered and are ready for staff workflows.</p>
+                <h3 className="text-sm font-semibold text-on-surface">
+                  Recent Registered Accounts
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  Portal-linked customers who recently registered and are ready
+                  for staff workflows.
+                </p>
               </div>
             }
           >
             {isSummaryLoading ? (
-              <p className="text-sm text-on-surface-variant">Loading recent registered accounts...</p>
+              <p className="text-sm text-on-surface-variant">
+                Loading recent registered accounts...
+              </p>
             ) : dashboardUnavailable ? (
-              <p className="text-sm text-on-surface-variant">Recent registered accounts are unavailable right now.</p>
+              <p className="text-sm text-on-surface-variant">
+                Recent registered accounts are unavailable right now.
+              </p>
             ) : recentRegisteredCustomers.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {recentRegisteredCustomers.map((customer) => (
@@ -191,7 +330,9 @@ export function DashboardPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
+                        <p className="text-sm font-semibold text-on-surface">
+                          {customer.fullName}
+                        </p>
                         <Badge variant="success">Portal account</Badge>
                       </div>
                       <p className="mt-1 text-xs text-on-surface-variant">
@@ -200,73 +341,136 @@ export function DashboardPage() {
                       </p>
                       {customer.vehicles.length > 0 ? (
                         <p className="mt-2 text-xs text-on-surface-variant truncate">
-                          {customer.vehicles.map((vehicle) => vehicle.vehicleNumber).join(" • ")}
+                          {customer.vehicles
+                            .map((vehicle) => vehicle.vehicleNumber)
+                            .join(" • ")}
                         </p>
                       ) : null}
                     </div>
-                    <span className="shrink-0 text-xs font-semibold text-primary">Open</span>
+                    <span className="shrink-0 text-xs font-semibold text-primary">
+                      Open
+                    </span>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-on-surface-variant">No portal-linked customer accounts have been registered yet.</p>
+              <p className="text-sm text-on-surface-variant">
+                No portal-linked customer accounts have been registered yet.
+              </p>
             )}
           </Card>
 
-              {alerts && !dashboardUnavailable && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Card
-                    header={
-                      <div>
-                        <h3 className="text-sm font-semibold text-on-surface">Alert Summary</h3>
-                        <p className="text-xs text-on-surface-variant">Generated {new Date(alerts.generatedAt).toLocaleString()}</p>
-                      </div>
-                    }
-                  >
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Active alerts</span><span className="font-semibold text-on-surface">{formatNumber(alerts.activeAlertCount)}</span></div>
-                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Low stock</span><span className="font-semibold text-on-surface">{formatNumber(alerts.lowStockAlertCount)}</span></div>
-                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Overdue credits</span><span className="font-semibold text-on-surface">{formatNumber(alerts.overdueCreditAlertCount)}</span></div>
-                      <div className="flex items-center justify-between gap-2"><span className="text-on-surface-variant">Predictive alerts</span><span className="font-semibold text-on-surface">{formatNumber(alerts.predictiveAlertCount)}</span></div>
-                    </div>
-                  </Card>
-
-                  <Card
-                    header={
-                      <div>
-                        <h3 className="text-sm font-semibold text-on-surface">Attention Watchlist</h3>
-                        <p className="text-xs text-on-surface-variant">Low stock, unpaid credits, and recent predictive alerts.</p>
-                      </div>
-                    }
-                  >
-                    <div className="space-y-3 text-xs">
-                      {alerts.lowStockAlerts.slice(0, 3).map((alert) => (
-                        <div key={`stock-${alert.partId}`} className="flex items-center justify-between gap-2">
-                          <span className="text-on-surface truncate">{alert.partName}</span>
-                          <span className="font-medium text-warning">{alert.stockQuantity}/{alert.threshold}</span>
-                        </div>
-                      ))}
-                      {overdueCreditWatchlist.slice(0, 2).map((alert) => (
-                        <div key={`credit-${alert.saleId}`} className="flex items-center justify-between gap-2">
-                          <span className="text-on-surface truncate">{alert.customerName}</span>
-                          <span className="font-medium text-error">{formatCurrency(alert.outstandingAmount)}</span>
-                        </div>
-                      ))}
-                      {predictiveWatchlist.slice(0, 2).map((alert) => (
-                        <div key={`predictive-${alert.predictiveAlertId}`} className="flex items-center justify-between gap-2">
-                          <span className="text-on-surface truncate">{alert.vehicleNumber}</span>
-                          <span className="font-medium text-on-surface-variant">{alert.riskLevel}</span>
-                        </div>
-                      ))}
-                      {alerts.activeAlertCount === 0 && <p className="text-on-surface-variant">No active alerts right now.</p>}
-                    </div>
-                  </Card>
+          {alerts && !dashboardUnavailable && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card
+                header={
+                  <div>
+                    <h3 className="text-sm font-semibold text-on-surface">
+                      Alert Summary
+                    </h3>
+                    <p className="text-xs text-on-surface-variant">
+                      Generated {new Date(alerts.generatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                }
+              >
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-on-surface-variant">
+                      Active alerts
+                    </span>
+                    <span className="font-semibold text-on-surface">
+                      {formatNumber(alerts.activeAlertCount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-on-surface-variant">Low stock</span>
+                    <span className="font-semibold text-on-surface">
+                      {formatNumber(alerts.lowStockAlertCount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-on-surface-variant">
+                      Overdue credits
+                    </span>
+                    <span className="font-semibold text-on-surface">
+                      {formatNumber(alerts.overdueCreditAlertCount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-on-surface-variant">
+                      Predictive alerts
+                    </span>
+                    <span className="font-semibold text-on-surface">
+                      {formatNumber(alerts.predictiveAlertCount)}
+                    </span>
+                  </div>
                 </div>
-              )}
+              </Card>
 
-          {token && (
-            <CustomerLookupPanel token={token} />
+              <Card
+                header={
+                  <div>
+                    <h3 className="text-sm font-semibold text-on-surface">
+                      Attention Watchlist
+                    </h3>
+                    <p className="text-xs text-on-surface-variant">
+                      Low stock, unpaid credits, and recent predictive alerts.
+                    </p>
+                  </div>
+                }
+              >
+                <div className="space-y-3 text-xs">
+                  {alerts.lowStockAlerts.slice(0, 3).map((alert) => (
+                    <div
+                      key={`stock-${alert.partId}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-on-surface truncate">
+                        {alert.partName}
+                      </span>
+                      <span className="font-medium text-warning">
+                        {alert.stockQuantity}/{alert.threshold}
+                      </span>
+                    </div>
+                  ))}
+                  {overdueCreditWatchlist.slice(0, 2).map((alert) => (
+                    <div
+                      key={`credit-${alert.saleId}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-on-surface truncate">
+                        {alert.customerName}
+                      </span>
+                      <span className="font-medium text-error">
+                        {formatCurrency(alert.outstandingAmount)}
+                      </span>
+                    </div>
+                  ))}
+                  {predictiveWatchlist.slice(0, 2).map((alert) => (
+                    <div
+                      key={`predictive-${alert.predictiveAlertId}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-on-surface truncate">
+                        {alert.vehicleNumber}
+                      </span>
+                      <span className="font-medium text-on-surface-variant">
+                        {alert.riskLevel}
+                      </span>
+                    </div>
+                  ))}
+                  {alerts.activeAlertCount === 0 && (
+                    <p className="text-on-surface-variant">
+                      No active alerts right now.
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </div>
           )}
+
+          {token && <CustomerLookupPanel token={token} />}
         </>
       )}
     </PageShell>

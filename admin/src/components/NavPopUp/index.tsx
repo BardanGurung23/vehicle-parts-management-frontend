@@ -26,7 +26,7 @@ export const NavPopUp = ({
     <Popover>
       <PopoverTrigger asChild>
         <div
-          className={`${isSidebarCollapsed ? "ml-auto" : "ml-0"} border border-[#686767] rounded-sm hover:bg-hoverBg  p-1 cursor-pointer `}
+          className={`${isSidebarCollapsed ? "ml-auto" : "ml-0"} border border-[#323332] rounded-sm hover:bg-hoverBg  p-1 cursor-pointer `}
         >
           <ChevronsRight size={20} />
         </div>

@@ -460,7 +460,7 @@ export function AppLayout() {
       <SidebarNav collapsed={isSidebarCollapsed} />
 
       <div
-        className={`mx-[7px] mb-3 shrink-0 border border-[#686767] rounded-md ${isSidebarCollapsed ? "p-3 flex flex-col items-center gap-2" : "p-3"}`}
+        className={`mx-[7px] mb-3 shrink-0 border border-[#323332] rounded-md ${isSidebarCollapsed ? "p-3 flex flex-col items-center gap-2" : "p-3"}`}
       >
         <div
           className={`flex items-center ${isSidebarCollapsed ? "flex-col gap-2" : "gap-3"}`}
