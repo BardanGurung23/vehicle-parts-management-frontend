@@ -30,9 +30,9 @@ type RtqErrorShape = { data?: unknown; error?: unknown };
 
 const getPartOfDay = (date: Date) => {
   const hour = getHours(date);
-  if (hour >= 0 && hour < 6) return t("Night");
-  if (hour >= 6 && hour < 12) return t("Morning");
-  if (hour >= 12 && hour < 18) return t("Afternoon");
+  if (hour >= 0 && hour < 6) return "Night";
+  if (hour >= 6 && hour < 12) return "Morning";
+  if (hour >= 12 && hour < 18) return "Afternoon";
   return "Evening";
 };
 
