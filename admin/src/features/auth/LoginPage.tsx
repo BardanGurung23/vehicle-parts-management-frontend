@@ -43,7 +43,7 @@ export function LoginPage() {
       const message =
         error instanceof ApiError ? error.message : "Login failed.";
       setErrorMessage(message);
-      Toast("Session Expired. Please Try Again", "error");
+      Toast("Incorrect email or password. Please Try Again", "error");
     }
   });
 
