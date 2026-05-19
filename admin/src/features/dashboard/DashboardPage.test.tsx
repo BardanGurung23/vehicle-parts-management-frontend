@@ -14,7 +14,7 @@ class ResizeObserverMock {
 vi.mock("../../app/auth", () => ({
   useAuth: () => ({
     token: "demo-token",
-    user: { role: "Staff", isActive: true },
+    user: { role: "Staff", fullName: "Sam Staff", email: "sam@example.com", isActive: true },
   }),
 }));
 
@@ -75,6 +75,7 @@ describe("DashboardPage", () => {
 
     await waitFor(() => expect(screen.getByText("Recent Registered Accounts")).toBeInTheDocument());
 
+    expect(screen.getByText(/Sam Staff/)).toBeInTheDocument();
     expect(screen.getByText("Nina Driver")).toBeInTheDocument();
     expect(screen.getByText("Portal account")).toBeInTheDocument();
   });

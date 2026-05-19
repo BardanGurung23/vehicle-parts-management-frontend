@@ -125,6 +125,8 @@ export function DashboardPage() {
   const inventory = summary?.inventory ?? null;
   const alerts = summary?.alerts ?? null;
   const customerProfile = summary?.currentCustomer ?? null;
+  const displayName =
+    customerProfile?.fullName ?? user?.fullName ?? user?.email ?? "there";
 
   const trackedPartCount = inventory?.trackedPartCount ?? 0;
   const lowStockCount = inventory?.lowStockCount ?? 0;
@@ -241,7 +243,7 @@ export function DashboardPage() {
         <AlertBox tone="error" message={summaryError} dismissible />
       ) : null}
 
-      <Header userName={customerProfile?.fullName} />
+      <Header userName={displayName} />
 
       <KpiGrid cards={metricCards} />
 
