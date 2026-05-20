@@ -241,6 +241,13 @@ export interface UpdateStaffRoleInput {
   roleId: number;
 }
 
+export interface UpdateStaffUserInput {
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  isActive?: boolean;
+}
+
 export interface Vehicle {
   vehicleId: number;
   vehicleNumber: string;

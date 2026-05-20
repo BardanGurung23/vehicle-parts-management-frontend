@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RefreshCw } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
-import type { RoleOption, StaffUser } from "../../app/types";
+import type { RoleOption, StaffUser, UpdateStaffUserInput } from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
@@ -32,6 +32,9 @@ export function StaffManagementPage() {
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [roleDrafts, setRoleDrafts] = useState<Record<number, number>>({});
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editDrafts, setEditDrafts] = useState<Record<number, UpdateStaffUserInput>>({});
+  const [savingEditUserId, setSavingEditUserId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -132,6 +135,68 @@ export function StaffManagementPage() {
       toast.error(message);
     } finally {
       setSavingUserId(null);
+    }
+  };
+
+  const startEditing = (user: StaffUser) => {
+    setEditingUserId(user.userId);
+    setEditDrafts((prev) => ({
+      ...prev,
+      [user.userId]: {
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+      },
+    }));
+  };
+
+  const cancelEditing = () => {
+    if (editingUserId !== null) {
+      setEditDrafts((prev) => {
+        const next = { ...prev };
+        delete next[editingUserId];
+        return next;
+      });
+      setEditingUserId(null);
+    }
+  };
+
+  const saveEdit = async (userId: number) => {
+    if (!token) return;
+    const draft = editDrafts[userId];
+    if (!draft) return;
+
+    try {
+      setSavingEditUserId(userId);
+      setPageError(null);
+      setPageSuccess(null);
+      const updatedUser = await api.updateStaffUser(token, userId, {
+        fullName: draft.fullName || undefined,
+        email: draft.email || undefined,
+        phoneNumber: draft.phoneNumber || undefined,
+      });
+      setStaffUsers((prev) =>
+        prev.map((u) => (u.userId === userId ? updatedUser : u)),
+      );
+      setRoleDrafts((prev) => ({ ...prev, [userId]: updatedUser.roleId }));
+      setEditingUserId(null);
+      setEditDrafts((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+      const msg = `Updated details for ${updatedUser.fullName}.`;
+      setPageSuccess(msg);
+      toast.success(msg);
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : "Could not update the staff account.";
+      setPageError(message);
+      toast.error(message);
+    } finally {
+      setSavingEditUserId(null);
     }
   };
 
@@ -337,14 +402,49 @@ export function StaffManagementPage() {
                     className="rounded-lg ring-1 ring-white/[0.06] bg-surface-container-lowest p-4 space-y-3"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-semibold text-on-surface">
-                          {u.fullName}
-                        </h3>
-                        <p className="text-xs text-on-surface-variant">
-                          {u.email}
-                        </p>
-                      </div>
+                      {editingUserId === u.userId ? (
+                        <div className="flex-1 space-y-2">
+                          <input
+                            className="input text-sm"
+                            type="text"
+                            placeholder="Full name"
+                            value={editDrafts[u.userId]?.fullName ?? ""}
+                            onChange={(e) =>
+                              setEditDrafts((prev) => ({
+                                ...prev,
+                                [u.userId]: {
+                                  ...prev[u.userId],
+                                  fullName: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                          <input
+                            className="input text-sm"
+                            type="email"
+                            placeholder="Email"
+                            value={editDrafts[u.userId]?.email ?? ""}
+                            onChange={(e) =>
+                              setEditDrafts((prev) => ({
+                                ...prev,
+                                [u.userId]: {
+                                  ...prev[u.userId],
+                                  email: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-on-surface">
+                            {u.fullName}
+                          </h3>
+                          <p className="text-xs text-on-surface-variant">
+                            {u.email}
+                          </p>
+                        </div>
+                      )}
                       <Badge variant={u.isActive ? "success" : "neutral"}>
                         {u.isActive ? "Active" : "Inactive"}
                       </Badge>
@@ -352,9 +452,27 @@ export function StaffManagementPage() {
                     <div className="grid grid-cols-3 gap-3 text-xs">
                       <div>
                         <span className="text-on-surface-variant">Phone</span>
-                        <p className="text-on-surface font-medium">
-                          {u.phoneNumber}
-                        </p>
+                        {editingUserId === u.userId ? (
+                          <input
+                            className="input text-sm mt-1"
+                            type="tel"
+                            placeholder="Phone number"
+                            value={editDrafts[u.userId]?.phoneNumber ?? ""}
+                            onChange={(e) =>
+                              setEditDrafts((prev) => ({
+                                ...prev,
+                                [u.userId]: {
+                                  ...prev[u.userId],
+                                  phoneNumber: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        ) : (
+                          <p className="text-on-surface font-medium">
+                            {u.phoneNumber}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <span className="text-on-surface-variant">Role</span>
@@ -368,61 +486,102 @@ export function StaffManagementPage() {
                       </div>
                     </div>
                     <div className="flex items-end gap-3">
-                      <div className="flex-1">
-                        <label
-                          htmlFor={`role-${u.userId}`}
-                          className="block text-xs font-medium text-on-surface-variant mb-1"
-                        >
-                          Role
-                        </label>
-                        <select
-                          id={`role-${u.userId}`}
-                          className="input h-9 text-sm"
-                          value={draftRoleId}
-                          disabled={!u.isActive}
-                          onChange={(e) =>
-                            setRoleDrafts((prev) => ({
-                              ...prev,
-                              [u.userId]: Number(e.target.value),
-                            }))
-                          }
-                        >
-                          {roleOptions.map((r) => (
-                            <option key={r.value} value={r.value}>
-                              {r.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <ActionButton
-                        tone="tonal"
-                        size="sm"
-                        disabled={
-                          !u.isActive ||
-                          !isDirty ||
-                          savingUserId === u.userId ||
-                          isRefreshing ||
-                          deactivatingUserId === u.userId
-                        }
-                        onClick={() => void saveRole(u.userId)}
-                      >
-                        {savingUserId === u.userId ? "Saving..." : "Save role"}
-                      </ActionButton>
-                      <ActionButton
-                        tone="error"
-                        size="sm"
-                        disabled={
-                          !u.isActive ||
-                          isRefreshing ||
-                          savingUserId === u.userId ||
-                          deactivatingUserId === u.userId
-                        }
-                        onClick={() => void deactivateStaffUser(u)}
-                      >
-                        {deactivatingUserId === u.userId
-                          ? "Deactivating..."
-                          : "Deactivate"}
-                      </ActionButton>
+                      {editingUserId === u.userId ? (
+                        <>
+                          <ActionButton
+                            tone="primary"
+                            size="sm"
+                            disabled={
+                              savingEditUserId === u.userId || isRefreshing
+                            }
+                            onClick={() => void saveEdit(u.userId)}
+                          >
+                            {savingEditUserId === u.userId
+                              ? "Saving..."
+                              : "Save"}
+                          </ActionButton>
+                          <ActionButton
+                            tone="secondary"
+                            size="sm"
+                            disabled={savingEditUserId === u.userId}
+                            onClick={cancelEditing}
+                          >
+                            Cancel
+                          </ActionButton>
+                        </>
+                      ) : (
+                        <>
+                          <ActionButton
+                            tone="tonal"
+                            size="sm"
+                            disabled={
+                              !u.isActive ||
+                              isRefreshing ||
+                              deactivatingUserId === u.userId
+                            }
+                            onClick={() => startEditing(u)}
+                          >
+                            Edit
+                          </ActionButton>
+                          <div className="flex-1">
+                            <label
+                              htmlFor={`role-${u.userId}`}
+                              className="block text-xs font-medium text-on-surface-variant mb-1"
+                            >
+                              Role
+                            </label>
+                            <select
+                              id={`role-${u.userId}`}
+                              className="input h-9 text-sm"
+                              value={draftRoleId}
+                              disabled={!u.isActive}
+                              onChange={(e) =>
+                                setRoleDrafts((prev) => ({
+                                  ...prev,
+                                  [u.userId]: Number(e.target.value),
+                                }))
+                              }
+                            >
+                              {roleOptions.map((r) => (
+                                <option key={r.value} value={r.value}>
+                                  {r.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <ActionButton
+                            tone="tonal"
+                            size="sm"
+                            disabled={
+                              !u.isActive ||
+                              !isDirty ||
+                              savingUserId === u.userId ||
+                              isRefreshing ||
+                              deactivatingUserId === u.userId
+                            }
+                            onClick={() => void saveRole(u.userId)}
+                          >
+                            {savingUserId === u.userId
+                              ? "Saving..."
+                              : "Save role"}
+                          </ActionButton>
+                          <ActionButton
+                            tone="error"
+                            size="sm"
+                            disabled={
+                              !u.isActive ||
+                              isRefreshing ||
+                              savingUserId === u.userId ||
+                              deactivatingUserId === u.userId
+                            }
+                            onClick={() => void deactivateStaffUser(u)}
+                          >
+                            {deactivatingUserId === u.userId
+                              ? "Deactivating..."
+                              : "Deactivate"}
+                          </ActionButton>
+                        </>
+                      )}
                     </div>
                   </div>
                 );

@@ -29,6 +29,7 @@ import type {
   UpdateCustomerProfileInput,
   UpdatePartInput,
   UpdateStaffRoleInput,
+  UpdateStaffUserInput,
   UserProfile,
   Vendor,
   Vehicle,
@@ -347,6 +348,12 @@ export const api = {
   createStaffUser: (token: string, payload: CreateStaffUserInput) =>
     request<StaffUser>("/admin/staff", {
       method: "POST",
+      body: JSON.stringify(payload),
+    }, token),
+
+  updateStaffUser: (token: string, userId: number, payload: UpdateStaffUserInput) =>
+    request<StaffUser>(`/admin/staff/${userId}`, {
+      method: "PUT",
       body: JSON.stringify(payload),
     }, token),
 
