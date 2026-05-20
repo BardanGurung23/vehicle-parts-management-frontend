@@ -6,12 +6,13 @@ This folder-level `frontend/` package is not the app runtime. The shipped UI is 
 
 ## Current Status
 
-This README reflects the latest roadmap update in `doc/progress.md` from `2026-05-16`.
+This README reflects the latest roadmap update in `doc/progress.md` from `2026-05-20`.
 
 Implemented in the active frontend:
 
 - Router-based application shell with protected, public-only, admin-only, employee-only, and customer-only route guards.
 - Login and session restore using `/api/auth/login` and `/api/auth/me`.
+- Forgot-password request and email-link reset pages using `/api/auth/forgot-password`, `/api/auth/reset-password/validate`, and `/api/auth/reset-password`.
 - Customer self-registration using `/api/customers/register`, including optional initial vehicle capture during signup.
 - Role-aware dashboard backed by `/api/dashboard/summary`.
 - Staff customer registration, customer search, and dedicated customer detail pages.
@@ -49,6 +50,8 @@ Public routes:
 
 - `/`
 - `/register`
+- `/forgot-password`
+- `/reset-password`
 
 Authenticated shared routes:
 

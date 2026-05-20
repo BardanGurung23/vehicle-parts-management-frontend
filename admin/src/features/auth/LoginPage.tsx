@@ -147,6 +147,15 @@ export function LoginPage() {
               />
             </Field>
 
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm font-medium text-primary hover:text-accent-700"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             <ActionButton
               type="submit"
               disabled={isSubmitting}

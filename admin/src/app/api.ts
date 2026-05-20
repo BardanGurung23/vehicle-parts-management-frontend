@@ -14,6 +14,8 @@ import type {
   CustomerSearchResult,
   DashboardSummary,
   FinancialReport,
+  ForgotPasswordInput,
+  ForgotPasswordResponse,
   CreateStaffUserInput,
   LoginInput,
   Part,
@@ -22,6 +24,8 @@ import type {
   PurchaseInvoice,
   RegisterCustomerInput,
   RegisterCustomerResponse,
+  ResetPasswordInput,
+  ResetPasswordResponse,
   RoleOption,
   ServiceReview,
   SendSaleInvoiceEmailResponse,
@@ -31,6 +35,8 @@ import type {
   UpdateStaffRoleInput,
   UpdateStaffUserInput,
   UserProfile,
+  ValidatePasswordResetTokenInput,
+  ValidatePasswordResetTokenResponse,
   Vendor,
   Vehicle,
   VehicleInsights,
@@ -226,6 +232,24 @@ function buildPartFormData(payload: CreatePartInput | UpdatePartInput, includePa
 export const api = {
   login: (payload: LoginInput) =>
     request<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  requestPasswordReset: (payload: ForgotPasswordInput) =>
+    request<ForgotPasswordResponse>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  validatePasswordResetToken: (payload: ValidatePasswordResetTokenInput) =>
+    request<ValidatePasswordResetTokenResponse>("/auth/reset-password/validate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  resetPassword: (payload: ResetPasswordInput) =>
+    request<ResetPasswordResponse>("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

@@ -19,6 +19,32 @@ export interface LoginInput {
   password: string;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ValidatePasswordResetTokenInput {
+  token: string;
+}
+
+export interface ValidatePasswordResetTokenResponse {
+  expiresAt: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 export interface RegisterCustomerInput {
   fullName: string;
   email: string;

@@ -3,8 +3,10 @@ import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "./auth";
 import { AppLayout } from "./shell/AppLayout";
+import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterCustomerPage } from "../features/auth/RegisterCustomerPage";
+import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { CustomerDetailPage } from "../features/customers/CustomerDetailPage";
 import { CustomerSearchPage } from "../features/customers/CustomerSearchPage";
 import { StaffCustomerRegistrationPage } from "../features/customers/StaffCustomerRegistrationPage";
@@ -105,6 +107,14 @@ function CustomerOnlyOutlet() {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+  },
   {
     element: <PublicOnlyOutlet />,
     children: [
