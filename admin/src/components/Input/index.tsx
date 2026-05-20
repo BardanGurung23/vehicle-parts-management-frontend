@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from "react";
 import { FieldError } from "react-hook-form";
+import { Eye, EyeOff } from "lucide-react";
 import "./input.css";
 import useTranslation from "@/locale/useTranslation";
 
@@ -56,12 +57,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {...rest}
           />
           {type === "password" && (
-            <div
+            <button
+              type="button"
               className="input-right-section cursor-pointer"
               onClick={handlePasswordVisibility}
+              aria-label={showPasswordVisibility ? "Hide password" : "Show password"}
             >
-              {showPasswordVisibility ? "🙈" : "👁️"}
-            </div>
+              {showPasswordVisibility ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           )}
           {rightSection && (
             <div className="input-right-section">{rightSection}</div>

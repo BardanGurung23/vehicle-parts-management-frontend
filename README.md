@@ -17,7 +17,7 @@ Implemented in the active frontend:
 - Role-aware dashboard backed by `/api/dashboard/summary`.
 - Staff customer registration, customer search, and dedicated customer detail pages.
 - Staff customer detail now includes consolidated purchase and service history.
-- Admin staff management, vendors, appointments, part-request management, purchase invoices, and financial reports pages.
+- Admin staff management, vendors, part-request management, purchase invoices, and financial reports pages, plus shared staff/admin appointment management.
 - Staff/admin customer reports at `/app/reports/customers`.
 - Customer profile editing, vehicle add/edit/remove management, appointment booking, part requests, reviews, shop, and purchase-history flows.
 - Active parts workspace at `/app/parts`, with admin write access, staff read-only access, and direct API-client data access.
@@ -74,6 +74,7 @@ Customer routes:
 
 Employee routes:
 
+- `/app/appointments`
 - `/app/customers/register`
 - `/app/customers/search`
 - `/app/customers/:customerId`
@@ -83,7 +84,6 @@ Employee routes:
 Admin-only routes:
 
 - `/app/staff`
-- `/app/appointments`
 - `/app/vendors`
 - `/app/purchase-invoices`
 - `/app/reports/financial`

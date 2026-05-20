@@ -204,6 +204,10 @@ export const router = createBrowserRouter([
             element: <EmployeeOnlyOutlet />,
             children: [
               {
+                path: "appointments",
+                element: <Appointments />,
+              },
+              {
                 path: "customers/register",
                 element: <StaffCustomerRegistrationPage />,
               },
@@ -231,10 +235,6 @@ export const router = createBrowserRouter([
               {
                 path: "staff",
                 element: <StaffManagementPage />,
-              },
-              {
-                path: "appointments",
-                element: <Appointments />,
               },
               {
                 path: "vendors",

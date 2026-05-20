@@ -194,6 +194,7 @@ export function AppLayout() {
   const role = user?.role ?? "";
   const isCustomer = role === "Customer";
   const canViewParts = role === "Admin" || role === "Staff";
+  const canManageAppointments = role === "Admin" || role === "Staff";
   const canManageCustomers = role === "Admin" || role === "Staff";
 
   const { title, description } = getRouteMeta(location.pathname);
@@ -339,7 +340,7 @@ export function AppLayout() {
           label: "Appointments",
           to: "/app/appointments",
           icon: CalendarCheck,
-          show: isAdmin,
+          show: canManageAppointments,
         },
         {
           label: "Vendors",
