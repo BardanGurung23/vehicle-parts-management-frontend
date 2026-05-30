@@ -11,13 +11,21 @@ import { Badge } from "../../shared/components/Badge";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { SkeletonCard } from "../../shared/components/Skeleton";
+import { AlertBox } from "../../shared/components/AlertBox";
 
 const badgeVariant = (status: string) => {
   switch (status) {
-    case "Pending": return "warning";
-    case "Ordered": return "info";
-    case "Available": return "success";
-    default: return "neutral";
+    case "Pending":
+      return "warning" as const;
+    case "Ordered":
+    case "Fulfilled":
+      return "success" as const;
+    case "Available":
+      return "info" as const;
+    case "Rejected":
+      return "danger" as const;
+    default:
+      return "neutral" as const;
   }
 };
 
@@ -32,50 +40,56 @@ export function MyPartRequestsPage() {
       setIsLoading(false);
       return;
     }
-
     let isActive = true;
     setIsLoading(true);
-
-    void api.getMyPartRequests(token)
+    void api
+      .getMyPartRequests(token)
       .then((response) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setRequests(response);
         setError(null);
       })
       .catch((loadError: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setRequests([]);
-        setError(loadError instanceof ApiError ? loadError.message : "Failed to load requests.");
+        setError(
+          loadError instanceof ApiError
+            ? loadError.message
+            : "Could not load your requests.",
+        );
       })
       .finally(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       });
-
     return () => {
       isActive = false;
     };
   }, [token]);
 
-  if (isLoading) return <PageShell><SkeletonCard /></PageShell>;
-  if (error) return <PageShell><div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">{error}</div></PageShell>;
+  if (isLoading) {
+    return (
+      <PageShell>
+        <SkeletonCard />
+      </PageShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageShell>
+        <AlertBox tone="error" message={error} />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Requests"
-        title="My Part Requests"
-        description="Track the status of your part requests."
+        title="My part requests"
+        description="Track the status of every part you have requested."
         actions={
           <Link to="/app/request-part">
-            <ActionButton icon={Plus}>Request New Part</ActionButton>
+            <ActionButton icon={Plus}>New request</ActionButton>
           </Link>
         }
       />
@@ -84,10 +98,10 @@ export function MyPartRequestsPage() {
         <EmptyState
           icon={ClipboardList}
           title="No requests yet"
-          description="You haven't requested any parts yet."
+          description="Need a part we don't carry? Send us a request to start the search."
           action={
-            <Link to="/app/request-part" className="text-sm text-primary font-medium hover:text-accent-700 underline">
-              Request a part
+            <Link to="/app/request-part">
+              <ActionButton icon={Plus}>Request a part</ActionButton>
             </Link>
           }
         />
@@ -98,19 +112,29 @@ export function MyPartRequestsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-semibold text-on-surface">{req.requestedPartName}</h3>
-                    <Badge variant={badgeVariant(req.status)}>{req.status}</Badge>
+                    <h3 className="text-sm font-semibold text-[var(--md-sys-color-on-surface)]">
+                      {req.requestedPartName}
+                    </h3>
+                    <Badge variant={badgeVariant(req.status)} dot>
+                      {req.status}
+                    </Badge>
                   </div>
-                  {req.vehicleNumber && <p className="text-xs text-on-surface-variant">Vehicle: {req.vehicleNumber}</p>}
-                  <p className="text-xs text-on-surface-variant">Requested: {new Date(req.requestedAt).toLocaleDateString()}</p>
+                  <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+                    {req.vehicleNumber ? `${req.vehicleNumber} · ` : ""}
+                    Requested {new Date(req.requestedAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-              {req.requestDetails && (
-                <p className="text-xs text-on-surface-variant mt-2">{req.requestDetails}</p>
-              )}
-              {req.resolvedAt && (
-                <p className="text-xs text-success-600 mt-2">Resolved: {new Date(req.resolvedAt).toLocaleDateString()}</p>
-              )}
+              {req.requestDetails ? (
+                <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] mt-3">
+                  {req.requestDetails}
+                </p>
+              ) : null}
+              {req.resolvedAt ? (
+                <p className="text-[12px] text-[var(--success-700)] mt-2 tabular">
+                  Resolved {new Date(req.resolvedAt).toLocaleDateString()}
+                </p>
+              ) : null}
             </Card>
           ))}
         </div>

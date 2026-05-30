@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
 import { PageShell } from "../../shared/components/PageShell";
@@ -7,7 +8,7 @@ import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
-import { toast } from "sonner";
+import { FormSection } from "../../shared/components/FormSection";
 
 export function RequestPartPage() {
   const navigate = useNavigate();
@@ -18,45 +19,68 @@ export function RequestPartPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestedPartName.trim()) { toast.error("Please enter the part name."); return; }
+    if (!requestedPartName.trim()) {
+      toast.error("Enter the part name.");
+      return;
+    }
+    if (!token) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     try {
-      if (!token) {
-        toast.error("Your session has expired. Please sign in again.");
-        return;
-      }
-
       setIsLoading(true);
-      await api.createPartRequest(token, { requestedPartName: requestedPartName.trim(), requestDetails: requestDetails.trim() || undefined });
-      toast.success("Part request submitted successfully!");
+      await api.createPartRequest(token, {
+        requestedPartName: requestedPartName.trim(),
+        requestDetails: requestDetails.trim() || undefined,
+      });
+      toast.success("Part request submitted");
       navigate("/app/my-part-requests");
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Failed to submit part request.");
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not submit the request.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader eyebrow="Request" title="Request Unavailable Part" description="Can't find the part you need? Let us know and we'll try to source it." />
+    <PageShell maxWidth="md">
+      <PageHeader
+        title="Request a part"
+        description="Tell us what you need and we will source it for you."
+      />
 
       <Card>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Part Name" required htmlFor="req-part-name">
-            <input id="req-part-name" className="input" type="text" required
-              placeholder="e.g., Brake pads for Honda Civic"
-              value={requestedPartName} onChange={(e) => setRequestedPartName(e.target.value)} />
-          </Field>
-          <Field label="Details (Optional)" htmlFor="req-details">
-            <textarea id="req-details" className="input" rows={4}
-              placeholder="Any additional details about the part you need..."
-              value={requestDetails} onChange={(e) => setRequestDetails(e.target.value)} />
-          </Field>
-          <div className="flex items-center gap-3">
-            <ActionButton type="submit" disabled={isLoading}>
-              {isLoading ? "Submitting..." : "Submit Request"}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <FormSection title="Part details">
+            <Field label="Part name" required htmlFor="req-part-name">
+              <input
+                id="req-part-name"
+                type="text"
+                required
+                placeholder="Brake pads for Honda Civic"
+                value={requestedPartName}
+                onChange={(e) => setRequestedPartName(e.target.value)}
+              />
+            </Field>
+            <Field label="Notes" htmlFor="req-details" hint="Optional">
+              <textarea
+                id="req-details"
+                rows={4}
+                placeholder="Any extra details about the part you need…"
+                value={requestDetails}
+                onChange={(e) => setRequestDetails(e.target.value)}
+              />
+            </Field>
+          </FormSection>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-[var(--md-sys-color-outline-variant)]">
+            <ActionButton type="button" tone="secondary" onClick={() => navigate(-1)}>
+              Cancel
             </ActionButton>
-            <ActionButton type="button" tone="secondary" onClick={() => navigate(-1)}>Cancel</ActionButton>
+            <ActionButton type="submit" isLoading={isLoading} disabled={isLoading}>
+              Submit request
+            </ActionButton>
           </div>
         </form>
       </Card>

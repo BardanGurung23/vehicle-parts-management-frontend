@@ -6,10 +6,16 @@ import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Card } from "../../shared/components/Card";
 import { EmptyState } from "../../shared/components/EmptyState";
+import { SkeletonCard } from "../../shared/components/Skeleton";
+import { AlertBox } from "../../shared/components/AlertBox";
+import { ActionButton } from "../../shared/components/ActionButton";
 import type { ServiceReview } from "../../app/types";
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  return new Date(dateStr).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 export function MyReviewsPage() {
@@ -20,54 +26,93 @@ export function MyReviewsPage() {
 
   const loadReviews = useCallback(async () => {
     if (!token) return;
-    try { setLoading(true); setError(null); setReviews(await api.getMyReviews(token)); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Failed to load reviews."); }
-    finally { setLoading(false); }
+    try {
+      setLoading(true);
+      setError(null);
+      setReviews(await api.getMyReviews(token));
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not load your reviews.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
-  useEffect(() => { loadReviews(); }, [loadReviews]);
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
 
   if (loading) {
     return (
       <PageShell>
-        <div className="space-y-4"><div className="h-8 rounded-md bg-surface-container-high animate-shimmer" /><div className="h-32 rounded-xl border border-outline-variant/20 animate-shimmer" /></div>
+        <SkeletonCard />
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <PageHeader eyebrow="My Reviews" title="Your Service Reviews" description="View all reviews you have submitted for completed appointments." />
+      <PageHeader
+        title="My reviews"
+        description={`${reviews.length} submitted`}
+      />
 
-      {error && (
-        <div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">
-          {error} <button onClick={loadReviews} className="text-primary font-medium underline ml-2">Retry</button>
-        </div>
-      )}
+      {error ? (
+        <AlertBox
+          tone="error"
+          message={error}
+          dismissible
+          action={
+            <ActionButton tone="secondary" size="sm" onClick={loadReviews}>
+              Retry
+            </ActionButton>
+          }
+        />
+      ) : null}
 
       {reviews.length === 0 ? (
-        <EmptyState icon={Star} title="No reviews yet" description="Reviews can be added for completed appointments." />
+        <EmptyState
+          icon={Star}
+          title="No reviews yet"
+          description="Reviews are available once an appointment is completed."
+        />
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (
             <Card key={review.reviewId}>
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-on-surface">Review #{review.reviewId}</h3>
+                    <h3 className="text-sm font-semibold text-[var(--md-sys-color-on-surface)]">
+                      Review #{review.reviewId}
+                    </h3>
                     <span className="flex items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className={`w-4 h-4 ${star <= review.rating ? "text-warning-500 fill-warning-500" : "text-border"}`} />
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${
+                            star <= review.rating
+                              ? "text-[var(--warning-500)] fill-[var(--warning-500)]"
+                              : "text-[var(--md-sys-color-outline-variant)]"
+                          }`}
+                        />
                       ))}
                     </span>
                   </div>
-                  <p className="text-xs text-on-surface-variant">Appointment #{review.appointmentId}</p>
+                  <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+                    Appointment #{review.appointmentId}
+                  </p>
                 </div>
               </div>
-              {review.comment && (
-                <p className="text-sm text-on-surface-variant italic mt-2">"{review.comment}"</p>
-              )}
-              <p className="text-xs text-on-surface-variant mt-2">Submitted on {formatDate(review.createdAt)}</p>
+              {review.comment ? (
+                <p className="text-sm text-[var(--md-sys-color-on-surface)] mt-3 leading-6">
+                  “{review.comment}”
+                </p>
+              ) : null}
+              <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] mt-2 tabular">
+                Submitted {formatDate(review.createdAt)}
+              </p>
             </Card>
           ))}
         </div>

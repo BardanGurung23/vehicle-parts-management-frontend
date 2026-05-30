@@ -43,27 +43,22 @@ export function InvoiceDetailPage() {
     let isActive = true;
     setIsLoading(true);
 
-    void api.getSaleById(token, parsedSaleId)
+    void api
+      .getSaleById(token, parsedSaleId)
       .then((response) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setSale(response);
         setError(null);
       })
       .catch((loadError: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setSale(null);
-        setError(loadError instanceof ApiError ? loadError.message : "Could not load the invoice.");
+        setError(
+          loadError instanceof ApiError ? loadError.message : "Could not load the invoice.",
+        );
       })
       .finally(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       });
 
     return () => {
@@ -72,21 +67,17 @@ export function InvoiceDetailPage() {
   }, [saleId, token]);
 
   const handleDownloadPdf = async () => {
-    if (!sale) {
-      setFeedback({ tone: "error", message: "Invoice details are not ready for export yet." });
+    if (!sale || !invoiceRef.current) {
+      setFeedback({ tone: "error", message: "Invoice is not ready to export yet." });
       return;
     }
-
-    if (!invoiceRef.current) {
-      setFeedback({ tone: "error", message: "Could not find the invoice preview to export." });
-      return;
-    }
-
     try {
       setIsExportingPdf(true);
       setFeedback(null);
-      await downloadElementPdf({ container: invoiceRef.current, fileName: `invoice-${sale.invoiceNumber}.pdf` });
-
+      await downloadElementPdf({
+        container: invoiceRef.current,
+        fileName: `invoice-${sale.invoiceNumber}.pdf`,
+      });
       setFeedback({ tone: "success", message: `PDF download started for ${sale.invoiceNumber}.` });
     } catch {
       setFeedback({ tone: "error", message: "Could not generate the invoice PDF." });
@@ -96,16 +87,22 @@ export function InvoiceDetailPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!token || !sale) {
-      return;
-    }
-
+    if (!token || !sale) return;
     try {
       setIsSendingEmail(true);
       const response = await api.sendSaleInvoiceEmail(token, sale.saleId);
-      setFeedback({ tone: "success", message: `${response.message} Sent to ${response.recipientEmail}.` });
+      setFeedback({
+        tone: "success",
+        message: `${response.message} Sent to ${response.recipientEmail}.`,
+      });
     } catch (sendError: unknown) {
-      setFeedback({ tone: "error", message: sendError instanceof ApiError ? sendError.message : "Could not send the invoice email." });
+      setFeedback({
+        tone: "error",
+        message:
+          sendError instanceof ApiError
+            ? sendError.message
+            : "Could not send the invoice email.",
+      });
     } finally {
       setIsSendingEmail(false);
     }
@@ -124,35 +121,49 @@ export function InvoiceDetailPage() {
 
   return (
     <PageShell>
-      <div className="space-y-6">
-        <PageHeader
-          eyebrow="Invoice"
-          title={sale ? `Invoice ${sale.invoiceNumber}` : "Invoice"}
-          description={sale ? `Issued ${new Date(sale.saleDate).toLocaleString()}` : "Review line items, export a PDF, or email a copy."}
-          actions={sale ? (
+      <PageHeader
+        title={sale ? `Invoice ${sale.invoiceNumber}` : "Invoice"}
+        description={
+          sale
+            ? `Issued ${new Date(sale.saleDate).toLocaleString()}`
+            : "Review line items, export a PDF, or email a copy."
+        }
+        actions={
+          sale ? (
             <>
-              <ActionButton tone="text" size="sm" icon={ArrowLeft} onClick={() => navigate(-1)}>
+              <ActionButton tone="ghost" size="sm" icon={ArrowLeft} onClick={() => navigate(-1)}>
                 Back
               </ActionButton>
-              <ActionButton tone="tonal" size="sm" icon={Download} onClick={handleDownloadPdf} isLoading={isExportingPdf}>
+              <ActionButton
+                tone="secondary"
+                size="sm"
+                icon={Download}
+                onClick={handleDownloadPdf}
+                isLoading={isExportingPdf}
+              >
                 Download PDF
               </ActionButton>
-              <ActionButton size="sm" icon={Mail} onClick={handleSendEmail} isLoading={isSendingEmail}>
-                Email Invoice
+              <ActionButton
+                size="sm"
+                icon={Mail}
+                onClick={handleSendEmail}
+                isLoading={isSendingEmail}
+              >
+                Email invoice
               </ActionButton>
             </>
-          ) : undefined}
-        />
+          ) : undefined
+        }
+      />
 
-        {error ? <AlertBox tone="error" message={error} dismissible /> : null}
-        {feedback ? <AlertBox tone={feedback.tone} message={feedback.message} dismissible /> : null}
+      {error ? <AlertBox tone="error" message={error} dismissible /> : null}
+      {feedback ? <AlertBox tone={feedback.tone} message={feedback.message} dismissible /> : null}
 
-        {sale ? (
-          <div ref={invoiceRef}>
-            <InvoiceDocument sale={sale} fallbackCustomerEmail={user?.email} />
-          </div>
-        ) : null}
-      </div>
+      {sale ? (
+        <div ref={invoiceRef}>
+          <InvoiceDocument sale={sale} fallbackCustomerEmail={user?.email} />
+        </div>
+      ) : null}
     </PageShell>
   );
 }

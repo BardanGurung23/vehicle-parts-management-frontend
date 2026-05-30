@@ -12,30 +12,48 @@ import { AlertBox } from "../../shared/components/AlertBox";
 import { DataTable, type Column } from "../../shared/components/DataTable";
 import { SkeletonCard } from "../../shared/components/Skeleton";
 import { EmptyState } from "../../shared/components/EmptyState";
+import { Segmented } from "../../shared/components/Segmented";
+import { Field } from "../../shared/components/Field";
 import { CustomerReportDetailDialog } from "./components/CustomerReportDetailDialog";
 
-const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-function formatCurrency(value: number) { return currencyFormatter.format(value); }
-function formatDate(value?: string | null) { return value ? new Date(value).toLocaleString() : "-"; }
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+const formatCurrency = (value: number) => currencyFormatter.format(value);
+const formatDate = (value?: string | null) =>
+  value ? new Date(value).toLocaleString() : "—";
+
 function toIsoDate(date: Date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
-function extractErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-
-  return fallback;
-}
+const extractErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof ApiError ? error.message : fallback;
 
 type ReportSection = "regular" | "high-spenders" | "pending-credits";
 
 export function CustomerReportsPage() {
   const { token } = useAuth();
   const now = useMemo(() => new Date(), []);
-  const [startDate, setStartDate] = useState(toIsoDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30))));
-  const [endDate, setEndDate] = useState(toIsoDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))));
+  const [startDate, setStartDate] = useState(
+    toIsoDate(
+      new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30),
+      ),
+    ),
+  );
+  const [endDate, setEndDate] = useState(
+    toIsoDate(
+      new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+      ),
+    ),
+  );
   const [threshold, setThreshold] = useState("5000");
   const [section, setSection] = useState<ReportSection>("regular");
   const [report, setReport] = useState<CustomerReports | null>(null);
@@ -45,95 +63,114 @@ export function CustomerReportsPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     let isActive = true;
     setIsLoading(true);
-
-    void api.getCustomerReports(token, {
-      startDate,
-      endDate,
-      highSpenderThreshold: Number(threshold) || 5000,
-    })
+    void api
+      .getCustomerReports(token, {
+        startDate,
+        endDate,
+        highSpenderThreshold: Number(threshold) || 5000,
+      })
       .then((response) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setReport(response);
         setError(null);
       })
       .catch((loadError: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setReport(null);
-        setError(extractErrorMessage(loadError, "Could not load the customer reports."));
+        setError(
+          extractErrorMessage(loadError, "Could not load customer reports."),
+        );
       })
       .finally(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       });
-
     return () => {
       isActive = false;
     };
   }, [endDate, startDate, threshold, token]);
 
-  const activeRows = section === "regular"
-    ? report?.regularCustomers ?? []
-    : section === "high-spenders"
-      ? report?.highSpenders ?? []
-      : report?.pendingCredits ?? [];
+  const activeRows =
+    section === "regular"
+      ? (report?.regularCustomers ?? [])
+      : section === "high-spenders"
+        ? (report?.highSpenders ?? [])
+        : (report?.pendingCredits ?? []);
 
   const columns: Column<CustomerReportEntry>[] = [
     {
       key: "customer",
       header: "Customer",
       cell: (row) => (
-        <div>
-          <p className="text-on-surface font-medium">{row.fullName}</p>
-          <p className="text-xs text-on-surface-variant">#{row.customerId} · {row.phoneNumber}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--md-sys-color-on-surface)] truncate">
+            {row.fullName}
+          </p>
+          <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] truncate tabular">
+            #{row.customerId} · {row.phoneNumber}
+          </p>
         </div>
       ),
     },
     {
       key: "spend",
       header: "Total spent",
-      cell: (row) => <span>{formatCurrency(row.totalSpent)}</span>,
+      align: "right",
+      cell: (row) => <span className="tabular">{formatCurrency(row.totalSpent)}</span>,
+      width: "140px",
     },
     {
       key: "activity",
       header: "Activity",
-      cell: (row) => <span>{row.saleCount} sales · {row.appointmentCount} appointments</span>,
+      cell: (row) => (
+        <span className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+          {row.saleCount} sales · {row.appointmentCount} appointments
+        </span>
+      ),
     },
     {
       key: "credits",
       header: "Credits",
-      cell: (row) => <span>{row.pendingInvoiceCount} pending · {row.overdueInvoiceCount} overdue</span>,
+      cell: (row) => (
+        <span className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+          {row.pendingInvoiceCount} pending · {row.overdueInvoiceCount} overdue
+        </span>
+      ),
     },
     {
       key: "outstanding",
       header: "Outstanding",
-      cell: (row) => <span>{formatCurrency(row.outstandingAmount)}</span>,
+      align: "right",
+      cell: (row) => <span className="tabular">{formatCurrency(row.outstandingAmount)}</span>,
+      width: "140px",
     },
     {
       key: "last-activity",
       header: "Last activity",
-      cell: (row) => <span>{formatDate(row.lastActivityAt)}</span>,
+      cell: (row) => (
+        <span className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+          {formatDate(row.lastActivityAt)}
+        </span>
+      ),
+      width: "180px",
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "",
+      align: "right",
+      width: "120px",
       cell: (row) => (
-        <ActionButton size="sm" tone="tonal" icon={Eye} onClick={() => {
-          setSelectedCustomer(row);
-          setIsDetailOpen(true);
-        }}>
+        <ActionButton
+          tone="ghost"
+          size="sm"
+          icon={Eye}
+          onClick={() => {
+            setSelectedCustomer(row);
+            setIsDetailOpen(true);
+          }}
+        >
           View details
         </ActionButton>
       ),
@@ -141,15 +178,18 @@ export function CustomerReportsPage() {
   ];
 
   if (isLoading) {
-    return <PageShell><SkeletonCard /></PageShell>;
+    return (
+      <PageShell>
+        <SkeletonCard />
+      </PageShell>
+    );
   }
 
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Staff Reports"
         title="Customer Reports"
-        description="Review regular customers, high spenders, and pending or overdue credit accounts."
+        description="Loyalty, top spenders, and pending credit balances."
       />
 
       {error ? <AlertBox tone="error" message={error} dismissible /> : null}
@@ -157,55 +197,114 @@ export function CustomerReportsPage() {
       <Card
         header={
           <div>
-            <h3 className="text-base font-semibold text-on-surface">Report filters</h3>
-            <p className="text-sm text-on-surface-variant">Adjust the activity window and high-spender threshold.</p>
+            <h3 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)]">
+              Filters
+            </h3>
+            <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+              Adjust the activity window and the high-spender threshold.
+            </p>
           </div>
         }
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="customer-report-start" className="block text-xs font-medium text-on-surface-variant mb-1">Start date</label>
-            <input id="customer-report-start" className="input" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-          </div>
-          <div>
-            <label htmlFor="customer-report-end" className="block text-xs font-medium text-on-surface-variant mb-1">End date</label>
-            <input id="customer-report-end" className="input" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
-          </div>
-          <div>
-            <label htmlFor="customer-report-threshold" className="block text-xs font-medium text-on-surface-variant mb-1">High spender threshold</label>
-            <input id="customer-report-threshold" className="input" type="number" min="0" step="100" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Field label="Start date" htmlFor="customer-report-start">
+            <input
+              id="customer-report-start"
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+          </Field>
+          <Field label="End date" htmlFor="customer-report-end">
+            <input
+              id="customer-report-end"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
+          </Field>
+          <Field
+            label="High spender threshold"
+            htmlFor="customer-report-threshold"
+            hint="Used to populate the High spenders tab."
+          >
+            <input
+              id="customer-report-threshold"
+              type="number"
+              min="0"
+              step="100"
+              value={threshold}
+              onChange={(event) => setThreshold(event.target.value)}
+            />
+          </Field>
         </div>
       </Card>
 
       {report ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard label="Regular customers" value={String(report.regularCustomerCount)} note={report.periodLabel} />
-            <StatCard label="High spenders" value={String(report.highSpenderCount)} note={`Threshold ${formatCurrency(report.highSpenderThreshold)}`} accent />
-            <StatCard label="Pending credits" value={String(report.pendingCreditCustomerCount)} note="Customers with unpaid invoices" />
-            <StatCard label="Overdue credits" value={String(report.overdueCreditCustomerCount)} note="Older than one month" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard
+              label="Regular customers"
+              value={String(report.regularCustomerCount)}
+              note={report.periodLabel}
+              accent
+            />
+            <StatCard
+              label="High spenders"
+              value={String(report.highSpenderCount)}
+              note={`Threshold ${formatCurrency(report.highSpenderThreshold)}`}
+            />
+            <StatCard
+              label="Pending credits"
+              value={String(report.pendingCreditCustomerCount)}
+              note="Customers with unpaid invoices"
+            />
+            <StatCard
+              label="Overdue credits"
+              value={String(report.overdueCreditCustomerCount)}
+              note="Older than one month"
+            />
           </div>
 
-          <Card
-            header={
+          <Card bodyless>
+            <div className="px-5 py-3 border-b border-[var(--md-sys-color-outline-variant)] flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider">Customer Report</p>
-                <h3 className="text-base font-semibold text-on-surface mt-1">{report.periodLabel}</h3>
-                <p className="text-sm text-on-surface-variant">Switch between report sections without leaving the page.</p>
+                <h3 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)]">
+                  {report.periodLabel}
+                </h3>
+                <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+                  {activeRows.length} record{activeRows.length === 1 ? "" : "s"}
+                </p>
               </div>
-            }
-          >
-            <div className="flex flex-wrap gap-2 mb-4">
-              <ActionButton tone={section === "regular" ? "filled" : "tonal"} size="sm" onClick={() => setSection("regular")}>Regular Customers</ActionButton>
-              <ActionButton tone={section === "high-spenders" ? "filled" : "tonal"} size="sm" onClick={() => setSection("high-spenders")}>High Spenders</ActionButton>
-              <ActionButton tone={section === "pending-credits" ? "filled" : "tonal"} size="sm" onClick={() => setSection("pending-credits")}>Pending Credits</ActionButton>
+              <Segmented
+                size="sm"
+                ariaLabel="Filter customers"
+                value={section}
+                onChange={setSection}
+                options={[
+                  { value: "regular", label: "Regular", count: report.regularCustomerCount },
+                  { value: "high-spenders", label: "High spenders", count: report.highSpenderCount },
+                  { value: "pending-credits", label: "Credits", count: report.pendingCreditCustomerCount },
+                ]}
+              />
             </div>
 
             {activeRows.length > 0 ? (
-              <DataTable columns={columns} data={activeRows} keyExtractor={(row) => row.customerId} />
+              <DataTable
+                columns={columns}
+                data={activeRows}
+                keyExtractor={(row) => row.customerId}
+                caption="Customer report"
+              />
             ) : (
-              <EmptyState icon={section === "pending-credits" ? BarChart3 : Users} title="No matching customers" description="No customers matched this report section for the selected filters." />
+              <div className="p-5">
+                <EmptyState
+                  embedded
+                  icon={section === "pending-credits" ? BarChart3 : Users}
+                  title="No matching customers"
+                  description="Adjust the filters to broaden the report."
+                />
+              </div>
             )}
           </Card>
 
@@ -215,14 +314,16 @@ export function CustomerReportsPage() {
             open={isDetailOpen}
             onOpenChange={(open) => {
               setIsDetailOpen(open);
-              if (!open) {
-                setSelectedCustomer(null);
-              }
+              if (!open) setSelectedCustomer(null);
             }}
           />
         </>
       ) : (
-        <EmptyState icon={BarChart3} title="Customer reports unavailable" description="The report could not be loaded for the selected filters." />
+        <EmptyState
+          icon={BarChart3}
+          title="Report unavailable"
+          description="The report could not be loaded for the selected filters."
+        />
       )}
     </PageShell>
   );

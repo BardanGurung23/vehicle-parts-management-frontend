@@ -1,10 +1,22 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { Search, X, ArrowRight } from "lucide-react";
 import { api, ApiError } from "../../../app/api";
 import { AlertBox } from "../../../shared/components/AlertBox";
 import { EmptyState } from "../../../shared/components/EmptyState";
-import type { CustomerSearchInput, CustomerSearchResult } from "../../../app/types";
+import { ActionButton } from "../../../shared/components/ActionButton";
+import { Card } from "../../../shared/components/Card";
+import { Badge } from "../../../shared/components/Badge";
+import { Field } from "../../../shared/components/Field";
+import type {
+  CustomerSearchInput,
+  CustomerSearchResult,
+} from "../../../app/types";
+
+/* ----------------------------------------------------------------------------
+ * Customer quick-find panel for the admin dashboard. Filters by ID, phone,
+ * vehicle number, or name. Results link directly to customer detail.
+ * ------------------------------------------------------------------------- */
 
 type SearchFormState = {
   customerId: string;
@@ -13,10 +25,7 @@ type SearchFormState = {
   name: string;
 };
 
-type RtqErrorShape = {
-  data?: unknown;
-  error?: unknown;
-};
+type RtqErrorShape = { data?: unknown; error?: unknown };
 
 function asMessage(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -31,12 +40,20 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   const body = payload.data;
   if (body && typeof body === "object") {
     const details = body as { detail?: unknown; message?: unknown; title?: unknown };
-    return asMessage(details.detail) ?? asMessage(details.message) ?? asMessage(details.title) ?? fallback;
+    return (
+      asMessage(details.detail) ??
+      asMessage(details.message) ??
+      asMessage(details.title) ??
+      fallback
+    );
   }
   return asMessage(payload.error) ?? fallback;
 }
 
-function buildCustomerSearchPayload(values: SearchFormState): { payload: CustomerSearchInput | null; error: string | null } {
+function buildCustomerSearchPayload(values: SearchFormState): {
+  payload: CustomerSearchInput | null;
+  error: string | null;
+} {
   const customerIdValue = values.customerId.trim();
   const phoneNumber = values.phoneNumber.trim();
   const vehicleNumber = values.vehicleNumber.trim();
@@ -47,7 +64,6 @@ function buildCustomerSearchPayload(values: SearchFormState): { payload: Custome
   }
 
   const payload: CustomerSearchInput = {};
-
   if (customerIdValue) {
     const parsedCustomerId = Number(customerIdValue);
     if (!Number.isInteger(parsedCustomerId) || parsedCustomerId <= 0) {
@@ -55,19 +71,16 @@ function buildCustomerSearchPayload(values: SearchFormState): { payload: Custome
     }
     payload.customerId = parsedCustomerId;
   }
-
   if (phoneNumber) payload.phoneNumber = phoneNumber;
   if (vehicleNumber) payload.vehicleNumber = vehicleNumber;
   if (name) payload.name = name;
-
   return { payload, error: null };
 }
 
-const pluralize = (label: string, count: number) => `${new Intl.NumberFormat("en-US").format(count)} ${label}${count === 1 ? "" : "s"}`;
+const pluralize = (label: string, count: number) =>
+  `${new Intl.NumberFormat("en-US").format(count)} ${label}${count === 1 ? "" : "s"}`;
 
-type CustomerLookupPanelProps = {
-  token: string | null;
-};
+type CustomerLookupPanelProps = { token: string | null };
 
 export function CustomerLookupPanel({ token }: CustomerLookupPanelProps) {
   const [searchValues, setSearchValues] = useState<SearchFormState>({
@@ -92,7 +105,6 @@ export function CustomerLookupPanel({ token }: CustomerLookupPanelProps) {
       setHasSearchRun(false);
       return;
     }
-
     try {
       setIsSearching(true);
       setSearchError(null);
@@ -100,7 +112,7 @@ export function CustomerLookupPanel({ token }: CustomerLookupPanelProps) {
       setCustomerResults(results);
       setHasSearchRun(true);
     } catch (requestError) {
-      setSearchError(extractErrorMessage(requestError, "Could not search customers right now."));
+      setSearchError(extractErrorMessage(requestError, "Could not search customers."));
       setCustomerResults([]);
       setHasSearchRun(true);
     } finally {
@@ -116,126 +128,131 @@ export function CustomerLookupPanel({ token }: CustomerLookupPanelProps) {
   };
 
   return (
-    <div className="rounded-xl bg-surface-container-lowest shadow-level1 p-5 space-y-4" id="dashboard-customer-lookup">
-      <div>
-        <h3 className="text-base font-semibold text-on-surface">Customer Quick Find</h3>
-        <p className="text-sm text-on-surface-variant">Search by ID, phone, vehicle, or name.</p>
-      </div>
-
+    <Card
+      id="dashboard-customer-lookup"
+      header={
+        <div>
+          <h3 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)]">
+            Quick find
+          </h3>
+          <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+            Look up a customer by ID, phone, vehicle, or name.
+          </p>
+        </div>
+      }
+    >
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
-            <label htmlFor="search-id" className="block text-xs font-medium text-on-surface-variant mb-1">Customer ID</label>
+          <Field label="Customer ID" htmlFor="search-id">
             <input
               id="search-id"
               type="number"
               min="1"
+              placeholder="123"
               value={searchValues.customerId}
-              onChange={(e) => setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))}
-              placeholder="#123"
+              onChange={(e) =>
+                setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))
+              }
             />
-          </div>
-          <div>
-            <label htmlFor="search-phone" className="block text-xs font-medium text-on-surface-variant mb-1">Phone number</label>
+          </Field>
+          <Field label="Phone" htmlFor="search-phone">
             <input
               id="search-phone"
               type="text"
+              placeholder="+1 555…"
               value={searchValues.phoneNumber}
-              onChange={(e) => setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))}
-              placeholder="+1 555-..."
+              onChange={(e) =>
+                setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))
+              }
             />
-          </div>
-          <div>
-            <label htmlFor="search-vehicle" className="block text-xs font-medium text-on-surface-variant mb-1">Vehicle number</label>
+          </Field>
+          <Field label="Vehicle" htmlFor="search-vehicle">
             <input
               id="search-vehicle"
               type="text"
-              value={searchValues.vehicleNumber}
-              onChange={(e) => setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))}
               placeholder="ABC 123"
+              value={searchValues.vehicleNumber}
+              onChange={(e) =>
+                setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))
+              }
             />
-          </div>
-          <div>
-            <label htmlFor="search-name" className="block text-xs font-medium text-on-surface-variant mb-1">Customer name</label>
+          </Field>
+          <Field label="Name" htmlFor="search-name">
             <input
               id="search-name"
               type="text"
-              value={searchValues.name}
-              onChange={(e) => setSearchValues((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="John Doe"
+              value={searchValues.name}
+              onChange={(e) =>
+                setSearchValues((prev) => ({ ...prev, name: e.target.value }))
+              }
             />
-          </div>
+          </Field>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
+        <div className="flex items-center gap-2">
+          <ActionButton
             type="submit"
+            icon={Search}
+            isLoading={isSearching}
             disabled={isSearching}
-            className="inline-flex items-center gap-2 h-9 px-4 bg-primary text-primary-on text-sm font-semibold rounded-lg hover:bg-primary-fixed-dim transition-colors disabled:opacity-50"
           >
-            {isSearching ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            {isSearching ? "Searching..." : "Search"}
-          </button>
-          <button
-            type="button"
-            onClick={resetSearch}
-            className="inline-flex items-center gap-2 h-9 px-4 bg-surface-container-low text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors"
-          >
-            <X className="w-4 h-4" />
+            {isSearching ? "Searching" : "Search"}
+          </ActionButton>
+          <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>
             Clear
-          </button>
+          </ActionButton>
         </div>
       </form>
 
-      {searchError ? <AlertBox tone="error" message={searchError} dismissible /> : null}
-
-      {hasSearchRun && !searchError && customerResults.length === 0 && (
-        <EmptyState icon={Search} title="No results" description="No matching customers were found." />
-      )}
-
-      {customerResults.length > 0 && (
-        <div className="space-y-3">
-          {customerResults.map((customer) => (
-            <div
-              key={customer.customerId}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-surface-container-low/70"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
-                <p className="text-xs text-on-surface-variant">
-                  #{customer.customerId} &middot; {customer.phoneNumber}
-                  {customer.email ? ` &middot; ${customer.email}` : ""}
-                </p>
-                {customer.vehicles.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {customer.vehicles.map((v) => (
-                      <span
-                        key={v.vehicleId}
-                        className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant"
-                      >
-                        {v.vehicleNumber}{v.model ? ` (${v.model})` : ""}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs text-on-surface-variant">{pluralize("vehicle", customer.vehicleCount)}</span>
-                <Link
-                  to={`/app/customers/${customer.customerId}`}
-                  className="text-xs font-semibold text-primary hover:text-accent-700"
-                >
-                  View profile &rarr;
-                </Link>
-              </div>
-            </div>
-          ))}
+      {searchError ? (
+        <div className="mt-4">
+          <AlertBox tone="error" message={searchError} dismissible />
         </div>
-      )}
-    </div>
+      ) : null}
+
+      {hasSearchRun && !searchError && customerResults.length === 0 ? (
+        <div className="mt-4">
+          <EmptyState
+            embedded
+            icon={Search}
+            title="No matches"
+            description="Try a different ID, phone, vehicle, or name."
+          />
+        </div>
+      ) : null}
+
+      {customerResults.length > 0 ? (
+        <ul className="mt-4 -mx-1 divide-y divide-[var(--md-sys-color-outline-variant)] border-t border-[var(--md-sys-color-outline-variant)]">
+          {customerResults.map((customer) => (
+            <li key={customer.customerId}>
+              <Link
+                to={`/app/customers/${customer.customerId}`}
+                className="flex items-center justify-between gap-3 py-3 px-1 rounded-md hover:bg-[var(--md-sys-color-surface-container-low)] transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--md-sys-color-on-surface)]">
+                      {customer.fullName}
+                    </p>
+                    <Badge variant={customer.userId ? "success" : "neutral"} dot>
+                      {customer.userId ? "Portal" : "Profile"}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-[12px] text-[var(--md-sys-color-on-surface-variant)] truncate">
+                    #{customer.customerId} · {customer.phoneNumber}
+                    {customer.email ? ` · ${customer.email}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+                  <span className="tabular">{pluralize("vehicle", customer.vehicleCount)}</span>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Card>
   );
 }

@@ -1,57 +1,98 @@
-import { TrendingUp, TrendingDown } from "lucide-react";
+import type { ReactNode } from "react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
+/**
+ * StatCard — KPI tile.
+ *
+ * Numeric values are visually prominent (display weight, tabular figures).
+ * Labels stay quiet (xs, uppercase, low saturation). The optional `accent`
+ * flag adds a left-edge bar in the primary color for the focus metric of a
+ * row of cards.
+ *
+ * Documentation: /doc/admin-design-system.md#stat-card
+ */
 type StatCardProps = {
   label: string;
-  value: string;
+  value: ReactNode;
   note?: string;
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
   accent?: boolean;
+  icon?: React.ElementType;
+  compact?: boolean;
 };
 
-export function StatCard({ label, value, note, trend, trendValue, accent }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  note,
+  trend,
+  trendValue,
+  accent,
+  icon: Icon,
+  compact,
+}: StatCardProps) {
+  const padding = compact ? "p-4" : "p-5";
+
+  const TrendIcon =
+    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+  const trendChip =
+    trend === "up"
+      ? "text-[var(--success-700)] bg-[var(--success-50)] border-[var(--success-100)]"
+      : trend === "down"
+        ? "text-[var(--danger-700)] bg-[var(--danger-50)] border-[var(--danger-100)]"
+        : "text-[var(--md-sys-color-on-surface-variant)] bg-[var(--md-sys-color-surface-container-low)] border-[var(--md-sys-color-outline-variant)]";
+
   return (
     <div
-      className={`rounded-xl p-5 transition-all duration-200 ease-emphasized ${
-        accent
-          ? "bg-primary-container text-primary-on-container shadow-level1"
-          : "bg-surface-container-low text-on-surface shadow-level1 ring-1 ring-white/[0.04] hover:shadow-level2 hover:bg-surface-container"
-      }`}
+      className={[
+        "relative rounded-lg",
+        "bg-[var(--md-sys-color-surface)]",
+        "border border-[var(--md-sys-color-outline-variant)]",
+        "transition-colors duration-150 hover:border-[var(--md-sys-color-outline)]",
+        padding,
+      ].join(" ")}
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          {accent && <span className="block w-1.5 h-1.5 rounded-full bg-primary-on-container/60" />}
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] leading-none ${
-            accent ? "text-primary-on-container/60" : "text-on-surface-variant"
-          }`}>
-            {label}
-          </p>
-        </div>
-
-        <div className="flex items-baseline gap-2">
-          <strong className={`font-extrabold tracking-tight tabular-nums leading-none ${
-            accent ? "text-primary-on-container" : "text-on-surface"
-          } text-[clamp(1.5rem,2.5vw,2.25rem)]`}>
-            {value}
-          </strong>
-          {trend && trendValue && (
-            <span className={`flex items-center gap-0.5 text-[11px] font-bold ${
-              trend === "up" ? "text-success" : trend === "down" ? "text-error" : "text-on-surface-variant"
-            }`}>
-              {trend === "up" ? <TrendingUp className="w-3.5 h-3.5" /> : trend === "down" ? <TrendingDown className="w-3.5 h-3.5" /> : null}
-              {trendValue}
-            </span>
-          )}
-        </div>
-
-        {note && (
-          <p className={`text-[11px] font-medium leading-snug ${
-            accent ? "text-primary-on-container/50" : "text-on-surface-variant/70"
-          }`}>
-            {note}
-          </p>
-        )}
+      {accent ? (
+        <span
+          className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-[var(--md-sys-color-primary)]"
+          aria-hidden="true"
+        />
+      ) : null}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--md-sys-color-on-surface-variant)]">
+          {label}
+        </p>
+        {Icon ? (
+          <span className="w-8 h-8 rounded-md bg-[var(--md-sys-color-surface-container-low)] flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)]">
+            <Icon className="w-4 h-4" aria-hidden="true" />
+          </span>
+        ) : null}
       </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <strong
+          className={[
+            "font-semibold tracking-tight tabular leading-none",
+            "text-[var(--md-sys-color-on-surface)]",
+            compact ? "text-xl" : "text-[1.625rem]",
+          ].join(" ")}
+        >
+          {value}
+        </strong>
+        {trend && trendValue ? (
+          <span
+            className={`inline-flex items-center gap-0.5 text-[11px] font-medium border rounded-full px-1.5 py-0.5 ${trendChip}`}
+          >
+            <TrendIcon className="w-3 h-3" aria-hidden="true" />
+            {trendValue}
+          </span>
+        ) : null}
+      </div>
+      {note ? (
+        <p className="mt-1.5 text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+          {note}
+        </p>
+      ) : null}
     </div>
   );
 }

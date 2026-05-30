@@ -13,6 +13,7 @@ import { Card } from "../../shared/components/Card";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
+import { FormSection } from "../../shared/components/FormSection";
 import { createCustomerSchema } from "./schema";
 
 type CreateCustomerFormValues = z.infer<typeof createCustomerSchema>;
@@ -34,7 +35,7 @@ export function StaffCustomerRegistrationPage() {
     if (!token) return;
     try {
       setPageError(null);
-      const createdCustomer = await api.createCustomer(token, {
+      const created = await api.createCustomer(token, {
         fullName: values.fullName,
         phoneNumber: values.phoneNumber,
         email: values.email || undefined,
@@ -42,10 +43,8 @@ export function StaffCustomerRegistrationPage() {
         vehicleNumber: values.vehicleNumber,
         vehicleModel: values.vehicleModel,
       });
-      toast.success(
-        `Customer profile created for ${createdCustomer.fullName}.`,
-      );
-      navigate(`/app/customers/${createdCustomer.customerId}`);
+      toast.success(`Customer profile created for ${created.fullName}.`);
+      navigate(`/app/customers/${created.customerId}`);
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -57,11 +56,10 @@ export function StaffCustomerRegistrationPage() {
   });
 
   return (
-    <PageShell>
+    <PageShell maxWidth="lg">
       <PageHeader
-        eyebrow="Feature 6"
-        title="Register Customer"
-        description="Create a staff-managed customer record with one required vehicle."
+        title="Register customer"
+        description="Create a staff-managed record with one initial vehicle."
         actions={
           <Link to="/app/customers/search">
             <ActionButton tone="secondary" icon={Search}>
@@ -71,25 +69,12 @@ export function StaffCustomerRegistrationPage() {
         }
       />
 
-      {pageError ? (
-        <AlertBox tone="error" message={pageError} dismissible />
-      ) : null}
+      {pageError ? <AlertBox tone="error" message={pageError} dismissible /> : null}
 
-      <div className="max-w-2xl">
-        <Card
-          header={
-            <div>
-              <h3 className="text-base font-semibold text-on-surface">
-                Customer details
-              </h3>
-              <p className="text-sm text-on-surface-variant">
-                Portal login credentials stay in the self-registration flow.
-              </p>
-            </div>
-          }
-        >
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Card>
+        <form onSubmit={onSubmit} className="space-y-5">
+          <FormSection title="Customer">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <Field
                   label="Full name"
@@ -99,7 +84,6 @@ export function StaffCustomerRegistrationPage() {
                 >
                   <input
                     id="cust-name"
-                    className="input"
                     type="text"
                     placeholder="Alex Johnson"
                     {...register("fullName")}
@@ -107,28 +91,26 @@ export function StaffCustomerRegistrationPage() {
                 </Field>
               </div>
               <Field
-                label="Phone number"
+                label="Phone"
                 error={errors.phoneNumber?.message}
                 required
                 htmlFor="cust-phone"
               >
                 <input
                   id="cust-phone"
-                  className="input"
                   type="tel"
-                  placeholder="+9779800000000"
+                  placeholder="+1 555 123 4567"
                   {...register("phoneNumber")}
                 />
               </Field>
               <Field
                 label="Email"
                 error={errors.email?.message}
-                hint="Optional for staff-created profiles."
+                hint="Optional"
                 htmlFor="cust-email"
               >
                 <input
                   id="cust-email"
-                  className="input"
                   type="email"
                   placeholder="alex@example.com"
                   {...register("email")}
@@ -139,16 +121,20 @@ export function StaffCustomerRegistrationPage() {
                   label="Address"
                   error={errors.address?.message}
                   htmlFor="cust-address"
+                  hint="Optional"
                 >
                   <textarea
                     id="cust-address"
-                    className="input"
                     rows={3}
-                    placeholder="Optional address"
                     {...register("address")}
                   />
                 </Field>
               </div>
+            </div>
+          </FormSection>
+
+          <FormSection title="Vehicle">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field
                 label="Vehicle number"
                 error={errors.vehicleNumber?.message}
@@ -157,32 +143,34 @@ export function StaffCustomerRegistrationPage() {
               >
                 <input
                   id="cust-vehicle"
-                  className="input"
                   type="text"
                   placeholder="BA 1 PA 1234"
                   {...register("vehicleNumber")}
                 />
               </Field>
               <Field
-                label="Vehicle model"
+                label="Model"
                 error={errors.vehicleModel?.message}
                 htmlFor="cust-model"
+                hint="Optional"
               >
                 <input
                   id="cust-model"
-                  className="input"
                   type="text"
                   placeholder="Civic"
                   {...register("vehicleModel")}
                 />
               </Field>
             </div>
-            <ActionButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating customer..." : "Create customer"}
+          </FormSection>
+
+          <div className="flex justify-end pt-2 border-t border-[var(--md-sys-color-outline-variant)]">
+            <ActionButton type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
+              Create customer
             </ActionButton>
-          </form>
-        </Card>
-      </div>
+          </div>
+        </form>
+      </Card>
     </PageShell>
   );
 }

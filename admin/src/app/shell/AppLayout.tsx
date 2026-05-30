@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ElementType,
+} from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  Wrench,
+  GraduationCap,
   Users,
   Package,
   CalendarCheck,
@@ -12,111 +19,60 @@ import {
   ShoppingCart,
   ClipboardList,
   Star,
-  UserCircle,
   Truck,
   LogOut,
   Menu,
   UserPlus,
   Search,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  CircleUser,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "../auth";
-import { NavPopUp } from "../../components/NavPopUp";
+import { ThemeToggle } from "../../shared/components/ThemeToggle";
 
-const routeMeta: Record<string, { title: string; description: string }> = {
-  "/app": {
-    title: "Dashboard",
-    description: "Monitor operations at a glance.",
-  },
-  "/app/staff": {
-    title: "Staff Management",
-    description: "Create and manage staff accounts.",
-  },
-  "/app/parts": {
-    title: "Parts Management",
-    description: "Manage inventory, pricing and stock levels.",
-  },
-  "/app/vendors": {
-    title: "Vendors",
-    description: "Manage supplier records and vendor contact details.",
-  },
+/* ============================================================================
+ * Route metadata
+ *
+ * Header copy per route. Add new entries here when routes are added so the
+ * layout can show a contextual title + description.
+ * ========================================================================= */
+const routeMeta: Record<string, { title: string; description?: string }> = {
+  "/app": { title: "Dashboard", description: "Operational overview" },
+  "/app/staff": { title: "Staff", description: "Accounts and roles" },
+  "/app/parts": { title: "Parts", description: "Inventory and pricing" },
+  "/app/vendors": { title: "Vendors", description: "Suppliers and contacts" },
   "/app/purchase-invoices": {
-    title: "Purchase Invoices",
-    description: "Record vendor stock receipts and increase inventory.",
+    title: "Purchase invoices",
+    description: "Stock receipts",
   },
   "/app/reports/financial": {
-    title: "Financial Reports",
-    description: "Review revenue, discounts, purchase spend, and gross profit.",
+    title: "Financial reports",
+    description: "Revenue and spend",
   },
   "/app/reports/customers": {
-    title: "Customer Reports",
-    description:
-      "Review regular customers, high spenders, and pending credit accounts.",
+    title: "Customer reports",
+    description: "Loyalty and balances",
   },
-  "/app/appointments": {
-    title: "Appointments",
-    description: "Review scheduled appointments and update service status.",
-  },
-  "/app/book-appointment": {
-    title: "Book Appointment",
-    description: "Schedule a service for your vehicle.",
-  },
-  "/app/my-appointments": {
-    title: "My Appointments",
-    description: "View your booked service appointments and their status.",
-  },
-  "/app/shop": {
-    title: "Shop Parts",
-    description: "Browse and purchase vehicle parts.",
-  },
-  "/app/my-sales": {
-    title: "My Purchases",
-    description: "View your past purchases and service history.",
-  },
-  "/app/request-part": {
-    title: "Request Part",
-    description: "Request parts not available in our inventory.",
-  },
-  "/app/my-part-requests": {
-    title: "My Part Requests",
-    description: "Track the status of your part requests.",
-  },
-  "/app/part-requests": {
-    title: "Part Requests",
-    description: "Manage customer part requests and update their status.",
-  },
-  "/app/my-reviews": {
-    title: "My Reviews",
-    description: "View and manage your reviews.",
-  },
-  "/app/customers/register": {
-    title: "Customer Registration",
-    description:
-      "Create staff-managed customer records with an initial vehicle.",
-  },
-  "/app/register-customer": {
-    title: "Customer Registration",
-    description:
-      "Create staff-managed customer records with an initial vehicle.",
-  },
-  "/app/customers/search": {
-    title: "Customer Search",
-    description:
-      "Search customer records by ID, phone, vehicle number, or name.",
-  },
-  "/app/profile": {
-    title: "My Profile",
-    description: "Review your customer profile and linked vehicles.",
-  },
-  "/app/profile/vehicles": {
-    title: "My Vehicles",
-    description: "Add and remove vehicles linked to your account.",
-  },
+  "/app/appointments": { title: "Appointments", description: "Service queue" },
+  "/app/book-appointment": { title: "Book appointment" },
+  "/app/my-appointments": { title: "My appointments" },
+  "/app/shop": { title: "Shop parts" },
+  "/app/my-sales": { title: "My purchases" },
+  "/app/request-part": { title: "Request a part" },
+  "/app/my-part-requests": { title: "My part requests" },
+  "/app/part-requests": { title: "Part requests" },
+  "/app/my-reviews": { title: "My reviews" },
+  "/app/customers/register": { title: "Register customer" },
+  "/app/register-customer": { title: "Register customer" },
+  "/app/customers/search": { title: "Customers", description: "Directory" },
+  "/app/profile": { title: "Profile" },
+  "/app/profile/vehicles": { title: "My vehicles" },
 };
 
-function getRouteMeta(pathname: string): {
-  title: string;
-  description: string;
-} {
+function getRouteMeta(pathname: string) {
   const exact = routeMeta[pathname];
   if (exact) return exact;
   if (
@@ -124,72 +80,63 @@ function getRouteMeta(pathname: string): {
     !pathname.includes("/register") &&
     !pathname.includes("/search")
   ) {
-    return {
-      title: "Customer Details",
-      description: "Review customer profiles, vehicles, and service history.",
-    };
+    return { title: "Customer details", description: "Profile and history" };
   }
-  return { title: "Dashboard", description: "Monitor operations at a glance." };
+  return routeMeta["/app"];
 }
 
+/* ============================================================================
+ * Navigation model
+ * ========================================================================= */
 type NavItem = {
   label: string;
   to: string;
-  icon: React.ElementType;
+  icon: ElementType;
   show: boolean;
+  end?: boolean;
 };
 type NavGroup = { label: string; items: NavItem[] };
 
+/* ============================================================================
+ * Layout constants
+ * ========================================================================= */
+const SIDEBAR_WIDTH = 240;
+const SIDEBAR_COLLAPSED = 64;
+const HEADER_HEIGHT = 56;
+
+/* ============================================================================
+ * AppLayout
+ * ========================================================================= */
 export function AppLayout() {
   const location = useLocation();
-  const MIN_SIDEBAR = 180;
-  const MAX_SIDEBAR = 400;
-  const COLLAPSED_WIDTH = 72;
-
   const { user, isAdmin, logout } = useAuth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem("sidebarWidth");
-    return saved ? Number(saved) : 260;
+
+  /**
+   * Routes that need extra horizontal space (e.g. the storefront with its
+   * filter rail + product grid + slide-over cart) collapse the sidebar by
+   * default while keeping the user's manual toggle authoritative.
+   */
+  const isCompactLayoutRoute = useCallback((pathname: string) => {
+    return pathname === "/app/shop" || pathname.startsWith("/app/shop/");
+  }, []);
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (isCompactLayoutRoute(location.pathname)) return true;
+    return localStorage.getItem("admin:sidebar-collapsed") === "1";
   });
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // When the user explicitly toggles the sidebar we treat the next value
+  // as their preference; route-driven auto-collapse must not override it
+  // until they navigate to a different layout zone.
+  const lastUserPreferenceRef = useRef<boolean | null>(null);
+  const lastRouteWasCompactRef = useRef<boolean>(
+    isCompactLayoutRoute(location.pathname),
+  );
+
   const hamburgerRef = useRef<HTMLButtonElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
-  const widthRef = useRef(sidebarWidth);
-  widthRef.current = sidebarWidth;
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.min(MAX_SIDEBAR, Math.max(MIN_SIDEBAR, e.clientX));
-      setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      localStorage.setItem("sidebarWidth", String(widthRef.current));
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing]);
-
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const role = user?.role ?? "";
   const isCustomer = role === "Customer";
@@ -199,6 +146,45 @@ export function AppLayout() {
 
   const { title, description } = getRouteMeta(location.pathname);
 
+  /* -------- collapse persistence -------- */
+  const toggleCollapse = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("admin:sidebar-collapsed", next ? "1" : "0");
+      lastUserPreferenceRef.current = next;
+      return next;
+    });
+  }, []);
+
+  /* -------- route-driven auto-collapse -------------------------------- */
+  // On the storefront we collapse the sidebar so the catalog + filters +
+  // cart drawer have room to breathe. When the user leaves we restore
+  // their saved preference (or whatever they manually picked while on the
+  // compact route).
+  useEffect(() => {
+    const compactNow = isCompactLayoutRoute(location.pathname);
+    const wasCompact = lastRouteWasCompactRef.current;
+
+    if (compactNow && !wasCompact) {
+      // Arriving at a compact-layout route: collapse, but remember the
+      // current state so we can restore it on the way out.
+      setIsSidebarCollapsed((current) => {
+        lastUserPreferenceRef.current = current;
+        return true;
+      });
+    } else if (!compactNow && wasCompact) {
+      // Leaving the compact-layout route: restore the saved preference
+      // unless the user manually overrode it while inside.
+      const saved =
+        lastUserPreferenceRef.current ??
+        (localStorage.getItem("admin:sidebar-collapsed") === "1");
+      setIsSidebarCollapsed(saved);
+    }
+
+    lastRouteWasCompactRef.current = compactNow;
+  }, [isCompactLayoutRoute, location.pathname]);
+
+  /* -------- mobile drawer -------- */
   const closeDrawer = useCallback(() => {
     setIsMobileDrawerOpen(false);
     hamburgerRef.current?.focus();
@@ -206,393 +192,250 @@ export function AppLayout() {
 
   useEffect(() => {
     if (!isMobileDrawerOpen) return;
-    const prev = document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeDrawer();
-      if (e.key === "Tab" && drawerRef.current) {
-        const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDrawer();
     };
-    document.addEventListener("keydown", handleKeyDown);
-    drawerRef.current?.focus();
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
     };
   }, [isMobileDrawerOpen, closeDrawer]);
 
+  // Close drawer on navigation
   useEffect(() => {
     closeDrawer();
   }, [location.pathname, closeDrawer]);
 
-  const navGroups: NavGroup[] = [
-    {
-      label: "Main",
-      items: [
-        { label: "Dashboard", to: "/app", icon: LayoutDashboard, show: true },
-      ],
-    },
-    {
-      label: "Appointments",
-      items: [
-        {
-          label: "Book Appointment",
-          to: "/app/book-appointment",
-          icon: CalendarCheck,
-          show: isCustomer,
-        },
-        {
-          label: "My Appointments",
-          to: "/app/my-appointments",
-          icon: CalendarCheck,
-          show: isCustomer,
-        },
-      ],
-    },
-    {
-      label: "Parts",
-      items: [
-        {
-          label: "Shop Parts",
-          to: "/app/shop",
-          icon: ShoppingCart,
-          show: true,
-        },
-        {
-          label: "Request Part",
-          to: "/app/request-part",
-          icon: ClipboardList,
-          show: isCustomer,
-        },
-        {
-          label: "My Requests",
-          to: "/app/my-part-requests",
-          icon: ClipboardList,
-          show: isCustomer,
-        },
-        {
-          label: "My Reviews",
-          to: "/app/my-reviews",
-          icon: Star,
-          show: isCustomer,
-        },
-        {
-          label: "My Purchases",
-          to: "/app/my-sales",
-          icon: Truck,
-          show: isCustomer,
-        },
-      ],
-    },
-    // {
-    //   label: "Profile",
-    //   items: [
-    //     {
-    //       label: "My Profile",
-    //       to: "/app/profile",
-    //       icon: UserCircle,
-    //       show: isCustomer,
-    //     },
-    //     {
-    //       label: "Manage Vehicles",
-    //       to: "/app/profile/vehicles",
-    //       icon: Truck,
-    //       show: isCustomer,
-    //     },
-    //   ],
-    // },
-    {
-      label: "Customers",
-      items: [
-        {
-          label: "Register",
-          to: "/app/customers/register",
-          icon: UserPlus,
-          show: canManageCustomers,
-        },
-        {
-          label: "Browse",
-          to: "/app/customers/search",
-          icon: Search,
-          show: canManageCustomers,
-        },
-      ],
-    },
-    {
-      label: "Management",
-      items: [
-        { label: "Staff", to: "/app/staff", icon: Users, show: isAdmin },
-        { label: "Parts", to: "/app/parts", icon: Package, show: canViewParts },
-        {
-          label: "Appointments",
-          to: "/app/appointments",
-          icon: CalendarCheck,
-          show: canManageAppointments,
-        },
-        {
-          label: "Vendors",
-          to: "/app/vendors",
-          icon: Building2,
-          show: isAdmin,
-        },
-        {
-          label: "Purchase Invoices",
-          to: "/app/purchase-invoices",
-          icon: FileText,
-          show: isAdmin,
-        },
-        {
-          label: "Financial Reports",
-          to: "/app/reports/financial",
-          icon: BarChart3,
-          show: isAdmin,
-        },
-        {
-          label: "Customer Reports",
-          to: "/app/reports/customers",
-          icon: BarChart3,
-          show: canManageCustomers,
-        },
-        {
-          label: "Part Requests",
-          to: "/app/part-requests",
-          icon: ClipboardList,
-          show: isAdmin,
-        },
-      ],
-    },
-  ];
+  /* -------- user menu -------- */
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isUserMenuOpen]);
 
-  const initials = user?.fullName
-    ? user.fullName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "??";
-
-  const SidebarNav = ({ collapsed }: { collapsed: boolean }) => (
-    <nav
-      className="flex-1 overflow-y-auto px-2 py-4 space-y-5"
-      aria-label="Main navigation"
-    >
-      {navGroups
-        .filter((g) => g.items.some((i) => i.show))
-        .map((group) => (
-          <div key={group.label}>
-            {!collapsed && (
-              <p className="px-4 mb-2 text-label-small text-on-surface-variant/50 uppercase tracking-widest">
-                {group.label}
-              </p>
-            )}
-            <div
-              className={`${collapsed ? "flex flex-col items-center gap-1" : "space-y-0.5"}`}
-            >
-              {group.items
-                .filter((i) => i.show)
-                .map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.to === "/app" || item.to === "/app/profile"}
-                    className={({ isActive }) =>
-                      `flex items-center transition-all duration-200 ease-emphasized ${
-                        collapsed
-                          ? "justify-center w-10 h-10 rounded-full"
-                          : "gap-3 px-4 py-2.5 rounded-full text-sm font-medium"
-                      } ${
-                        isActive
-                          ? "bg-primary-container text-primary-on-container shadow-level1"
-                          : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                      }`
-                    }
-                    aria-current={({ isActive }) =>
-                      isActive ? "page" : undefined
-                    }
-                  >
-                    <item.icon
-                      className={`shrink-0 ${collapsed ? "w-5 h-5" : "w-4 h-4"}`}
-                    />
-                    {!collapsed && (
-                      <span className="truncate">{item.label}</span>
-                    )}
-                  </NavLink>
-                ))}
-            </div>
-          </div>
-        ))}
-    </nav>
+  /* -------- nav model -------- */
+  const navGroups: NavGroup[] = useMemo(
+    () => [
+      {
+        label: "Overview",
+        items: [
+          { label: "Dashboard", to: "/app", icon: LayoutDashboard, show: true, end: true },
+        ],
+      },
+      {
+        label: "Service",
+        items: [
+          { label: "Appointments", to: "/app/appointments", icon: CalendarCheck, show: canManageAppointments },
+          { label: "Book", to: "/app/book-appointment", icon: CalendarCheck, show: isCustomer },
+          { label: "My appointments", to: "/app/my-appointments", icon: CalendarCheck, show: isCustomer },
+        ],
+      },
+      {
+        label: "Customers",
+        items: [
+          { label: "Browse", to: "/app/customers/search", icon: Search, show: canManageCustomers },
+          { label: "Register", to: "/app/customers/register", icon: UserPlus, show: canManageCustomers },
+          { label: "Customer reports", to: "/app/reports/customers", icon: BarChart3, show: canManageCustomers },
+        ],
+      },
+      {
+        label: "Inventory",
+        items: [
+          { label: "Parts", to: "/app/parts", icon: Package, show: canViewParts },
+          { label: "Vendors", to: "/app/vendors", icon: Building2, show: isAdmin },
+          { label: "Purchase invoices", to: "/app/purchase-invoices", icon: FileText, show: isAdmin },
+          { label: "Part requests", to: "/app/part-requests", icon: ClipboardList, show: isAdmin },
+        ],
+      },
+      {
+        label: "Storefront",
+        items: [
+          { label: "Shop", to: "/app/shop", icon: ShoppingCart, show: true },
+          { label: "My purchases", to: "/app/my-sales", icon: Truck, show: isCustomer },
+          { label: "Request a part", to: "/app/request-part", icon: ClipboardList, show: isCustomer },
+          { label: "My requests", to: "/app/my-part-requests", icon: ClipboardList, show: isCustomer },
+          { label: "My reviews", to: "/app/my-reviews", icon: Star, show: isCustomer },
+        ],
+      },
+      {
+        label: "Administration",
+        items: [
+          { label: "Staff", to: "/app/staff", icon: Users, show: isAdmin },
+          { label: "Financial reports", to: "/app/reports/financial", icon: BarChart3, show: isAdmin },
+        ],
+      },
+    ],
+    [canManageAppointments, canManageCustomers, canViewParts, isAdmin, isCustomer],
   );
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full" ref={drawerRef} tabIndex={-1}>
-      <div
-        className={`flex items-center shrink-0 glass ${isSidebarCollapsed ? "justify-center h-16" : "gap-3 px-4 h-16"}`}
-      >
-        <div className="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center shadow-level1 shrink-0">
-          <Wrench className="w-4.5 h-4.5 text-primary" />
-        </div>
-        {!isSidebarCollapsed && (
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-on-surface tracking-tight">
-              Autonix
-            </h1>
-            <p className="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider">
-              Access Console
-            </p>
-          </div>
-        )}
-      </div>
+  /* -------- helpers -------- */
+  const initials = useMemo(() => {
+    if (!user?.fullName) return "?";
+    return user.fullName
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [user?.fullName]);
 
-      <SidebarNav collapsed={isSidebarCollapsed} />
-
-      <div
-        className={`mx-[7px] mb-3 shrink-0 border border-[#323332] rounded-md ${isSidebarCollapsed ? "p-3 flex flex-col items-center gap-2" : "p-3"}`}
-      >
-        <div
-          className={`flex items-center ${isSidebarCollapsed ? "flex-col gap-2" : "gap-3"}`}
-        >
-          <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-xs font-bold text-primary-on-container shrink-0 shadow-level1">
-            {initials}
-          </div>
-          {!isSidebarCollapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-on-surface truncate">
-                {user?.fullName}
-              </p>
-              <p className="text-xs text-on-surface-variant truncate">{role}</p>
-            </div>
-          )}
-          <NavPopUp
-            user={user}
-            initials={initials}
-            isSidebarCollapsed={isSidebarCollapsed}
-            role={role}
-            logout={logout}
-          />
-        </div>
-      </div>
-    </div>
-  );
-
+  /* ----------------------------------------------------------------------- */
   return (
-    <div className="min-h-screen bg-surface-dim md:flex">
+    <div className="min-h-screen bg-[var(--md-sys-color-background)] flex">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
 
-      {isMobileDrawerOpen && (
+      {/* Mobile drawer scrim */}
+      {isMobileDrawerOpen ? (
         <div
-          className="fixed inset-0 z-40 md:hidden animate-fadeIn"
+          className="fixed inset-0 z-40 lg:hidden bg-[var(--md-sys-color-scrim)] animate-fadeIn"
           onClick={closeDrawer}
           aria-hidden="true"
-          style={{
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
         />
-      )}
+      ) : null}
 
-      <aside
-        ref={sidebarRef}
-        className={`
-          fixed top-0 left-0 z-50 h-full glass-heavy shadow-level2
-          shrink-0
-          md:sticky md:z-auto md:h-screen md:top-0
-          ${isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
-          ${isResizing ? "" : "transition-all duration-300 ease-emphasized"}
-        `}
-        style={{ width: isSidebarCollapsed ? COLLAPSED_WIDTH : sidebarWidth }}
-        aria-label="Main navigation"
-      >
-        {sidebarContent}
+      <Sidebar
+        groups={navGroups}
+        collapsed={isSidebarCollapsed}
+        mobileOpen={isMobileDrawerOpen}
+        widthCollapsed={SIDEBAR_COLLAPSED}
+        widthExpanded={SIDEBAR_WIDTH}
+        onCollapseToggle={toggleCollapse}
+        onCloseMobile={closeDrawer}
+      />
 
-        {!isSidebarCollapsed && (
-          <div
-            className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/30 active:bg-primary/50 transition-colors"
-            onMouseDown={handleResizeStart}
-          />
-        )}
-      </aside>
-
-      <div className="md:flex-1 md:flex md:flex-col md:min-w-0">
-        <header className="sticky top-0 z-30 glass shadow-level2" role="banner">
-          <div className="flex items-center justify-between gap-4 px-4 h-16">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header
+          className="sticky top-0 z-30 bg-[var(--md-sys-color-surface)] border-b border-[var(--md-sys-color-outline-variant)]"
+          style={{ height: HEADER_HEIGHT }}
+          role="banner"
+        >
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-full">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 ref={hamburgerRef}
                 type="button"
-                className="md:hidden p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                className="lg:hidden p-2 -ml-2 rounded-md text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container)] transition-colors"
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-expanded={isMobileDrawerOpen}
-                aria-controls="mobile-nav"
+                aria-controls="primary-nav"
                 aria-label="Open navigation menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
-
-              <button
-                type="button"
-                className="hidden md:flex p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
-                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                aria-label={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  className={`transition-transform duration-200 ${isSidebarCollapsed ? "rotate-180" : ""}`}
-                >
-                  <g fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M2 11c0-3.771 0-5.657 1.172-6.828S6.229 3 10 3h4c3.771 0 5.657 0 6.828 1.172S22 7.229 22 11v2c0 3.771 0 5.657-1.172 6.828S17.771 21 14 21h-4c-3.771 0-5.657 0-6.828-1.172S2 16.771 2 13z" />
-                    <path strokeLinecap="round" d="M15 21V3" opacity="0.5" />
-                  </g>
-                </svg>
-              </button>
-
               <div className="min-w-0">
-                <h2 className="text-title-large text-on-surface truncate">
+                <h1 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)] tracking-tight truncate leading-tight">
                   {title}
-                </h2>
+                </h1>
+                {description ? (
+                  <p className="hidden sm:block text-[12px] text-[var(--md-sys-color-on-surface-variant)] truncate">
+                    {description}
+                  </p>
+                ) : null}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <p className="hidden sm:block text-sm text-on-surface-variant truncate max-w-[240px]">
-                {description}
-              </p>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                aria-label="Help"
+                title="Help"
+                className="hidden sm:inline-flex p-2 rounded-md text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container)] transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <ThemeToggle />
 
-              <div className="flex items-center gap-3 pl-3">
-                <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-xs font-bold text-on-primary-container">
-                  {initials}
-                </div>
-                <div className="hidden sm:block text-sm">
-                  <p className="font-medium text-on-surface">
-                    {user?.fullName}
-                  </p>
-                  <span className="text-xs text-on-surface-variant">
-                    {role}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  aria-haspopup="menu"
+                  aria-expanded={isUserMenuOpen}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 ml-1 rounded-md hover:bg-[var(--md-sys-color-surface-container)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--md-sys-color-primary)]"
+                >
+                  <Avatar initials={initials} />
+                  <span className="hidden md:flex flex-col items-start text-[12px] leading-tight">
+                    <span className="font-medium text-[var(--md-sys-color-on-surface)] truncate max-w-[140px]">
+                      {user?.fullName ?? "Account"}
+                    </span>
+                    <span className="text-[var(--md-sys-color-on-surface-variant)]">{role || "User"}</span>
                   </span>
-                </div>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-[var(--md-sys-color-on-surface-variant)] transition-transform hidden sm:block ${
+                      isUserMenuOpen ? "rotate-180" : ""
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {isUserMenuOpen ? (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-2 w-64 bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] rounded-md shadow-level3 py-1 origin-top-right animate-scaleIn"
+                  >
+                    <div className="px-3 py-3 border-b border-[var(--md-sys-color-outline-variant)]">
+                      <p className="text-sm font-semibold text-[var(--md-sys-color-on-surface)] truncate">
+                        {user?.fullName}
+                      </p>
+                      <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] truncate">
+                        {user?.email}
+                      </p>
+                      <span className="mt-1.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-[var(--brand-50)] text-[var(--brand-700)]">
+                        {role || "User"}
+                      </span>
+                    </div>
+                    {isCustomer ? (
+                      <div className="py-1">
+                        <UserMenuLink
+                          to="/app/profile"
+                          icon={CircleUser}
+                          label="Profile"
+                          onSelect={() => setIsUserMenuOpen(false)}
+                        />
+                        <UserMenuLink
+                          to="/app/profile/vehicles"
+                          icon={Truck}
+                          label="Vehicles"
+                          onSelect={() => setIsUserMenuOpen(false)}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="py-1 border-t border-[var(--md-sys-color-outline-variant)]">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--md-sys-color-error)] hover:bg-[var(--md-sys-color-error-container)] transition-colors text-left"
+                      >
+                        <LogOut className="w-4 h-4" aria-hidden="true" />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -601,11 +444,258 @@ export function AppLayout() {
         <main
           id="main-content"
           role="main"
-          className="flex-1 p-4 md:p-6 lg:p-8 page-enter bg-[radial-gradient(ellipse_at_top_right,_rgba(208,188,255,0.03),transparent_50%)]"
+          className="flex-1 px-4 sm:px-6 lg:px-8 py-6 lg:py-8 page-enter"
         >
           <Outlet />
         </main>
       </div>
     </div>
+  );
+}
+
+/* ============================================================================
+ * Sidebar
+ * ========================================================================= */
+type SidebarProps = {
+  groups: NavGroup[];
+  collapsed: boolean;
+  mobileOpen: boolean;
+  widthCollapsed: number;
+  widthExpanded: number;
+  onCollapseToggle: () => void;
+  onCloseMobile: () => void;
+};
+
+function Sidebar({
+  groups,
+  collapsed,
+  mobileOpen,
+  widthCollapsed,
+  widthExpanded,
+  onCollapseToggle,
+  onCloseMobile,
+}: SidebarProps) {
+  const visibleGroups = groups.filter((g) => g.items.some((i) => i.show));
+
+  return (
+    <aside
+      id="primary-nav"
+      aria-label="Primary navigation"
+      className={[
+        "fixed top-0 left-0 z-50 h-screen flex flex-col",
+        "bg-[var(--md-sys-color-surface)] border-r border-[var(--md-sys-color-outline-variant)]",
+        "transition-[transform,width] duration-200 ease-standard",
+        "lg:sticky lg:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+      ].join(" ")}
+      style={{ width: collapsed ? widthCollapsed : widthExpanded }}
+    >
+      {/* Brand */}
+      <div
+        className={[
+          "shrink-0 flex items-center border-b border-[var(--md-sys-color-outline-variant)]",
+          collapsed ? "justify-center" : "px-4 gap-2.5",
+        ].join(" ")}
+        style={{ height: HEADER_HEIGHT }}
+      >
+        <div className="w-9 h-9 rounded-lg bg-[var(--brand-50)] border border-[var(--brand-100)] flex items-center justify-center shrink-0">
+          <GraduationCap className="w-5 h-5 text-[var(--brand-700)]" aria-hidden="true" />
+        </div>
+        {!collapsed ? (
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-[var(--md-sys-color-on-surface)] leading-none">
+              Autonix
+            </p>
+            <p className="text-[10px] font-medium text-[var(--md-sys-color-on-surface-variant)] mt-1 uppercase tracking-wider">
+              Admin Console
+            </p>
+          </div>
+        ) : null}
+        {!collapsed ? (
+          <button
+            type="button"
+            className="ml-auto lg:hidden p-1 rounded-md text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container)] transition-colors"
+            onClick={onCloseMobile}
+            aria-label="Close navigation"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        ) : null}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Main navigation">
+        {visibleGroups.map((group, idx) => (
+          <NavGroupSection
+            key={group.label}
+            group={group}
+            collapsed={collapsed}
+            addTopSpacing={idx > 0}
+          />
+        ))}
+      </nav>
+
+      {/* Collapse toggle (desktop only) */}
+      <div className="border-t border-[var(--md-sys-color-outline-variant)] p-2 hidden lg:block">
+        <button
+          type="button"
+          onClick={onCollapseToggle}
+          className="w-full flex items-center justify-center gap-2 px-2 py-2 rounded-md text-[12px] font-medium text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] hover:text-[var(--md-sys-color-on-surface)] transition-colors"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <ChevronLeft
+            className={`w-4 h-4 transition-transform ${collapsed ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+          {!collapsed ? <span>Collapse</span> : null}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+/* ============================================================================
+ * NavGroupSection
+ * ========================================================================= */
+function NavGroupSection({
+  group,
+  collapsed,
+  addTopSpacing,
+}: {
+  group: NavGroup;
+  collapsed: boolean;
+  addTopSpacing: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const visibleItems = group.items.filter((i) => i.show);
+  if (visibleItems.length === 0) return null;
+
+  return (
+    <div className={addTopSpacing ? "mt-3" : undefined}>
+      {!collapsed ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
+          className="w-full flex items-center justify-between px-3 py-1.5 group"
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--md-sys-color-on-surface-variant)] group-hover:text-[var(--md-sys-color-on-surface)] transition-colors">
+            {group.label}
+          </span>
+          <ChevronUp
+            className={`w-3 h-3 text-[var(--md-sys-color-on-surface-variant)] group-hover:text-[var(--md-sys-color-on-surface)] transition-transform ${
+              isOpen ? "" : "rotate-180"
+            }`}
+            aria-hidden="true"
+          />
+        </button>
+      ) : (
+        <div
+          className="my-2 mx-2 border-t border-[var(--md-sys-color-outline-variant)]"
+          aria-hidden="true"
+        />
+      )}
+      {(isOpen || collapsed) && (
+        <div className={collapsed ? "flex flex-col items-center gap-0.5" : "space-y-0.5"}>
+          {visibleItems.map((item) => (
+            <NavItemLink key={item.to} item={item} collapsed={collapsed} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
+ * NavItemLink
+ * ========================================================================= */
+function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const Icon = item.icon;
+  const end = item.end === true || item.to === "/app" || item.to === "/app/profile";
+
+  return (
+    <NavLink
+      to={item.to}
+      end={end}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) =>
+        [
+          "relative flex items-center transition-colors duration-150",
+          collapsed
+            ? "justify-center w-10 h-10 rounded-md"
+            : "gap-2.5 px-3 h-9 rounded-md text-[13px] font-medium",
+          isActive
+            ? "bg-[var(--brand-50)] text-[var(--brand-700)]"
+            : "text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container)]",
+        ].join(" ")
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && !collapsed ? (
+            <span
+              className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-full bg-[var(--md-sys-color-primary)]"
+              aria-hidden="true"
+            />
+          ) : null}
+          <Icon
+            className={[
+              "shrink-0",
+              collapsed ? "w-[18px] h-[18px]" : "w-4 h-4",
+              isActive
+                ? "text-[var(--md-sys-color-primary)]"
+                : "text-[var(--md-sys-color-on-surface-variant)]",
+            ].join(" ")}
+            aria-hidden="true"
+          />
+          {!collapsed ? (
+            <span className="truncate">{item.label}</span>
+          ) : (
+            <span className="sr-only">{item.label}</span>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+/* ============================================================================
+ * UserMenuLink
+ * ========================================================================= */
+function UserMenuLink({
+  to,
+  icon: Icon,
+  label,
+  onSelect,
+}: {
+  to: string;
+  icon: ElementType;
+  label: string;
+  onSelect: () => void;
+}) {
+  return (
+    <NavLink
+      role="menuitem"
+      to={to}
+      onClick={onSelect}
+      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container-low)] transition-colors"
+    >
+      <Icon className="w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" aria-hidden="true" />
+      {label}
+    </NavLink>
+  );
+}
+
+/* ============================================================================
+ * Avatar
+ * ========================================================================= */
+function Avatar({ initials }: { initials: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="w-8 h-8 rounded-full bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-100)] flex items-center justify-center text-[11px] font-semibold tabular"
+    >
+      {initials}
+    </span>
   );
 }

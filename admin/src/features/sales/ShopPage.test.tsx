@@ -3,6 +3,20 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ShopPage } from "./ShopPage";
 
+/**
+ * The shop catalog and customer picker were redesigned in the polish pass:
+ *   - the inline "AI Shop Insights" panel was replaced with an integrated
+ *     low-stock watchlist beside the catalog;
+ *   - the customer picker is an inline dropdown anchored to the cart card,
+ *     not a modal.
+ *
+ * These tests cover the new contract:
+ *   - the catalog renders parts and the low-stock watchlist surfaces signal
+ *     items;
+ *   - clicking the picker trigger opens a listbox; selecting a row swaps
+ *     the cart's customer chip.
+ */
+
 const getParts = vi.fn();
 const getCustomers = vi.fn();
 const getDashboardSummary = vi.fn();
@@ -23,13 +37,6 @@ vi.mock("../../app/api", () => ({
     getDashboardSummary: (...args: unknown[]) => getDashboardSummary(...args),
     searchCustomers: vi.fn(),
     createSale: vi.fn(),
-  },
-}));
-
-vi.mock("react-toastify", () => ({
-  toast: {
-    error: vi.fn(),
-    success: vi.fn(),
   },
 }));
 
@@ -71,10 +78,7 @@ describe("ShopPage", () => {
         totalUnitsOnHand: 187,
         inventoryCost: 367810,
         stockStatus: [],
-        topCategories: [
-          { label: "Body Parts", count: 2 },
-          { label: "Brakes", count: 2 },
-        ],
+        topCategories: [],
         lowStockParts: [
           {
             partId: 6,
@@ -89,52 +93,51 @@ describe("ShopPage", () => {
         recentParts: [],
       },
       alerts: {
-        activeAlertCount: 2,
+        activeAlertCount: 0,
         lowStockAlertCount: 1,
         overdueCreditAlertCount: 0,
-        predictiveAlertCount: 1,
+        predictiveAlertCount: 0,
         generatedAt: "2026-05-19T05:00:00Z",
         lowStockAlerts: [],
         overdueCreditAlerts: [],
-        predictiveAlerts: [
-          {
-            predictiveAlertId: 10,
-            customerId: 1,
-            customerName: "Demo Customer One",
-            vehicleId: 3,
-            vehicleNumber: "BA 2 PA 3001",
-            partId: 8,
-            partName: "Premium Brake Pad Set",
-            alertMessage: "Brake pad wear indicates replacement may be needed soon.",
-            riskLevel: "High",
-            status: "Active",
-            createdAt: "2026-05-19T05:00:00Z",
-          },
-        ],
+        predictiveAlerts: [],
       },
       currentCustomer: null,
     });
   });
 
-  it("renders shop insights and updates customer signals when a customer is selected", async () => {
+  it("renders the catalog and the low-stock watchlist", async () => {
     render(
       <MemoryRouter>
         <ShopPage />
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("AI Shop Insights")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getAllByText("12V Maintenance-Free Battery").length,
+      ).toBeGreaterThan(0),
+    );
+    expect(screen.getByText("Low-stock watchlist")).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Body Parts · 2")).toBeInTheDocument();
-    expect(screen.getByText("Select a customer to unlock customer-specific maintenance and part-risk insights.")).toBeInTheDocument();
+  it("selects a customer through the dropdown picker", async () => {
+    render(
+      <MemoryRouter>
+        <ShopPage />
+      </MemoryRouter>,
+    );
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    await waitFor(() => expect(screen.getByText("Cart")).toBeInTheDocument());
 
-    await waitFor(() => {
-      expect(screen.getByText("BA 2 PA 3001 · Premium Brake Pad Set")).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole("button", { name: /select customer/i }));
 
-    expect(screen.getByText("Portal account")).toBeInTheDocument();
-    expect(screen.getByText("1 registered account prioritized for faster staff checkout.")).toBeInTheDocument();
+    const option = await screen.findByRole("option", { name: /demo customer one/i });
+    fireEvent.click(option);
+
+    await waitFor(() =>
+      expect(screen.getByText("Demo Customer One")).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/#1 ·/)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
+import { CalendarCheck, Star } from "lucide-react";
 import { useAuth } from "../../app/auth";
 import { api, ApiError } from "../../app/api";
 import { PageShell } from "../../shared/components/PageShell";
@@ -9,22 +9,35 @@ import { Card } from "../../shared/components/Card";
 import { Badge } from "../../shared/components/Badge";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { EmptyState } from "../../shared/components/EmptyState";
-import { CalendarCheck } from "lucide-react";
+import { SkeletonCard } from "../../shared/components/Skeleton";
+import { Toolbar } from "../../shared/components/Toolbar";
+import { Segmented } from "../../shared/components/Segmented";
+import { AlertBox } from "../../shared/components/AlertBox";
 import type { Appointment } from "../../app/types";
 
 const badgeVariant = (status: string) => {
   switch (status) {
-    case "Pending": return "warning";
-    case "Confirmed": return "info";
-    case "Completed": return "success";
-    case "Cancelled": return "danger";
-    default: return "neutral";
+    case "Pending":
+      return "warning" as const;
+    case "Confirmed":
+      return "info" as const;
+    case "Completed":
+      return "success" as const;
+    case "Cancelled":
+      return "danger" as const;
+    default:
+      return "neutral" as const;
   }
 };
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  return new Date(dateStr).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
+
+type StatusFilter = "all" | "Pending" | "Confirmed" | "Completed" | "Cancelled";
 
 export function MyAppointmentsPage() {
   const { token } = useAuth();
@@ -32,75 +45,165 @@ export function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const loadAppointments = useCallback(async () => {
     if (!token) return;
-    try { setLoading(true); setError(null); setAppointments(await api.getMyAppointments(token)); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Failed to load appointments."); }
-    finally { setLoading(false); }
+    try {
+      setLoading(true);
+      setError(null);
+      setAppointments(await api.getMyAppointments(token));
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not load your appointments.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
-  useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => {
+    void loadAppointments();
+  }, [loadAppointments]);
+
+  const counts = useMemo(() => {
+    const base: Record<StatusFilter, number> = {
+      all: appointments.length,
+      Pending: 0,
+      Confirmed: 0,
+      Completed: 0,
+      Cancelled: 0,
+    };
+    appointments.forEach((a) => {
+      const key = a.status as StatusFilter;
+      if (key in base) base[key] += 1;
+    });
+    return base;
+  }, [appointments]);
+
+  const filtered = useMemo(() => {
+    if (statusFilter === "all") return appointments;
+    return appointments.filter((a) => a.status === statusFilter);
+  }, [appointments, statusFilter]);
 
   if (loading) {
     return (
       <PageShell>
-        <div className="space-y-4"><div className="h-8 rounded-md bg-surface-container-high animate-shimmer" /><div className="h-32 rounded-xl border border-outline-variant/20 animate-shimmer" /></div>
+        <SkeletonCard />
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <PageHeader eyebrow="My Appointments" title="Your Service Appointments" description="View all your booked service appointments and their status." />
+      <PageHeader
+        title="My appointments"
+        description={`${appointments.length} total · ${counts.Pending} pending`}
+      />
 
-      {error && (
-        <div className="bg-danger-50 border border-danger-100 text-danger-700 rounded-lg p-3 text-sm">
-          {error} <button onClick={loadAppointments} className="text-primary font-medium underline ml-2">Retry</button>
-        </div>
-      )}
+      {error ? (
+        <AlertBox
+          tone="error"
+          message={error}
+          dismissible
+          action={
+            <ActionButton tone="secondary" size="sm" onClick={loadAppointments}>
+              Retry
+            </ActionButton>
+          }
+        />
+      ) : null}
 
       {appointments.length === 0 ? (
-        <EmptyState icon={CalendarCheck} title="No appointments" description="You have no appointments yet. Book one now!" />
+        <EmptyState
+          icon={CalendarCheck}
+          title="No appointments yet"
+          description="Book a service to see your visits here."
+          action={
+            <ActionButton onClick={() => navigate("/app/book-appointment")}>
+              Book an appointment
+            </ActionButton>
+          }
+        />
       ) : (
-        <div className="space-y-3">
-          {appointments.map((appt) => (
-            <Card key={appt.appointmentId}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-semibold text-on-surface">{appt.serviceType}</h3>
-                    <Badge variant={badgeVariant(appt.status)}>{appt.status}</Badge>
+        <>
+          <Toolbar
+            leading={
+              <Segmented
+                size="sm"
+                ariaLabel="Filter by status"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "All", count: counts.all },
+                  { value: "Pending", label: "Pending", count: counts.Pending },
+                  { value: "Confirmed", label: "Confirmed", count: counts.Confirmed },
+                  { value: "Completed", label: "Completed", count: counts.Completed },
+                  { value: "Cancelled", label: "Cancelled", count: counts.Cancelled },
+                ]}
+              />
+            }
+          />
+          <div className="space-y-3">
+            {filtered.map((appt) => (
+              <Card key={appt.appointmentId}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-semibold text-[var(--md-sys-color-on-surface)]">
+                        {appt.serviceType}
+                      </h3>
+                      <Badge variant={badgeVariant(appt.status)} dot>
+                        {appt.status}
+                      </Badge>
+                    </div>
+                    <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] tabular">
+                      {appt.vehicleNumber}
+                      {appt.vehicleModel ? ` · ${appt.vehicleModel}` : ""}
+                    </p>
                   </div>
-                  <p className="text-xs text-on-surface-variant">
-                    {appt.vehicleNumber} / {appt.vehicleModel}
+                  {appt.status === "Completed" && !appt.hasReview ? (
+                    <ActionButton
+                      size="sm"
+                      icon={Star}
+                      onClick={() =>
+                        navigate(`/app/write-review/${appt.appointmentId}`)
+                      }
+                    >
+                      Write review
+                    </ActionButton>
+                  ) : null}
+                  {appt.hasReview ? (
+                    <Badge variant="neutral">Reviewed</Badge>
+                  ) : null}
+                </div>
+                <dl className="grid grid-cols-2 gap-3 text-[12px] mt-3 pt-3 border-t border-[var(--md-sys-color-outline-variant)]">
+                  <div>
+                    <dt className="text-[var(--md-sys-color-on-surface-variant)]">
+                      Scheduled
+                    </dt>
+                    <dd className="font-medium text-[var(--md-sys-color-on-surface)] tabular mt-0.5">
+                      {formatDate(appt.appointmentDate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--md-sys-color-on-surface-variant)]">
+                      Booked
+                    </dt>
+                    <dd className="font-medium text-[var(--md-sys-color-on-surface)] tabular mt-0.5">
+                      {formatDate(appt.createdAt)}
+                    </dd>
+                  </div>
+                </dl>
+                {appt.notes ? (
+                  <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)] mt-3">
+                    {appt.notes}
                   </p>
-                </div>
-                {appt.status === "Completed" && !appt.hasReview && (
-                  <ActionButton size="sm" icon={Star} onClick={() => navigate(`/app/write-review/${appt.appointmentId}`)}>
-                    Write Review
-                  </ActionButton>
-                )}
-                {appt.hasReview && (
-                  <span className="text-xs text-on-surface-variant italic shrink-0">Reviewed</span>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-xs mt-3 pt-3 border-t border-white/[0.06]">
-                <div>
-                  <span className="text-on-surface-variant">Appointment Date</span>
-                  <p className="font-medium text-on-surface">{formatDate(appt.appointmentDate)}</p>
-                </div>
-                <div>
-                  <span className="text-on-surface-variant">Booked On</span>
-                  <p className="font-medium text-on-surface">{formatDate(appt.createdAt)}</p>
-                </div>
-              </div>
-              {appt.notes && (
-                <p className="text-xs text-on-surface-variant mt-2"><strong>Notes:</strong> {appt.notes}</p>
-              )}
-            </Card>
-          ))}
-        </div>
+                ) : null}
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </PageShell>
   );

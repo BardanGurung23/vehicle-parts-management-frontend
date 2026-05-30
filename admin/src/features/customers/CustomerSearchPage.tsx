@@ -1,9 +1,12 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Search, X, UserPlus, ArrowRight } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { useAuth } from "../../app/auth";
-import type { CustomerSearchInput, CustomerSearchResult } from "../../app/types";
+import type {
+  CustomerSearchInput,
+  CustomerSearchResult,
+} from "../../app/types";
 import { PageShell } from "../../shared/components/PageShell";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { Badge } from "../../shared/components/Badge";
@@ -11,6 +14,9 @@ import { Card } from "../../shared/components/Card";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { EmptyState } from "../../shared/components/EmptyState";
+import { Field } from "../../shared/components/Field";
+import { Toolbar } from "../../shared/components/Toolbar";
+import { StatCard } from "../../shared/components/StatCard";
 
 type AccountFilter = "all" | "registered" | "staff-created";
 
@@ -31,23 +37,27 @@ function buildCustomerSearchPayload(values: SearchFormState): {
   const name = values.name.trim();
 
   if (!customerIdValue && !phoneNumber && !vehicleNumber && !name) {
-    return { payload: null, error: "Provide at least one search field to look up a customer." };
+    return {
+      payload: null,
+      error: "Provide at least one search field to look up a customer.",
+    };
   }
 
   const payload: CustomerSearchInput = {};
 
   if (customerIdValue) {
-    const parsedCustomerId = Number(customerIdValue);
-    if (!Number.isInteger(parsedCustomerId) || parsedCustomerId <= 0) {
-      return { payload: null, error: "Customer ID must be a positive whole number." };
+    const parsed = Number(customerIdValue);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return {
+        payload: null,
+        error: "Customer ID must be a positive whole number.",
+      };
     }
-    payload.customerId = parsedCustomerId;
+    payload.customerId = parsed;
   }
-
   if (phoneNumber) payload.phoneNumber = phoneNumber;
   if (vehicleNumber) payload.vehicleNumber = vehicleNumber;
   if (name) payload.name = name;
-
   return { payload, error: null };
 }
 
@@ -66,23 +76,21 @@ export function CustomerSearchPage() {
   const [isLoadingDirectory, setIsLoadingDirectory] = useState(true);
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
 
-  const registeredCount = customerResults.filter((customer) => Boolean(customer.userId)).length;
+  const registeredCount = customerResults.filter((c) => Boolean(c.userId)).length;
   const staffCreatedCount = customerResults.length - registeredCount;
-  const visibleCustomerResults = customerResults.filter((customer) => {
+
+  const visibleCustomerResults = useMemo(() => {
     if (accountFilter === "registered") {
-      return Boolean(customer.userId);
+      return customerResults.filter((c) => Boolean(c.userId));
     }
-
     if (accountFilter === "staff-created") {
-      return !customer.userId;
+      return customerResults.filter((c) => !c.userId);
     }
-
-    return true;
-  });
+    return customerResults;
+  }, [accountFilter, customerResults]);
 
   useEffect(() => {
     let isActive = true;
-
     if (!token) {
       setIsLoadingDirectory(false);
       return () => {
@@ -90,28 +98,25 @@ export function CustomerSearchPage() {
       };
     }
 
-    void api.getCustomers(token)
+    void api
+      .getCustomers(token)
       .then((results) => {
-        if (!isActive) {
-          return;
-        }
-
+        if (!isActive) return;
         setCustomerResults(results);
         setPageError(null);
         setHasSearchRun(false);
       })
       .catch((error: unknown) => {
-        if (!isActive) {
-          return;
-        }
-
-        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        if (!isActive) return;
+        setPageError(
+          error instanceof ApiError
+            ? error.message
+            : "Could not load the customer directory.",
+        );
         setCustomerResults([]);
       })
       .finally(() => {
-        if (isActive) {
-          setIsLoadingDirectory(false);
-        }
+        if (isActive) setIsLoadingDirectory(false);
       });
 
     return () => {
@@ -130,7 +135,6 @@ export function CustomerSearchPage() {
       setHasSearchRun(false);
       return;
     }
-
     try {
       setIsSearching(true);
       setPageError(null);
@@ -138,7 +142,11 @@ export function CustomerSearchPage() {
       setCustomerResults(results);
       setHasSearchRun(true);
     } catch (error) {
-      setPageError(error instanceof ApiError ? error.message : "Could not search customers right now.");
+      setPageError(
+        error instanceof ApiError
+          ? error.message
+          : "Could not search customers right now.",
+      );
       setCustomerResults([]);
       setHasSearchRun(true);
     } finally {
@@ -151,18 +159,19 @@ export function CustomerSearchPage() {
     setPageError(null);
     setHasSearchRun(false);
     setAccountFilter("all");
-
     if (!token) {
       setCustomerResults([]);
       return;
     }
-
-    void api.getCustomers(token)
-      .then((results) => {
-        setCustomerResults(results);
-      })
+    void api
+      .getCustomers(token)
+      .then((results) => setCustomerResults(results))
       .catch((error: unknown) => {
-        setPageError(error instanceof ApiError ? error.message : "Could not load the customer directory.");
+        setPageError(
+          error instanceof ApiError
+            ? error.message
+            : "Could not load the customer directory.",
+        );
         setCustomerResults([]);
       });
   };
@@ -170,9 +179,8 @@ export function CustomerSearchPage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Feature 10"
         title="Browse Customers"
-        description="Browse the customer directory, then narrow by customer ID, phone number, vehicle number, or full name."
+        description="Search by ID, phone, vehicle, or name."
         actions={
           <Link to="/app/customers/register">
             <ActionButton icon={UserPlus}>Register customer</ActionButton>
@@ -182,124 +190,192 @@ export function CustomerSearchPage() {
 
       {pageError ? <AlertBox tone="error" message={pageError} dismissible /> : null}
 
+      {/* Filters */}
       <Card
         header={
           <div>
-            <h3 className="text-base font-semibold text-on-surface">Lookup filters</h3>
-            <p className="text-sm text-on-surface-variant">Use filters when you need to narrow the full customer directory.</p>
+            <h3 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)]">
+              Lookup
+            </h3>
+            <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+              Combine fields to narrow the directory.
+            </p>
           </div>
         }
       >
         <form onSubmit={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label htmlFor="search-id" className="block text-xs font-medium text-on-surface-variant mb-1">Customer ID</label>
-              <input id="search-id" className="input" type="text" inputMode="numeric" placeholder="1"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Field label="Customer ID" htmlFor="search-id">
+              <input
+                id="search-id"
+                type="text"
+                inputMode="numeric"
+                placeholder="123"
                 value={searchValues.customerId}
-                onChange={(e) => setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))} />
-            </div>
-            <div>
-              <label htmlFor="search-phone" className="block text-xs font-medium text-on-surface-variant mb-1">Phone number</label>
-              <input id="search-phone" className="input" type="text" placeholder="+9779800000000"
+                onChange={(e) =>
+                  setSearchValues((prev) => ({ ...prev, customerId: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Phone" htmlFor="search-phone">
+              <input
+                id="search-phone"
+                type="text"
+                placeholder="+1 555 123 4567"
                 value={searchValues.phoneNumber}
-                onChange={(e) => setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))} />
-            </div>
-            <div>
-              <label htmlFor="search-vehicle" className="block text-xs font-medium text-on-surface-variant mb-1">Vehicle number</label>
-              <input id="search-vehicle" className="input" type="text" placeholder="BA 1 PA 1234"
+                onChange={(e) =>
+                  setSearchValues((prev) => ({ ...prev, phoneNumber: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Vehicle" htmlFor="search-vehicle">
+              <input
+                id="search-vehicle"
+                type="text"
+                placeholder="ABC 123"
                 value={searchValues.vehicleNumber}
-                onChange={(e) => setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))} />
-            </div>
-            <div>
-              <label htmlFor="search-name" className="block text-xs font-medium text-on-surface-variant mb-1">Customer name</label>
-              <input id="search-name" className="input" type="text" placeholder="Aarav Shrestha"
+                onChange={(e) =>
+                  setSearchValues((prev) => ({ ...prev, vehicleNumber: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Name" htmlFor="search-name">
+              <input
+                id="search-name"
+                type="text"
+                placeholder="Aarav Shrestha"
                 value={searchValues.name}
-                onChange={(e) => setSearchValues((prev) => ({ ...prev, name: e.target.value }))} />
-            </div>
+                onChange={(e) =>
+                  setSearchValues((prev) => ({ ...prev, name: e.target.value }))
+                }
+              />
+            </Field>
           </div>
-          <div className="flex items-center gap-3">
-            <ActionButton type="submit" icon={Search} disabled={isSearching}>
-              {isSearching ? "Searching..." : "Search customers"}
-            </ActionButton>
-            <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>Browse all</ActionButton>
-          </div>
+          <Toolbar
+            leading={
+              <>
+                <ActionButton type="submit" icon={Search} disabled={isSearching}>
+                  {isSearching ? "Searching" : "Search"}
+                </ActionButton>
+                <ActionButton type="button" tone="secondary" icon={X} onClick={resetSearch}>
+                  Reset
+                </ActionButton>
+              </>
+            }
+          />
         </form>
       </Card>
 
-      <Card
-        header={
-          <div>
-            <h3 className="text-base font-semibold text-on-surface">Results</h3>
-            <p className="text-sm text-on-surface-variant">
-              {isLoadingDirectory
-                ? "Loading customer directory..."
+      {/* Results */}
+      {!isLoadingDirectory && customerResults.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <StatCard label="Shown" value={String(visibleCustomerResults.length)} note="After current filter" accent />
+          <StatCard label="Portal accounts" value={String(registeredCount)} note="Self-registered" />
+          <StatCard label="Staff-created" value={String(staffCreatedCount)} note="Created by staff" />
+        </div>
+      ) : null}
+
+      <Card bodyless>
+        <div className="px-5 py-3 border-b border-[var(--md-sys-color-outline-variant)]">
+          <Toolbar
+            caption={
+              isLoadingDirectory
+                ? "Loading directory…"
                 : hasSearchRun
-                ? `${visibleCustomerResults.length} customer result${visibleCustomerResults.length === 1 ? "" : "s"} shown.`
-                : `${visibleCustomerResults.length} customer${visibleCustomerResults.length === 1 ? "" : "s"} shown in the directory.`}
-            </p>
-            {!isLoadingDirectory && customerResults.length > 0 && accountFilter !== "all" ? (
-              <p className="mt-1 text-xs text-on-surface-variant">
-                Showing {visibleCustomerResults.length} of {customerResults.length} records after applying the {accountFilter === "registered" ? "registered accounts" : "staff-created profiles"} filter.
-              </p>
-            ) : null}
-          </div>
-        }
-      >
+                  ? `${visibleCustomerResults.length} result${visibleCustomerResults.length === 1 ? "" : "s"}`
+                  : `${visibleCustomerResults.length} customer${visibleCustomerResults.length === 1 ? "" : "s"}`
+            }
+            leading={
+              <div className="flex flex-wrap gap-2">
+                <ActionButton
+                  size="sm"
+                  tone={accountFilter === "all" ? "primary" : "secondary"}
+                  onClick={() => setAccountFilter("all")}
+                >
+                  All accounts
+                </ActionButton>
+                <ActionButton
+                  size="sm"
+                  tone={accountFilter === "registered" ? "primary" : "secondary"}
+                  onClick={() => setAccountFilter("registered")}
+                >
+                  Registered accounts
+                </ActionButton>
+                <ActionButton
+                  size="sm"
+                  tone={accountFilter === "staff-created" ? "primary" : "secondary"}
+                  onClick={() => setAccountFilter("staff-created")}
+                >
+                  Staff-created profiles
+                </ActionButton>
+              </div>
+            }
+          />
+        </div>
+
         {isLoadingDirectory ? (
-          <p className="text-sm text-on-surface-variant text-center py-8">Loading customer directory...</p>
+          <p className="p-5 text-sm text-[var(--md-sys-color-on-surface-variant)]">
+            Loading directory…
+          </p>
         ) : hasSearchRun && customerResults.length === 0 ? (
-          <EmptyState icon={Search} title="No results" description="No customer matched the filters you entered." />
-        ) : customerResults.length > 0 ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-surface-container-low p-4">
-                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Shown</p>
-                <p className="mt-2 text-2xl font-semibold text-on-surface">{visibleCustomerResults.length}</p>
-              </div>
-              <div className="rounded-2xl bg-surface-container-low p-4">
-                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Registered accounts</p>
-                <p className="mt-2 text-2xl font-semibold text-on-surface">{registeredCount}</p>
-              </div>
-              <div className="rounded-2xl bg-surface-container-low p-4">
-                <p className="text-xs uppercase tracking-wide text-on-surface-variant">Staff-created profiles</p>
-                <p className="mt-2 text-2xl font-semibold text-on-surface">{staffCreatedCount}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <ActionButton size="sm" tone={accountFilter === "all" ? "filled" : "tonal"} onClick={() => setAccountFilter("all")}>All accounts</ActionButton>
-              <ActionButton size="sm" tone={accountFilter === "registered" ? "filled" : "tonal"} onClick={() => setAccountFilter("registered")}>Registered accounts</ActionButton>
-              <ActionButton size="sm" tone={accountFilter === "staff-created" ? "filled" : "tonal"} onClick={() => setAccountFilter("staff-created")}>Staff-created profiles</ActionButton>
-            </div>
-
-            {visibleCustomerResults.length > 0 ? visibleCustomerResults.map((customer) => (
-              <div key={customer.customerId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg ring-1 ring-white/[0.06] bg-surface-container-low/50">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-on-surface">{customer.fullName}</p>
-                    <Badge variant={customer.userId ? "success" : "neutral"}>{customer.userId ? "Portal account" : "Staff-created profile"}</Badge>
-                  </div>
-                  <p className="text-xs text-on-surface-variant">{customer.email ?? "No email recorded"}</p>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-on-surface-variant">
-                    <span>{customer.phoneNumber}</span>
-                    <span>{customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}</span>
-                  </div>
-                  {customer.vehicles.length > 0 ? (
-                    <p className="mt-2 text-xs text-on-surface-variant truncate">
-                      {customer.vehicles.map((vehicle) => vehicle.vehicleNumber).join(" • ")}
+          <div className="p-5">
+            <EmptyState
+              embedded
+              icon={Search}
+              title="No matches"
+              description="Try a different ID, phone, vehicle, or name."
+            />
+          </div>
+        ) : visibleCustomerResults.length > 0 ? (
+          <ul className="divide-y divide-[var(--md-sys-color-outline-variant)]">
+            {visibleCustomerResults.map((customer) => (
+              <li key={customer.customerId}>
+                <Link
+                  to={`/app/customers/${customer.customerId}`}
+                  className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--md-sys-color-surface-container-low)] transition-colors"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-[var(--md-sys-color-on-surface)]">
+                        {customer.fullName}
+                      </p>
+                      <Badge variant={customer.userId ? "success" : "neutral"} dot>
+                        {customer.userId ? "Portal account" : "Staff-created profile"}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-[12px] text-[var(--md-sys-color-on-surface-variant)] truncate">
+                      {customer.phoneNumber}
+                      {customer.email ? ` · ${customer.email}` : ""}
+                      {" · "}
+                      {customer.vehicleCount} vehicle{customer.vehicleCount === 1 ? "" : "s"}
                     </p>
-                  ) : null}
-                </div>
-                <Link to={`/app/customers/${customer.customerId}`} className="shrink-0">
-                  <ActionButton size="sm" icon={ArrowRight}>View details</ActionButton>
+                  </div>
+                  <ArrowRight
+                    className="w-4 h-4 text-[var(--md-sys-color-on-surface-variant)] shrink-0"
+                    aria-hidden="true"
+                  />
                 </Link>
-              </div>
-            )) : (
-              <EmptyState icon={Search} title="No matching accounts" description="No customer matches the selected account visibility filter." />
-            )}
+              </li>
+            ))}
+          </ul>
+        ) : customerResults.length === 0 ? (
+          <div className="p-5">
+            <EmptyState
+              embedded
+              icon={Search}
+              title="No customers yet"
+              description="Customer records will appear here once they are registered."
+            />
           </div>
         ) : (
-          <EmptyState icon={Search} title="No customers yet" description="Customer records will appear here once they are registered." />
+          <div className="p-5">
+            <EmptyState
+              embedded
+              icon={Search}
+              title="No matches for this filter"
+              description="Try a different account type."
+            />
+          </div>
         )}
       </Card>
     </PageShell>

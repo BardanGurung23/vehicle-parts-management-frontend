@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Wrench, Car, UserPlus, Shield, Clock, BarChart3 } from "lucide-react";
+import { Car, Shield, Clock, BarChart3 } from "lucide-react";
 import { api, ApiError } from "../../app/api";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { toast } from "sonner";
+import { AuthShell } from "./AuthShell";
 import { registerSchema } from "./schema";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -46,7 +47,7 @@ export function RegisterCustomerPage() {
         password: values.password,
       });
 
-      const message = `Customer account created for ${response.fullName}. You can sign in now.`;
+      const message = `Account created for ${response.fullName}. You can sign in now.`;
       setSuccessMessage(message);
       toast.success(message);
       reset();
@@ -59,244 +60,199 @@ export function RegisterCustomerPage() {
   });
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.15),transparent_50%)]" />
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-lg shadow-accent-500/30">
-              <Wrench className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Autonix</h1>
-              <p className="text-xs text-slate-400 font-medium">
-                Access Console
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-16 space-y-6">
-            <h2 className="text-3xl font-bold text-white leading-tight">
-              Join Autonix
-              <br />
-              <span className="text-accent-400">and stay in control</span>
-            </h2>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              Create a customer account to book appointments, track repairs,
-              manage your vehicles, and more.
-            </p>
-          </div>
-
-          <div className="mt-12 space-y-4">
-            {features.map((f) => (
-              <div key={f.text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary-container/200/10 flex items-center justify-center">
-                  <f.icon className="w-4 h-4 text-accent-400" />
-                </div>
-                <span className="text-sm text-slate-300">{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-xs text-slate-600">
-          &copy; {new Date().getFullYear()} Autonix. All rights reserved.
+    <AuthShell
+      size="lg"
+      headline={
+        <>
+          Create your Autonix
+          <br />
+          customer account.
+        </>
+      }
+      tagline="Book appointments, track repairs, and manage vehicles from your
+      personal portal."
+      highlights={features}
+    >
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-[var(--md-sys-color-on-surface)]">Create account</h2>
+        <p className="mt-1 text-sm text-[var(--md-sys-color-on-surface-variant)]">
+          Fill in your details to get started.
         </p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-surface">
-        <div className="w-full max-w-lg animate-slideUp">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-lg shadow-accent-500/30">
-              <Wrench className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-on-surface">Autonix</h1>
-              <p className="text-xs text-on-surface-variant">Access Console</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-primary-container/20 flex items-center justify-center">
-              <UserPlus className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-on-surface">
-                Create account
-              </h2>
-              <p className="text-sm text-on-surface-variant">
-                Fill in your details to get started.
-              </p>
-            </div>
-          </div>
-
-          {errorMessage ? (
-            <AlertBox tone="error" message={errorMessage} dismissible />
-          ) : null}
-          {successMessage ? (
-            <AlertBox tone="success" message={successMessage} dismissible />
-          ) : null}
-
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div>
-              <h3 className="text-sm font-semibold text-on-surface mb-3 pb-2 border-b border-white/[0.06]">
-                Account Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <Field
-                    label="Full name"
-                    error={errors.fullName?.message}
-                    required
-                    htmlFor="reg-name"
-                  >
-                    <input
-                      id="reg-name"
-                      className="input"
-                      type="text"
-                      placeholder="Alex Johnson"
-                      {...register("fullName")}
-                    />
-                  </Field>
-                </div>
-                <Field
-                  label="Email"
-                  error={errors.email?.message}
-                  required
-                  htmlFor="reg-email"
-                >
-                  <input
-                    id="reg-email"
-                    className="input"
-                    type="email"
-                    placeholder="alex@example.com"
-                    {...register("email")}
-                  />
-                </Field>
-                <Field
-                  label="Phone number"
-                  error={errors.phoneNumber?.message}
-                  required
-                  htmlFor="reg-phone"
-                >
-                  <input
-                    id="reg-phone"
-                    className="input"
-                    type="tel"
-                    placeholder="+9779800000000"
-                    {...register("phoneNumber")}
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <Field
-                    label="Address"
-                    error={errors.address?.message}
-                    htmlFor="reg-address"
-                  >
-                    <textarea
-                      id="reg-address"
-                      className="input"
-                      rows={3}
-                      placeholder="Optional address"
-                      {...register("address")}
-                    />
-                  </Field>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-on-surface mb-3 pb-2 border-b border-white/[0.06]">
-                Vehicle Information
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field
-                  label="Vehicle number"
-                  error={errors.vehicleNumber?.message}
-                  hint="Add a vehicle or skip for now."
-                  htmlFor="reg-vehicle"
-                >
-                  <input
-                    id="reg-vehicle"
-                    className="input"
-                    type="text"
-                    placeholder="BA 1 PA 1234"
-                    {...register("vehicleNumber")}
-                  />
-                </Field>
-                <Field
-                  label="Vehicle model"
-                  error={errors.vehicleModel?.message}
-                  htmlFor="reg-model"
-                >
-                  <input
-                    id="reg-model"
-                    className="input"
-                    type="text"
-                    placeholder="Civic"
-                    {...register("vehicleModel")}
-                  />
-                </Field>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-on-surface mb-3 pb-2 border-b border-white/[0.06]">
-                Security
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field
-                  label="Password"
-                  error={errors.password?.message}
-                  required
-                  htmlFor="reg-password"
-                >
-                  <input
-                    id="reg-password"
-                    className="input"
-                    type="password"
-                    placeholder="Minimum 8 characters"
-                    {...register("password")}
-                  />
-                </Field>
-                <Field
-                  label="Confirm password"
-                  error={errors.confirmPassword?.message}
-                  required
-                  htmlFor="reg-confirm"
-                >
-                  <input
-                    id="reg-confirm"
-                    className="input"
-                    type="password"
-                    placeholder="Repeat password"
-                    {...register("confirmPassword")}
-                  />
-                </Field>
-              </div>
-            </div>
-
-            <ActionButton
-              type="submit"
-              disabled={isSubmitting}
-              isLoading={isSubmitting}
-              className="w-full"
-            >
-              Register customer
-            </ActionButton>
-          </form>
-
-          <p className="mt-6 text-sm text-on-surface-variant text-center">
-            Already have access?{" "}
-            <Link
-              to="/"
-              className="text-primary font-medium hover:text-accent-700"
-            >
-              Go to login
-            </Link>
-          </p>
-        </div>
+      <div className="space-y-3 mb-6">
+        {errorMessage ? (
+          <AlertBox tone="error" message={errorMessage} dismissible />
+        ) : null}
+        {successMessage ? (
+          <AlertBox tone="success" message={successMessage} dismissible />
+        ) : null}
       </div>
-    </div>
+
+      <form onSubmit={onSubmit} className="space-y-6">
+        <FormSection title="Account information">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <Field
+                label="Full name"
+                error={errors.fullName?.message}
+                required
+                htmlFor="reg-name"
+              >
+                <input
+                  id="reg-name"
+                  type="text"
+                  placeholder="Alex Johnson"
+                  autoComplete="name"
+                  {...register("fullName")}
+                />
+              </Field>
+            </div>
+            <Field
+              label="Email"
+              error={errors.email?.message}
+              required
+              htmlFor="reg-email"
+            >
+              <input
+                id="reg-email"
+                type="email"
+                placeholder="alex@example.com"
+                autoComplete="email"
+                {...register("email")}
+              />
+            </Field>
+            <Field
+              label="Phone number"
+              error={errors.phoneNumber?.message}
+              required
+              htmlFor="reg-phone"
+            >
+              <input
+                id="reg-phone"
+                type="tel"
+                placeholder="+1 555 123 4567"
+                autoComplete="tel"
+                {...register("phoneNumber")}
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field
+                label="Address"
+                error={errors.address?.message}
+                htmlFor="reg-address"
+              >
+                <textarea
+                  id="reg-address"
+                  rows={3}
+                  placeholder="Optional"
+                  autoComplete="street-address"
+                  {...register("address")}
+                />
+              </Field>
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection title="Vehicle information">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field
+              label="Vehicle number"
+              error={errors.vehicleNumber?.message}
+              hint="Add a vehicle now or skip and add it later."
+              htmlFor="reg-vehicle"
+            >
+              <input
+                id="reg-vehicle"
+                type="text"
+                placeholder="ABC 123"
+                {...register("vehicleNumber")}
+              />
+            </Field>
+            <Field
+              label="Vehicle model"
+              error={errors.vehicleModel?.message}
+              htmlFor="reg-model"
+            >
+              <input
+                id="reg-model"
+                type="text"
+                placeholder="Civic"
+                {...register("vehicleModel")}
+              />
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="Security">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field
+              label="Password"
+              error={errors.password?.message}
+              required
+              htmlFor="reg-password"
+            >
+              <input
+                id="reg-password"
+                type="password"
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                {...register("password")}
+              />
+            </Field>
+            <Field
+              label="Confirm password"
+              error={errors.confirmPassword?.message}
+              required
+              htmlFor="reg-confirm"
+            >
+              <input
+                id="reg-confirm"
+                type="password"
+                placeholder="Repeat password"
+                autoComplete="new-password"
+                {...register("confirmPassword")}
+              />
+            </Field>
+          </div>
+        </FormSection>
+
+        <ActionButton
+          type="submit"
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
+          fullWidth
+        >
+          Create account
+        </ActionButton>
+      </form>
+
+      <p className="mt-6 text-sm text-[var(--md-sys-color-on-surface-variant)] text-center">
+        Already have an account?{" "}
+        <Link
+          to="/"
+          className="font-medium text-[var(--md-sys-color-primary)] hover:opacity-80"
+        >
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
+  );
+}
+
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset>
+      <legend className="block text-sm font-semibold text-[var(--md-sys-color-on-surface)] mb-3 pb-2 border-b border-[var(--md-sys-color-outline-variant)] w-full">
+        {title}
+      </legend>
+      {children}
+    </fieldset>
   );
 }

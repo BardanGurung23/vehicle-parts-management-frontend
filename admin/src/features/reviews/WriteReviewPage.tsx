@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../app/auth";
 import { api, ApiError } from "../../app/api";
 import { PageShell } from "../../shared/components/PageShell";
@@ -9,7 +10,8 @@ import { Card } from "../../shared/components/Card";
 import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
-import { toast } from "sonner";
+import { SkeletonCard } from "../../shared/components/Skeleton";
+import { FormSection } from "../../shared/components/FormSection";
 import type { CreateReviewRequest } from "../../app/types";
 
 export function WriteReviewPage() {
@@ -35,67 +37,112 @@ export function WriteReviewPage() {
         navigate("/app/my-reviews");
         return;
       }
-    } catch { /* no review exists, proceed */ }
-    finally { setLoading(false); }
+    } catch {
+      // No existing review — proceed.
+    } finally {
+      setLoading(false);
+    }
   }, [token, appointmentId, navigate]);
 
-  useEffect(() => { loadAppointment(); }, [loadAppointment]);
+  useEffect(() => {
+    void loadAppointment();
+  }, [loadAppointment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !appointmentId) return;
-    if (rating === 0) { setErrorMessage("Please select a rating (1-5 stars)."); return; }
+    if (rating === 0) {
+      setErrorMessage("Select a rating between 1 and 5 stars.");
+      return;
+    }
     try {
-      setErrorMessage(null); setSuccessMessage(null); setSubmitting(true);
-      const payload: CreateReviewRequest = { appointmentId: Number(appointmentId), rating, comment: comment.trim() || undefined };
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      setSubmitting(true);
+      const payload: CreateReviewRequest = {
+        appointmentId: Number(appointmentId),
+        rating,
+        comment: comment.trim() || undefined,
+      };
       await api.createReview(token, payload);
-      setSuccessMessage("Review submitted successfully!");
-      toast.success("Review submitted successfully!");
-      setTimeout(() => navigate("/app/my-reviews"), 1500);
+      setSuccessMessage("Review submitted.");
+      toast.success("Review submitted");
+      window.setTimeout(() => navigate("/app/my-reviews"), 900);
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Failed to submit review.";
-      setErrorMessage(message); toast.error(message);
-    } finally { setSubmitting(false); }
+      const message =
+        error instanceof ApiError ? error.message : "Could not submit the review.";
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
-    return <PageShell><div className="space-y-4"><div className="h-8 rounded-md bg-surface-container-high animate-shimmer" /><div className="h-48 rounded-xl border border-outline-variant/20 animate-shimmer" /></div></PageShell>;
+    return (
+      <PageShell>
+        <SkeletonCard />
+      </PageShell>
+    );
   }
 
   return (
-    <PageShell maxWidth="sm">
-      <PageHeader eyebrow="Review" title="Write a Review" description={`Share your feedback for appointment #${appointmentId}`} />
+    <PageShell maxWidth="md">
+      <PageHeader
+        title="Write a review"
+        description={
+          appointmentId
+            ? `Share your feedback for appointment #${appointmentId}`
+            : "Share your feedback for the recent service"
+        }
+      />
 
       {errorMessage ? <AlertBox tone="error" message={errorMessage} dismissible /> : null}
       {successMessage ? <AlertBox tone="success" message={successMessage} dismissible /> : null}
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Field label="Rating" required htmlFor="rating">
-            <div className="flex gap-1" id="rating">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button key={star} type="button"
-                  className="cursor-pointer bg-transparent border-none p-0.5 transition-colors"
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setRating(star)}
-                  aria-label={`${star} star${star === 1 ? "" : "s"}`}
-                >
-                  <Star className={`w-8 h-8 transition-colors ${star <= (hoverRating || rating) ? "text-warning-500 fill-warning-500" : "text-border"}`} />
-                </button>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="Comment (Optional)" htmlFor="review-comment">
-            <textarea id="review-comment" className="input" rows={4}
-              placeholder="Share your experience with this service..."
-              value={comment} onChange={(e) => setComment(e.target.value)} />
-          </Field>
-
-          <ActionButton type="submit" disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit Review"}
-          </ActionButton>
+          <FormSection title="Your rating">
+            <Field label="Rating" required htmlFor="rating">
+              <div className="flex gap-1" id="rating">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    className="p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--md-sys-color-primary)] rounded"
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setRating(star)}
+                    aria-label={`${star} star${star === 1 ? "" : "s"}`}
+                  >
+                    <Star
+                      className={`w-7 h-7 transition-colors ${
+                        star <= (hoverRating || rating)
+                          ? "text-[var(--warning-500)] fill-[var(--warning-500)]"
+                          : "text-[var(--md-sys-color-outline-variant)]"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </FormSection>
+          <FormSection title="Comment">
+            <Field label="What stood out?" htmlFor="review-comment" hint="Optional">
+              <textarea
+                id="review-comment"
+                rows={4}
+                placeholder="Share details that future customers will find helpful…"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </Field>
+          </FormSection>
+          <div className="flex justify-end pt-2 border-t border-[var(--md-sys-color-outline-variant)]">
+            <ActionButton type="submit" isLoading={submitting} disabled={submitting}>
+              Submit review
+            </ActionButton>
+          </div>
         </form>
       </Card>
     </PageShell>

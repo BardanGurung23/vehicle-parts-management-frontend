@@ -15,6 +15,7 @@ import { Field } from "../../shared/components/Field";
 import { ActionButton } from "../../shared/components/ActionButton";
 import { AlertBox } from "../../shared/components/AlertBox";
 import { SkeletonCard } from "../../shared/components/Skeleton";
+import { FormSection } from "../../shared/components/FormSection";
 import { ProfileSchema } from "./schema";
 
 type ProfileFormValues = z.infer<typeof ProfileSchema>;
@@ -25,7 +26,7 @@ export function CustomerProfilePage() {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileFormValues>({ resolver: zodResolver(ProfileSchema) });
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export function CustomerProfilePage() {
           setPageError(
             error instanceof ApiError
               ? error.message
-              : "Could not load your customer profile.",
+              : "Could not load your profile.",
           );
       })
       .finally(() => {
@@ -72,28 +73,26 @@ export function CustomerProfilePage() {
     try {
       setPageError(null);
       setPageSuccess(null);
-      const updatedCustomer = await api.updateCurrentCustomer(token, {
+      const updated = await api.updateCurrentCustomer(token, {
         fullName: values.fullName,
         email: values.email,
         phoneNumber: values.phoneNumber,
         address: values.address,
       });
-      setCustomer(updatedCustomer);
+      setCustomer(updated);
       reset({
-        fullName: updatedCustomer.fullName,
-        email: updatedCustomer.email ?? "",
-        phoneNumber: updatedCustomer.phoneNumber,
-        address: updatedCustomer.address ?? "",
+        fullName: updated.fullName,
+        email: updated.email ?? "",
+        phoneNumber: updated.phoneNumber,
+        address: updated.address ?? "",
       });
       await refreshProfile();
-      const msg = "Your customer profile was updated.";
+      const msg = "Profile updated.";
       setPageSuccess(msg);
       toast.success(msg);
     } catch (error) {
       const message =
-        error instanceof ApiError
-          ? error.message
-          : "Could not update your customer profile.";
+        error instanceof ApiError ? error.message : "Could not save your profile.";
       setPageError(message);
       toast.error(message);
     }
@@ -110,9 +109,8 @@ export function CustomerProfilePage() {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Feature 12"
-        title="My Profile"
-        description="Review your account details and keep your customer record in sync."
+        title="Profile"
+        description="Keep your contact details up to date."
         actions={
           <Link to="/app/profile/vehicles">
             <ActionButton tone="secondary" icon={Car}>
@@ -122,93 +120,74 @@ export function CustomerProfilePage() {
         }
       />
 
-      {pageError ? (
-        <AlertBox tone="error" message={pageError} dismissible />
-      ) : null}
-      {pageSuccess ? (
-        <AlertBox tone="success" message={pageSuccess} dismissible />
-      ) : null}
+      {pageError ? <AlertBox tone="error" message={pageError} dismissible /> : null}
+      {pageSuccess ? <AlertBox tone="success" message={pageSuccess} dismissible /> : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          header={
-            <div>
-              <h3 className="text-base font-semibold text-on-surface">
-                Update profile
-              </h3>
-              <p className="text-sm text-on-surface-variant">
-                Changes update both your customer record and linked login
-                identity.
-              </p>
-            </div>
-          }
-        >
-          <form onSubmit={onSubmit} className="space-y-4">
-            <Field
-              label="Full name"
-              error={errors.fullName?.message}
-              required
-              htmlFor="profile-name"
-            >
-              <input
-                id="profile-name"
-                className="input"
-                type="text"
-                {...register("fullName")}
-              />
-            </Field>
-            <Field
-              label="Email"
-              error={errors.email?.message}
-              required
-              htmlFor="profile-email"
-            >
-              <input
-                id="profile-email"
-                className="input"
-                type="email"
-                {...register("email")}
-              />
-            </Field>
-            <Field
-              label="Phone number"
-              error={errors.phoneNumber?.message}
-              required
-              htmlFor="profile-phone"
-            >
-              <input
-                id="profile-phone"
-                className="input"
-                type="tel"
-                {...register("phoneNumber")}
-              />
-            </Field>
-            <Field
-              label="Address"
-              error={errors.address?.message}
-              htmlFor="profile-address"
-            >
-              <textarea
-                id="profile-address"
-                className="input"
-                rows={3}
-                {...register("address")}
-              />
-            </Field>
-            <ActionButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving profile..." : "Save profile"}
-            </ActionButton>
-          </form>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Card>
+            <form onSubmit={onSubmit} className="space-y-5">
+              <FormSection title="Identity">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Full name"
+                      error={errors.fullName?.message}
+                      required
+                      htmlFor="profile-name"
+                    >
+                      <input id="profile-name" type="text" {...register("fullName")} />
+                    </Field>
+                  </div>
+                  <Field
+                    label="Email"
+                    error={errors.email?.message}
+                    required
+                    htmlFor="profile-email"
+                  >
+                    <input id="profile-email" type="email" {...register("email")} />
+                  </Field>
+                  <Field
+                    label="Phone"
+                    error={errors.phoneNumber?.message}
+                    required
+                    htmlFor="profile-phone"
+                  >
+                    <input id="profile-phone" type="tel" {...register("phoneNumber")} />
+                  </Field>
+                </div>
+              </FormSection>
+              <FormSection title="Address">
+                <Field
+                  label="Address"
+                  error={errors.address?.message}
+                  htmlFor="profile-address"
+                  hint="Optional"
+                >
+                  <textarea id="profile-address" rows={3} {...register("address")} />
+                </Field>
+              </FormSection>
+              <div className="flex justify-end pt-2 border-t border-[var(--md-sys-color-outline-variant)]">
+                <ActionButton
+                  type="submit"
+                  isLoading={isSubmitting}
+                  disabled={isSubmitting || !isDirty}
+                >
+                  Save changes
+                </ActionButton>
+              </div>
+            </form>
+          </Card>
+        </div>
 
         <Card
           header={
             <div>
-              <h3 className="text-base font-semibold text-on-surface">
-                Current summary
+              <h3 className="text-[15px] font-semibold text-[var(--md-sys-color-on-surface)]">
+                Current record
               </h3>
-              <p className="text-sm text-on-surface-variant">
-                Profile state stored in the customer backend.
+              <p className="text-[12px] text-[var(--md-sys-color-on-surface-variant)]">
+                Profile state on file
               </p>
             </div>
           }
@@ -218,26 +197,22 @@ export function CustomerProfilePage() {
               {[
                 { label: "Customer ID", value: `#${customer.customerId}` },
                 { label: "Phone", value: customer.phoneNumber },
-                {
-                  label: "Email",
-                  value: customer.email ?? "No email recorded",
-                },
-                {
-                  label: "Address",
-                  value: customer.address ?? "No address recorded",
-                },
+                { label: "Email", value: customer.email ?? "—" },
+                { label: "Address", value: customer.address ?? "—" },
               ].map((item) => (
-                <div key={item.label} className="flex gap-3">
-                  <dt className="w-24 text-on-surface-variant shrink-0">
+                <div key={item.label}>
+                  <dt className="text-[11px] uppercase tracking-[0.06em] text-[var(--md-sys-color-on-surface-variant)]">
                     {item.label}
                   </dt>
-                  <dd className="text-on-surface">{item.value}</dd>
+                  <dd className="mt-0.5 text-[var(--md-sys-color-on-surface)]">
+                    {item.value}
+                  </dd>
                 </div>
               ))}
             </dl>
           ) : (
-            <p className="text-sm text-on-surface-variant">
-              Customer profile data is unavailable right now.
+            <p className="text-sm text-[var(--md-sys-color-on-surface-variant)]">
+              Customer record is unavailable right now.
             </p>
           )}
         </Card>

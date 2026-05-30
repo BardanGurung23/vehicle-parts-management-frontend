@@ -19,7 +19,6 @@ vi.mock("../../app/auth", () => ({
 vi.mock("../../app/api", () => ({
   ApiError: class ApiError extends Error {
     status: number;
-
     constructor(message: string, status: number) {
       super(message);
       this.status = status;
@@ -33,10 +32,12 @@ vi.mock("../../app/api", () => ({
   },
 }));
 
-vi.mock("react-toastify", () => ({
+vi.mock("sonner", () => ({
   toast: {
     error: (...args: unknown[]) => toastError(...args),
     success: (...args: unknown[]) => toastSuccess(...args),
+    info: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -63,10 +64,13 @@ describe("PartsPage", () => {
   });
 
   it("shows the normalized ApiError message when deleting a referenced part fails", async () => {
-    deletePart.mockRejectedValueOnce(new (await import("../../app/api")).ApiError(
-      "This part cannot be deleted because it is already referenced by sales or purchase invoices.",
-      400,
-    ));
+    const { ApiError } = await import("../../app/api");
+    deletePart.mockRejectedValueOnce(
+      new ApiError(
+        "This part cannot be deleted because it is already referenced by sales or purchase invoices.",
+        400,
+      ),
+    );
 
     render(
       <MemoryRouter>
@@ -74,10 +78,19 @@ describe("PartsPage", () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("12V Maintenance-Free Battery")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("12V Maintenance-Free Battery")).toBeInTheDocument(),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    // Open the delete confirmation from the row action.
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /delete 12v maintenance-free battery/i,
+      }),
+    );
+
+    // Confirm in the dialog.
+    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
 
     await waitFor(() => {
       expect(toastError).toHaveBeenCalledWith(
